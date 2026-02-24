@@ -3,11 +3,10 @@ import { getUserId } from '@/app/lib/userId';
 import { getSupplements } from '@/app/lib/db';
 
 const MODELS = [
-    'gemini-2.0-flash-lite',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-latest',
-    'gemini-pro-vision',
+    'gemini-2.5-flash-lite',
+    'gemini-2.5-flash',
+    'gemini-flash-lite-latest',
+    'gemini-flash-latest',
 ];
 
 async function callGemini(apiKey, base64Data, mimeType, prompt) {
