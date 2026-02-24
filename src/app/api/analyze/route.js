@@ -1,17 +1,65 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getUserId } from '@/app/lib/userId';
 import { getSupplements } from '@/app/lib/db';
 
-function getGenAI() {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-        throw new Error('GEMINI_API_KEY is not configured');
+const MODELS = [
+    'gemini-2.0-flash-lite',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-latest',
+    'gemini-pro-vision',
+];
+
+async function callGemini(apiKey, base64Data, mimeType, prompt) {
+    let lastError = null;
+
+    for (const model of MODELS) {
+        for (const apiVersion of ['v1beta', 'v1']) {
+            try {
+                const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:generateContent?key=${apiKey}`;
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: prompt },
+                                { inline_data: { mime_type: mimeType, data: base64Data } },
+                            ],
+                        }],
+                        generationConfig: {
+                            temperature: 0.2,
+                            maxOutputTokens: 1024,
+                        },
+                    }),
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) {
+                        console.log(`Gemini success with model: ${model}, apiVersion: ${apiVersion}`);
+                        return text.trim();
+                    }
+                } else {
+                    const errData = await res.json().catch(() => ({}));
+                    lastError = `${model}/${apiVersion}: ${res.status} - ${errData.error?.message || 'Unknown error'}`;
+                    console.log(`Gemini attempt failed: ${lastError}`);
+                    // If 404, try next api version or model
+                    // If 429 (quota), try next model
+                    continue;
+                }
+            } catch (e) {
+                lastError = `${model}/${apiVersion}: ${e.message}`;
+                continue;
+            }
+        }
     }
-    return new GoogleGenerativeAI(apiKey);
+
+    throw new Error(`All Gemini models failed. Last error: ${lastError}`);
 }
 
-// Analyze a nutrition label photo → extract supplement info
 export async function POST(request) {
     try {
         const { image, mode } = await request.json();
@@ -20,17 +68,17 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Image data is required' }, { status: 400 });
         }
 
-        const genAI = getGenAI();
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 });
+        }
 
-        // Remove data URL prefix if present
+        // Extract base64 data and mime type
+        const mimeMatch = image.match(/^data:(image\/\w+);base64,/);
+        const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
         const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
-        const imagePart = {
-            inlineData: { data: base64Data, mimeType: 'image/jpeg' },
-        };
 
         if (mode === 'label') {
-            // Mode 1: Nutrition label → extract supplement info
             const prompt = `You are analyzing a supplement/vitamin nutrition label photo.
 Extract the following information and return it as valid JSON only (no markdown, no code fences):
 {
@@ -48,10 +96,8 @@ Guidelines:
 - If you cannot identify the supplement clearly, set name to the most visible product text
 - Return ONLY the JSON object, nothing else`;
 
-            const result = await model.generateContent([prompt, imagePart]);
-            const text = result.response.text().trim();
+            const text = await callGemini(apiKey, base64Data, mimeType, prompt);
 
-            // Parse JSON from response (handle potential markdown wrapping)
             let parsed;
             try {
                 const jsonStr = text.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
@@ -63,7 +109,6 @@ Guidelines:
             return NextResponse.json({ success: true, supplement: parsed });
 
         } else if (mode === 'checkin') {
-            // Mode 2: Capsule/pill photo → identify which supplement
             const userId = await getUserId();
             const supplements = await getSupplements(userId);
 
@@ -96,8 +141,7 @@ Guidelines:
 - If nothing matches, return empty matches array
 - Return ONLY the JSON object`;
 
-            const result = await model.generateContent([prompt, imagePart]);
-            const text = result.response.text().trim();
+            const text = await callGemini(apiKey, base64Data, mimeType, prompt);
 
             let parsed;
             try {
@@ -120,9 +164,6 @@ Guidelines:
         return NextResponse.json({ error: 'Invalid mode. Use "label" or "checkin"' }, { status: 400 });
     } catch (error) {
         console.error('AI analysis error:', error);
-        const message = error.message?.includes('API_KEY')
-            ? 'Gemini API key not configured'
-            : 'Failed to analyze image';
-        return NextResponse.json({ error: message }, { status: 500 });
+        return NextResponse.json({ error: error.message || 'Failed to analyze image' }, { status: 500 });
     }
 }
