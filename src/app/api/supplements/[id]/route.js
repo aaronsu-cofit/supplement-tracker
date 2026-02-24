@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { updateSupplement, deleteSupplement } from '@/app/lib/db';
-import { getUserId } from '@/app/lib/userId';
+import { getUserId, withUserCookie } from '@/app/lib/userId';
 
 export async function PUT(request, { params }) {
     try {
@@ -16,7 +16,7 @@ export async function PUT(request, { params }) {
         if (!supplement) {
             return NextResponse.json({ error: 'Not found' }, { status: 404 });
         }
-        return NextResponse.json(supplement);
+        return withUserCookie(NextResponse.json(supplement), userId);
     } catch (error) {
         console.error('Error updating supplement:', error);
         return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
@@ -28,7 +28,7 @@ export async function DELETE(request, { params }) {
         const userId = await getUserId();
         const { id } = await params;
         await deleteSupplement(userId, parseInt(id));
-        return NextResponse.json({ success: true });
+        return withUserCookie(NextResponse.json({ success: true }), userId);
     } catch (error) {
         console.error('Error deleting supplement:', error);
         return NextResponse.json({ error: 'Failed to delete' }, { status: 500 });
