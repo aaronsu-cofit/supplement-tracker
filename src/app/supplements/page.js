@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/app/lib/i18n/LanguageContext';
 import AddSupplementModal from '@/app/components/AddSupplementModal';
+import CameraCapture from '@/app/components/CameraCapture';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
 
 export default function SupplementsPage() {
@@ -12,6 +13,8 @@ export default function SupplementsPage() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editData, setEditData] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
+    const [cameraOpen, setCameraOpen] = useState(false);
+    const [aiResult, setAiResult] = useState(null);
 
     const fetchSupplements = useCallback(async () => {
         try {
@@ -47,6 +50,7 @@ export default function SupplementsPage() {
             }
             setModalOpen(false);
             setEditData(null);
+            setAiResult(null);
             fetchSupplements();
         } catch (err) {
             console.error('Save error:', err);
@@ -65,12 +69,30 @@ export default function SupplementsPage() {
 
     const openEdit = (supplement) => {
         setEditData(supplement);
+        setAiResult(null);
         setModalOpen(true);
     };
 
     const openAdd = () => {
         setEditData(null);
+        setAiResult(null);
         setModalOpen(true);
+    };
+
+    const handleAiLabelResult = (data) => {
+        if (data.success && data.supplement) {
+            setCameraOpen(false);
+            setAiResult(data.supplement);
+            // Pre-fill form with AI results
+            setEditData(null);
+            setModalOpen(true);
+        }
+    };
+
+    const handleConfirmAiResult = async () => {
+        if (aiResult) {
+            await handleSave(aiResult);
+        }
     };
 
     const timeIcons = { morning: '🌅', afternoon: '☀️', evening: '🌙' };
@@ -101,11 +123,17 @@ export default function SupplementsPage() {
                 <h1 className="page-title">{t('supplements.title')}</h1>
             </div>
 
-            <button className="btn-add" onClick={openAdd}>
-                + {t('supplements.add')}
-            </button>
+            {/* Action Buttons */}
+            <div className="action-group">
+                <button className="btn-action" onClick={openAdd}>
+                    ➕ {t('supplements.add')}
+                </button>
+                <button className="btn-action primary" onClick={() => setCameraOpen(true)}>
+                    📸 {t('ai.photoAdd')}
+                </button>
+            </div>
 
-            <div style={{ marginTop: 16 }}>
+            <div>
                 {supplements.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">📦</div>
@@ -141,12 +169,41 @@ export default function SupplementsPage() {
                 )}
             </div>
 
+            {/* Add/Edit Modal - with AI pre-fill support */}
             <AddSupplementModal
                 isOpen={modalOpen}
-                onClose={() => { setModalOpen(false); setEditData(null); }}
+                onClose={() => { setModalOpen(false); setEditData(null); setAiResult(null); }}
                 onSave={handleSave}
-                editData={editData}
+                editData={editData || aiResult}
             />
+
+            {/* AI Result Confirmation (shown before modal if AI result exists) */}
+            {modalOpen && aiResult && (
+                <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 1100 }}>
+                    <div className="ai-result-card" style={{ minWidth: 280 }}>
+                        <div className="ai-result-title">🤖 {t('ai.labelResult')}</div>
+                        <div className="ai-result-field">
+                            <span className="ai-result-label">{t('supplements.name')}</span>
+                            <span className="ai-result-value">{aiResult.name}</span>
+                        </div>
+                        {aiResult.dosage && (
+                            <div className="ai-result-field">
+                                <span className="ai-result-label">{t('supplements.dosage')}</span>
+                                <span className="ai-result-value">{aiResult.dosage}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Camera Modal */}
+            {cameraOpen && (
+                <CameraCapture
+                    mode="label"
+                    onResult={handleAiLabelResult}
+                    onClose={() => setCameraOpen(false)}
+                />
+            )}
 
             {/* Delete Confirmation */}
             {deleteConfirm && (

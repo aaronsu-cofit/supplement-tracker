@@ -26,7 +26,7 @@
 
   --gradient-primary: linear-gradient(135deg, #7c5cfc, #5ce0d8);
   --gradient-warm: linear-gradient(135deg, #ffa64d, #ff5c8a);
-  --gradient-card: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  --gradient-card: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
 
   --shadow-glow: 0 0 40px rgba(124, 92, 252, 0.15);
   --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
@@ -49,7 +49,8 @@
   padding: 0;
 }
 
-html, body {
+html,
+body {
   font-family: var(--font-family);
   background: var(--bg-primary);
   color: var(--text-primary);
@@ -790,23 +791,45 @@ textarea.form-input {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes checkPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.15); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.15);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .check-animate {
@@ -814,8 +837,15 @@ textarea.form-input {
 }
 
 @keyframes slideInUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .slide-in {
@@ -908,4 +938,196 @@ textarea.form-input {
 ::-webkit-scrollbar-thumb {
   background: var(--border-light);
   border-radius: 2px;
+}
+
+/* Camera Capture */
+.camera-capture-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px;
+  gap: 12px;
+}
+
+.camera-icon {
+  font-size: 56px;
+  margin-bottom: 8px;
+}
+
+.camera-hint {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.camera-file-input {
+  display: none;
+}
+
+.camera-btn {
+  display: block;
+  text-align: center;
+  width: 100%;
+  cursor: pointer;
+}
+
+.camera-preview-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.camera-preview-img {
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.camera-error {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 92, 92, 0.1);
+  border: 1px solid rgba(255, 92, 92, 0.2);
+  color: var(--accent-danger);
+  font-size: 13px;
+  text-align: center;
+}
+
+.spinner-small {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.analyzing-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* AI Result Card */
+.ai-result-card {
+  background: var(--bg-card);
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.ai-result-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-result-field {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ai-result-field:last-child {
+  border-bottom: none;
+}
+
+.ai-result-label {
+  color: var(--text-secondary);
+}
+
+.ai-result-value {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.ai-match-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+}
+
+.ai-match-name {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.ai-match-confidence {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 12px;
+}
+
+.ai-match-confidence.high {
+  background: rgba(77, 255, 145, 0.15);
+  color: var(--accent-success);
+}
+
+.ai-match-confidence.medium {
+  background: rgba(255, 166, 77, 0.15);
+  color: var(--accent-warning);
+}
+
+.ai-match-confidence.low {
+  background: rgba(255, 92, 92, 0.1);
+  color: var(--accent-danger);
+}
+
+/* Action group for page buttons */
+.action-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.btn-action {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-family);
+  transition: all var(--transition-fast);
+}
+
+.btn-action:hover {
+  background: var(--bg-glass-strong);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.btn-action.primary {
+  background: rgba(124, 92, 252, 0.1);
+  border-color: rgba(124, 92, 252, 0.3);
+  color: var(--accent-primary);
+}
+
+.btn-action.primary:hover {
+  background: rgba(124, 92, 252, 0.2);
 }

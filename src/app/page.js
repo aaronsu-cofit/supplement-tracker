@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/app/lib/i18n/LanguageContext';
+import CameraCapture from '@/app/components/CameraCapture';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
 
 export default function HomePage() {
@@ -11,6 +12,8 @@ export default function HomePage() {
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
   const [animatingId, setAnimatingId] = useState(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [aiMatches, setAiMatches] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -68,6 +71,27 @@ export default function HomePage() {
     }
   };
 
+  // Handle AI capsule recognition result
+  const handleAiCheckinResult = async (data) => {
+    setCameraOpen(false);
+    if (data.success && data.result?.matches?.length > 0) {
+      setAiMatches(data.result);
+    } else {
+      setAiMatches({ matches: [], description: data.result?.description || '' });
+    }
+  };
+
+  const handleConfirmAiCheckin = async () => {
+    if (aiMatches?.matches) {
+      for (const match of aiMatches.matches) {
+        if (match.confidence !== 'low') {
+          await handleCheckIn(match.id);
+        }
+      }
+    }
+    setAiMatches(null);
+  };
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return { text: t('home.greeting'), emoji: '☀️' };
@@ -100,6 +124,12 @@ export default function HomePage() {
     morning: t('home.morning'),
     afternoon: t('home.afternoon'),
     evening: t('home.evening'),
+  };
+
+  const confidenceLabels = {
+    high: t('ai.high'),
+    medium: t('ai.medium'),
+    low: t('ai.low'),
   };
 
   if (loading) {
@@ -171,6 +201,13 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* AI Photo Check-in Button */}
+          <div className="action-group">
+            <button className="btn-action primary" onClick={() => setCameraOpen(true)} style={{ flex: 1 }}>
+              📸 {t('ai.photoCheckin')}
+            </button>
+          </div>
+
           {checkedCount === totalCount && (
             <div className="all-done-banner">{t('home.allDone')}</div>
           )}
@@ -210,6 +247,60 @@ export default function HomePage() {
               )
           )}
         </>
+      )}
+
+      {/* Camera for AI Check-in */}
+      {cameraOpen && (
+        <CameraCapture
+          mode="checkin"
+          onResult={handleAiCheckinResult}
+          onClose={() => setCameraOpen(false)}
+        />
+      )}
+
+      {/* AI Match Results Modal */}
+      {aiMatches && (
+        <div className="modal-overlay" onClick={() => setAiMatches(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2 className="modal-title">
+              {aiMatches.matches.length > 0 ? t('ai.matchFound') : t('ai.noMatch')}
+            </h2>
+
+            {aiMatches.description && (
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+                {aiMatches.description}
+              </p>
+            )}
+
+            {aiMatches.matches.length > 0 ? (
+              <>
+                <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                  {t('ai.matchConfirm')}
+                </p>
+                {aiMatches.matches.map((match) => (
+                  <div key={match.id} className="ai-match-item">
+                    <span className="ai-match-name">💊 {match.name}</span>
+                    <span className={`ai-match-confidence ${match.confidence}`}>
+                      {confidenceLabels[match.confidence] || match.confidence}
+                    </span>
+                  </div>
+                ))}
+                <div className="form-actions">
+                  <button className="btn btn-ghost" onClick={() => setAiMatches(null)}>
+                    {t('common.cancel')}
+                  </button>
+                  <button className="btn btn-primary" onClick={handleConfirmAiCheckin}>
+                    ✅ {t('common.confirm')}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button className="btn btn-ghost" onClick={() => setAiMatches(null)} style={{ width: '100%', marginTop: 12 }}>
+                {t('common.close')}
+              </button>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
