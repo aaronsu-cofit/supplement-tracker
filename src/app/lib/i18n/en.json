@@ -1,0 +1,73 @@
+{
+    "app": {
+        "title": "Supplement Tracker",
+        "subtitle": "Easily manage your daily supplements"
+    },
+    "nav": {
+        "home": "Today",
+        "supplements": "Supplements",
+        "history": "History"
+    },
+    "home": {
+        "greeting": "Good morning",
+        "greetingAfternoon": "Good afternoon",
+        "greetingEvening": "Good evening",
+        "todayProgress": "Today's Progress",
+        "streak": "Streak",
+        "days": "days",
+        "allDone": "All done for today! 🎉",
+        "remaining": "{count} remaining",
+        "noSupplements": "No supplements yet. Add your first one!",
+        "addFirst": "Add Supplement",
+        "morning": "Morning",
+        "afternoon": "Afternoon",
+        "evening": "Evening",
+        "checkedIn": "Taken ✓",
+        "checkIn": "Check In"
+    },
+    "supplements": {
+        "title": "My Supplements",
+        "add": "Add Supplement",
+        "edit": "Edit",
+        "delete": "Delete",
+        "deleteConfirm": "Are you sure you want to delete this supplement?",
+        "name": "Name",
+        "namePlaceholder": "e.g. Vitamin C",
+        "dosage": "Dosage",
+        "dosagePlaceholder": "e.g. 1000mg",
+        "frequency": "Frequency",
+        "daily": "Daily",
+        "weekdays": "Weekdays",
+        "custom": "Custom",
+        "timeOfDay": "Time of Day",
+        "morning": "Morning",
+        "afternoon": "Afternoon",
+        "evening": "Evening",
+        "notes": "Notes",
+        "notesPlaceholder": "Any additional notes...",
+        "save": "Save",
+        "cancel": "Cancel",
+        "empty": "No supplements yet",
+        "emptyHint": "Click the button above to add your first supplement"
+    },
+    "history": {
+        "title": "History",
+        "noRecords": "No records for this period",
+        "supplementsTaken": "Taken",
+        "items": "items",
+        "viewDetails": "View Details",
+        "date": "Date"
+    },
+    "common": {
+        "loading": "Loading...",
+        "error": "An error occurred",
+        "retry": "Retry",
+        "confirm": "Confirm",
+        "cancel": "Cancel",
+        "save": "Save",
+        "delete": "Delete",
+        "edit": "Edit",
+        "close": "Close",
+        "back": "Back"
+    }
+}
