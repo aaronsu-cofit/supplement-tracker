@@ -4,11 +4,13 @@ import Link from 'next/link';
 
 export default function WoundsLayout({ children }) {
     const pathname = usePathname();
+    const isAdmin = pathname?.includes('/admin');
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f5f7fa', color: '#333' }}>
             {/* Top App Bar Header */}
-            <header style={{
+            {!isAdmin && (
+                <header style={{
                 background: '#fff',
                 padding: '1rem',
                 borderBottom: '1px solid #eaeaea',
@@ -19,17 +21,19 @@ export default function WoundsLayout({ children }) {
                 top: 0,
                 zIndex: 10
             }}>
-                <h1 style={{ fontSize: '1.1rem', margin: 0, color: '#ff6b6b' }}>🩹 Wounds Care V1</h1>
-            </header>
+                    <h1 style={{ fontSize: '1.1rem', margin: 0, color: '#ff6b6b' }}>🩹 Wounds Care V1</h1>
+                </header>
+            )}
 
             {/* Main Content Area */}
-            <main style={{ flex: 1, paddingBottom: '70px', overflowY: 'auto' }}>
+            <main style={{ flex: 1, paddingBottom: isAdmin ? '0' : '70px', overflowY: 'auto' }}>
                 {children}
             </main>
 
             {/* Bottom Navigation for Wounds App */}
-            <nav style={{
-                position: 'fixed',
+            {!isAdmin && (
+                <nav style={{
+                    position: 'fixed',
                 bottom: 0,
                 width: '100%',
                 background: '#fff',
@@ -53,7 +57,8 @@ export default function WoundsLayout({ children }) {
                     <span style={{ fontSize: '0.75rem', marginTop: '4px' }}>衛教與商城</span>
                 </Link>
                 */}
-            </nav>
+                </nav>
+            )}
         </div>
     );
 }

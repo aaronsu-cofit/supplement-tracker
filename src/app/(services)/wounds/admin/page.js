@@ -24,8 +24,39 @@ export default function WoundsAdminDashboard() {
                         latest_log: w.logs?.[0] || null,
                         history: w.logs || []
                     }));
-                    setPatients(mappedPatients);
-                    if (mappedPatients.length > 0) setSelectedPatient(mappedPatients[0]);
+
+                    const demoPatient = {
+                        id: 'demo-1',
+                        name: '張大明 (Demo)',
+                        wound_id: 'demo',
+                        surgery_date: '2023-10-01',
+                        latest_log: {
+                            logged_at: new Date().toISOString(),
+                            nrs_pain_score: 3,
+                            symptoms: '無明顯不是',
+                            ai_status_label: '✅ 穩定復原',
+                            ai_assessment_summary: '傷口紅腫已消退，滲出液減少，癒合狀況良好。',
+                            image_data: 'https://images.unsplash.com/photo-1584062257926-88ab897858c8?auto=format&fit=crop&q=80&w=300' // Generic medical placeholder
+                        },
+                        history: [
+                            {
+                                id: 'h1',
+                                logged_at: new Date(Date.now() - 14 * 86400000).toISOString(),
+                                ai_status_label: '⚠️ 留意觀察',
+                                image_data: 'https://images.unsplash.com/photo-1584062257926-88ab897858c8?auto=format&fit=crop&q=80&w=300'
+                            },
+                            {
+                                id: 'h2',
+                                logged_at: new Date(Date.now() - 7 * 86400000).toISOString(),
+                                ai_status_label: '✅ 穩定復原',
+                                image_data: 'https://images.unsplash.com/photo-1584062257926-88ab897858c8?auto=format&fit=crop&q=80&w=300'
+                            }
+                        ]
+                    };
+
+                    const finalPatients = [demoPatient, ...mappedPatients];
+                    setPatients(finalPatients);
+                    if (finalPatients.length > 0) setSelectedPatient(finalPatients[0]);
                 }
             } catch (err) {
                 console.error(err);
@@ -45,6 +76,25 @@ export default function WoundsAdminDashboard() {
         if (!selectedPatient) return;
         setGeneratingSoap(true);
         setSoapNote(null);
+
+        if (selectedPatient.wound_id === 'demo') {
+            setTimeout(() => {
+                setSoapNote(`S (Subjective - 主觀資料):
+病患表示這幾日痛感從初始的 7 分下降到 3 分，目前未感覺到明顯發熱或異味。
+
+O (Objective - 客觀資料):
+根據連續 14 天影像紀錄，初期傷口周圍有輕微紅腫與較多黃色滲出液。至第 7 天紅腫顯著消退，第 14 天滲出液極少，傷口邊緣已開始進行上皮化收斂。
+
+A (Assessment - 評估):
+傷口癒合進度符合預期，無明顯感染徵兆。目前處於穩定復原階段，上皮化進展良好。
+
+P (Plan - 計畫):
+建議持續更換防水泡棉敷料保持乾淨。可開始在新生皮膚處塗抹少量矽膠除疤凝膠，並於一週後來院拆線或進行後續追蹤。`);
+                setGeneratingSoap(false);
+            }, 1500);
+            return;
+        }
+
         try {
             const res = await fetch(`/api/wounds/${selectedPatient.wound_id}/soap`, { method: 'POST' });
             if (res.ok) {
