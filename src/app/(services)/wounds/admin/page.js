@@ -9,6 +9,8 @@ export default function WoundsAdminDashboard() {
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [generatingSoap, setGeneratingSoap] = useState(false);
     const [soapNote, setSoapNote] = useState(null);
+    const [editingId, setEditingId] = useState(null);
+    const [editingName, setEditingName] = useState('');
 
     useEffect(() => {
         const fetchAllData = async () => {
@@ -83,6 +85,36 @@ export default function WoundsAdminDashboard() {
         setSoapNote(null);
     };
 
+    const handleStartEdit = (p, e) => {
+        e.stopPropagation();
+        setEditingId(p.id);
+        setEditingName(p.name);
+    };
+
+    const handleSaveRename = async (p) => {
+        const newName = editingName.trim();
+        setEditingId(null);
+        if (!newName || newName === p.name) return;
+
+        // Update local state immediately
+        const updated = patients.map(pt => pt.id === p.id ? { ...pt, name: newName } : pt);
+        setPatients(updated);
+        if (selectedPatient?.id === p.id) setSelectedPatient({ ...selectedPatient, name: newName });
+
+        // Persist to DB (skip for demo patient)
+        if (p.wound_id !== 'demo') {
+            try {
+                await fetch(`/api/wounds/${p.wound_id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newName })
+                });
+            } catch (err) {
+                console.error('Failed to save name:', err);
+            }
+        }
+    };
+
     const handleGenerateSoap = async () => {
         if (!selectedPatient) return;
         setGeneratingSoap(true);
@@ -153,8 +185,20 @@ P (Plan - 計畫):
                                     cursor: 'pointer',
                                     boxShadow: selectedPatient?.id === p.id ? '0 2px 8px rgba(0,0,0,0.1)' : 'none'
                                 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                        <b style={{ color: '#2c3e50' }}>{p.name}</b>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', alignItems: 'center' }}>
+                                        {editingId === p.id ? (
+                                            <input
+                                                autoFocus
+                                                value={editingName}
+                                                onChange={e => setEditingName(e.target.value)}
+                                                onBlur={() => handleSaveRename(p)}
+                                                onKeyDown={e => { if (e.key === 'Enter') handleSaveRename(p); }}
+                                                onClick={e => e.stopPropagation()}
+                                                style={{ border: '1px solid #3498db', borderRadius: '4px', padding: '0.2rem 0.4rem', fontSize: '0.9rem', fontWeight: 'bold', width: '100%', maxWidth: '120px' }}
+                                            />
+                                        ) : (
+                                            <b style={{ color: '#2c3e50', cursor: 'text' }} onClick={e => handleStartEdit(p, e)}>{p.name} ✏️</b>
+                                        )}
                                         <span style={{ fontSize: '0.8rem', color: '#888' }}>
                                             NRS: {p.latest_log?.nrs_pain_score || 0}
                                         </span>
@@ -184,30 +228,44 @@ P (Plan - 計畫):
                                 </button>
                             </div>
 
-                            {/* Timeline Slider */}
-                            <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem' }}>
-                                {selectedPatient.history.length === 0 ? (
-                                    <div style={{ color: '#aaa', fontSize: '0.9rem' }}>尚無歷史紀錄</div>
-                                ) : (
-                                    selectedPatient.history.map((log, idx) => (
-                                    <div key={log.id} style={{ minWidth: '200px', border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden' }}>
-                                        {log.image_data ? (
-                                            <img src={log.image_data} alt="Wound" style={{ width: '100%', height: '140px', objectFit: 'cover' }} />
-                                        ) : (
-                                            <div style={{ width: '100%', height: '140px', background: '#eee' }}></div>
-                                        )}
-                                        <div style={{ padding: '0.8rem' }}>
-                                            <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.3rem' }}>
-                                                {new Date(log.logged_at).toLocaleDateString()}
+                            {/* Detailed Vertical Timeline */}
+                            <h3 style={{ fontSize: '1rem', color: '#7f8c8d', margin: '0 0 1rem 0' }}>📅 完整照護歷程</h3>
+                            {selectedPatient.history.length === 0 ? (
+                                <div style={{ color: '#aaa', fontSize: '0.9rem', padding: '1rem', background: '#f9f9f9', borderRadius: '8px' }}>尚無歷史紀錄</div>
+                            ) : (
+                                <div style={{ position: 'relative', paddingLeft: '18px', maxHeight: '400px', overflowY: 'auto' }}>
+                                    {/* Vertical Line */}
+                                    <div style={{ position: 'absolute', left: '24px', top: '8px', bottom: '8px', width: '2px', background: '#e0e0e0', zIndex: 0 }}></div>
+                                    {selectedPatient.history.map((log) => {
+                                        const logDate = new Date(log.logged_at);
+                                        const isConcern = log.ai_status_label?.includes('留意') || log.ai_status_label?.includes('諮詢');
+                                        const dotColor = isConcern ? '#ffa502' : '#2ed573';
+                                        return (
+                                            <div key={log.id} style={{ position: 'relative', zIndex: 1, marginBottom: '1.2rem' }}>
+                                                <div style={{ position: 'absolute', left: 0, top: '12px', width: '13px', height: '13px', borderRadius: '50%', background: dotColor, border: '2px solid #fff', boxShadow: '0 0 0 2px #e0e0e0' }}></div>
+                                                <div style={{ marginLeft: '28px', background: '#fafafa', borderRadius: '8px', padding: '0.8rem', border: '1px solid #eee' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                        <span style={{ fontSize: '0.8rem', color: '#888' }}>{logDate.toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                                                        <span style={{ background: isConcern ? '#fff3cd' : '#d4edda', color: isConcern ? '#856404' : '#155724', padding: '0.15rem 0.4rem', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                                                            {log.ai_status_label || '穩定'}
+                                                        </span>
+                                                    </div>
+                                                    {log.image_data && (
+                                                        <img src={log.image_data} alt="Wound" style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '6px', marginBottom: '0.5rem' }} />
+                                                    )}
+                                                    {log.ai_assessment_summary && (
+                                                        <div style={{ fontSize: '0.8rem', color: '#555', lineHeight: 1.4, marginBottom: '0.4rem' }}>{log.ai_assessment_summary}</div>
+                                                    )}
+                                                    <div style={{ fontSize: '0.75rem', color: '#999', display: 'flex', gap: '0.8rem' }}>
+                                                        <span>🌡️ 痛感: {log.nrs_pain_score ?? '-'}/10</span>
+                                                        <span>📝 症狀: {log.symptoms || '皆無'}</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div style={{ fontSize: '0.85rem', color: '#333' }}>
-                                                {log.ai_status_label}
-                                            </div>
-                                        </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
 
                             {/* Medical Summary Draft */}
                             <div style={{ marginTop: '1rem', padding: '1.5rem', background: '#f4f6f7', borderRadius: '8px' }}>

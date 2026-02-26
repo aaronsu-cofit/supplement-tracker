@@ -308,6 +308,17 @@ export async function getAllWoundsAdmin() {
   return await sql`SELECT * FROM wounds ORDER BY created_at DESC LIMIT 50`;
 }
 
+export async function updateWoundName(woundId, name) {
+  if (isLocalMode()) {
+    const w = memoryStore.wounds.find((w) => w.id === woundId);
+    if (w) w.name = name;
+    return w;
+  }
+  const sql = getDb();
+  const rows = await sql`UPDATE wounds SET name = ${name} WHERE id = ${woundId} RETURNING *`;
+  return rows[0];
+}
+
 export async function createWound(userId, data) {
   if (isLocalMode()) {
     const w = {
