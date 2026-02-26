@@ -61,10 +61,11 @@ async function callGemini(apiKey, base64Data, mimeType, prompt) {
 
 export async function POST(request) {
     try {
-        const { image, mode } = await request.json();
+        const reqBody = await request.json();
+        const { image, mode = 'wound', prompt: customPrompt } = reqBody; // Default to wound if not specified
 
         if (!image) {
-            return NextResponse.json({ error: 'Image data is required' }, { status: 400 });
+            return NextResponse.json({ error: 'No image provided' }, { status: 400 });
         }
 
         const apiKey = process.env.GEMINI_API_KEY;
@@ -152,9 +153,40 @@ Guidelines:
 
             const response = NextResponse.json({ success: true, result: parsed });
             return withUserCookie(response, userId);
+
+        } else if (mode === 'wound') {
+            const userId = await getUserId();
+            // In wound mode, the user passes a customPrompt that includes symptoms and NRS score
+            const prompt = `${customPrompt || "這是一張傷口照片。請分析傷口的復原狀況。"}
+            
+            請以「資深傷口護理師」的溫暖口吻，對這張傷口照片提供客觀的狀態描述。
+            【重要原則】
+            1. 絕對不可直接給出「感染(Infected)」等絕對醫療診斷字眼。
+            2. 僅描述客觀視覺特徵（如：肉芽組織生長中、邊緣有些微紅腫、有黃色滲出液等）。
+            3. 若綜合判斷狀態異常，請強烈建議「尋求專業醫師評估」；若狀態穩定，請給予鼓勵。
+
+            Return valid JSON only (no markdown, no code fences):
+            {
+              "analysis": "護理師口吻的詳細客觀狀態描述，整合患者的症狀與疼痛指數分析 (大約 50-80 字)",
+              "ai_status_label": "復原進度符合預期 | 需多加留意觀察 | 建議諮詢專業醫護人員" 
+            }
+            `;
+
+            const text = await callGemini(apiKey, base64Data, mimeType, prompt);
+
+            let parsed;
+            try {
+                const jsonStr = text.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+                parsed = JSON.parse(jsonStr);
+            } catch {
+                return NextResponse.json({ error: 'Could not parse AI response', raw: text }, { status: 422 });
+            }
+
+            const response = NextResponse.json({ success: true, ...parsed });
+            return withUserCookie(response, userId);
         }
 
-        return NextResponse.json({ error: 'Invalid mode. Use "label" or "checkin"' }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid mode. Use "label", "checkin", or "wound"' }, { status: 400 });
     } catch (error) {
         console.error('AI analysis error:', error);
         return NextResponse.json({ error: error.message || 'Failed to analyze image' }, { status: 500 });

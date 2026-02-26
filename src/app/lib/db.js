@@ -6,8 +6,12 @@ import { neon } from '@neondatabase/serverless';
 const memoryStore = {
   supplements: [],
   checkIns: [],
+  wounds: [],
+  woundLogs: [],
   nextSupId: 1,
   nextCiId: 1,
+  nextWoundId: 1,
+  nextWoundLogId: 1,
 };
 
 function isLocalMode() {
@@ -58,8 +62,35 @@ export async function initializeDatabase() {
       date DATE DEFAULT CURRENT_DATE
     )
   `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS wounds (
+      id SERIAL PRIMARY KEY,
+      user_id VARCHAR(64) NOT NULL,
+      name VARCHAR(200),
+      location VARCHAR(200),
+      date_of_injury DATE,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS wound_logs (
+      id SERIAL PRIMARY KEY,
+      wound_id INTEGER REFERENCES wounds(id) ON DELETE CASCADE,
+      user_id VARCHAR(64) NOT NULL,
+      image_data TEXT,
+      nrs_pain_score INTEGER DEFAULT 0,
+      symptoms TEXT, 
+      ai_assessment_summary TEXT,
+      ai_status_label VARCHAR(100),
+      logged_at TIMESTAMP DEFAULT NOW(),
+      date DATE DEFAULT CURRENT_DATE
+    )
+  `;
   await sql`CREATE INDEX IF NOT EXISTS idx_supplements_user ON supplements(user_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_checkins_user_date ON check_ins(user_id, date)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_wounds_user ON wounds(user_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_wound_logs_user_date ON wound_logs(user_id, date)`;
   return { success: true, mode: 'postgres' };
 }
 
@@ -256,4 +287,81 @@ export async function getStreak(userId) {
     WHERE grp = (SELECT grp FROM numbered ORDER BY date DESC LIMIT 1)
   `;
   return rows[0]?.streak || 0;
+}
+
+// ============================================
+// Wounds CRUD
+// ============================================
+export async function getWounds(userId) {
+  if (isLocalMode()) {
+    return memoryStore.wounds.filter((w) => w.user_id === userId);
+  }
+  const sql = getDb();
+  return await sql`SELECT * FROM wounds WHERE user_id = ${userId} ORDER BY created_at DESC`;
+}
+
+export async function createWound(userId, data) {
+  if (isLocalMode()) {
+    const w = {
+      id: memoryStore.nextWoundId++,
+      user_id: userId,
+      name: data.name || '未命名傷口',
+      location: data.location || null,
+      date_of_injury: data.date_of_injury || todayStr(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    memoryStore.wounds.push(w);
+    return w;
+  }
+  const sql = getDb();
+  const rows = await sql`
+    INSERT INTO wounds (user_id, name, location, date_of_injury)
+    VALUES (${userId}, ${data.name || '未命名傷口'}, ${data.location || null}, ${data.date_of_injury || todayStr()})
+    RETURNING *
+  `;
+  return rows[0];
+}
+
+// ============================================
+// Wound Logs (Check-ins for wounds)
+// ============================================
+export async function getWoundLogs(userId, woundId) {
+  if (isLocalMode()) {
+    return memoryStore.woundLogs
+      .filter((lg) => lg.user_id === userId && lg.wound_id === woundId)
+      .sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
+  }
+  const sql = getDb();
+  return await sql`
+    SELECT * FROM wound_logs 
+    WHERE user_id = ${userId} AND wound_id = ${woundId} 
+    ORDER BY logged_at DESC
+  `;
+}
+
+export async function createWoundLog(userId, woundId, data) {
+  if (isLocalMode()) {
+    const lg = {
+      id: memoryStore.nextWoundLogId++,
+      user_id: userId,
+      wound_id: woundId,
+      image_data: data.image_data || null,
+      nrs_pain_score: data.nrs_pain_score || 0,
+      symptoms: data.symptoms || null,
+      ai_assessment_summary: data.ai_assessment_summary || null,
+      ai_status_label: data.ai_status_label || null,
+      date: todayStr(),
+      logged_at: new Date().toISOString(),
+    };
+    memoryStore.woundLogs.push(lg);
+    return lg;
+  }
+  const sql = getDb();
+  const rows = await sql`
+    INSERT INTO wound_logs (user_id, wound_id, image_data, nrs_pain_score, symptoms, ai_assessment_summary, ai_status_label)
+    VALUES (${userId}, ${woundId}, ${data.image_data || null}, ${data.nrs_pain_score || 0}, ${data.symptoms || null}, ${data.ai_assessment_summary || null}, ${data.ai_status_label || null})
+    RETURNING *
+  `;
+  return rows[0];
 }
