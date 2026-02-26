@@ -56,6 +56,8 @@ export default function HomePage() {
         const newCheckedCount = supplements.filter((s) => isChecked(s.id)).length;
         
         if (newCheckedCount === supplements.length && supplements.length > 0) {
+           // Debug check
+           alert(`All done! isInClient: ${liff?.isInClient()}, isInit: ${isInitialized}`);
            if (isInitialized && liff?.isInClient()) {
                try {
                    await liff.sendMessages([
