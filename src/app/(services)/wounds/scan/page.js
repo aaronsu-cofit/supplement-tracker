@@ -78,7 +78,7 @@ export default function WoundScanPage() {
             }
 
             // Finally, log the assessment to the DB
-            await fetch(`/api/wounds/${woundId}/logs`, {
+            const logRes = await fetch(`/api/wounds/${woundId}/logs`, {
                  method: 'POST',
                  headers: { 'Content-Type': 'application/json' },
                  body: JSON.stringify({
@@ -86,9 +86,14 @@ export default function WoundScanPage() {
                      nrs_pain_score: nrsScore,
                      symptoms: symptoms.join(','),
                      ai_assessment_summary: data.analysis || '無法辨識',
-                     ai_status_label: '需多加留意觀察', // Default, logic implemented on API later
+                     ai_status_label: data.ai_status_label || '需多加留意觀察',
                  })
             });
+
+            if (!logRes.ok) {
+                const errData = await logRes.json().catch(() => ({}));
+                throw new Error(errData.error || 'Failed to save wound log');
+            }
 
             // Navigate to results
             router.push(`/wounds/result?logId=latest&woundId=${woundId}`);

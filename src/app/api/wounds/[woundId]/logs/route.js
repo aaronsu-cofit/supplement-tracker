@@ -5,15 +5,14 @@ import { getUserId, withUserCookie } from '@/app/lib/userId';
 export async function GET(request, { params }) {
     try {
         const userId = await getUserId();
-        // For Next.js App Router API, params is a promise in newer versions, 
-        // but can be destructured directly in 13/14 depending on setup. Assuming standard access:
-        const woundId = parseInt(params.woundId, 10);
+        const { woundId } = await params;
+        const parsedWoundId = parseInt(woundId, 10);
         
-        if (isNaN(woundId)) {
+        if (isNaN(parsedWoundId)) {
              return NextResponse.json({ error: 'Invalid wound ID' }, { status: 400 });
         }
 
-        const logs = await getWoundLogs(userId, woundId);
+        const logs = await getWoundLogs(userId, parsedWoundId);
         const response = NextResponse.json(logs);
         return withUserCookie(response, userId);
     } catch (error) {
@@ -26,13 +25,14 @@ export async function POST(request, { params }) {
     try {
         const userId = await getUserId();
         const data = await request.json();
-        const woundId = parseInt(params.woundId, 10);
+        const { woundId } = await params;
+        const parsedWoundId = parseInt(woundId, 10);
 
-        if (isNaN(woundId)) {
+        if (isNaN(parsedWoundId)) {
              return NextResponse.json({ error: 'Invalid wound ID' }, { status: 400 });
         }
 
-        const log = await createWoundLog(userId, woundId, data);
+        const log = await createWoundLog(userId, parsedWoundId, data);
         const response = NextResponse.json(log, { status: 201 });
         return withUserCookie(response, userId);
     } catch (error) {
