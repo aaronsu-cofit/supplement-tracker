@@ -65,6 +65,7 @@ export default function HomePage() {
                        }
                    ]);
                } catch (liffErr) {
+                   alert('傳送失敗: ' + (liffErr?.message || JSON.stringify(liffErr)));
                    console.error('Failed to send LIFF message:', liffErr);
                }
            }
