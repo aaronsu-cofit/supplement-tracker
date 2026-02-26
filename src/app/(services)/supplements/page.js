@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/app/lib/i18n/LanguageContext';
+import { useLiff } from '@/app/components/liff/LiffProvider';
 import CameraCapture from '@/app/components/CameraCapture';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
 
 export default function HomePage() {
   const { t } = useLanguage();
+  const { liff, isInitialized } = useLiff();
   const [supplements, setSupplements] = useState([]);
   const [checkIns, setCheckIns] = useState([]);
   const [streak, setStreak] = useState(0);
@@ -49,6 +51,25 @@ export default function HomePage() {
         body: JSON.stringify({ supplementId }),
       });
       if (res.ok) {
+        // We calculate if this was the last one needed to complete the day
+        const isChecked = (supId) => checkIns.some((ci) => ci.supplement_id === supId) || supId === supplementId;
+        const newCheckedCount = supplements.filter((s) => isChecked(s.id)).length;
+        
+        if (newCheckedCount === supplements.length && supplements.length > 0) {
+           if (isInitialized && liff?.isInClient()) {
+               try {
+                   await liff.sendMessages([
+                       {
+                           type: 'text',
+                           text: '✅ 太棒了！我已經完成今天的保健品打卡了！'
+                       }
+                   ]);
+               } catch (liffErr) {
+                   console.error('Failed to send LIFF message:', liffErr);
+               }
+           }
+        }
+
         await fetchData();
       }
     } catch (err) {
