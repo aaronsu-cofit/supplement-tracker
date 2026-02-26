@@ -16,14 +16,25 @@ export default function WoundsAdminDashboard() {
                 const res = await fetch('/api/admin/wounds');
                 if (res.ok) {
                     const woundsList = await res.json();
-                    const mappedPatients = woundsList.map(w => ({
-                        id: w.id,
-                        name: w.name || '未命名病患', // In a real app we'd join user profiles
-                        wound_id: w.id,
-                        surgery_date: w.date_of_injury,
-                        latest_log: w.logs?.[0] || null,
-                        history: w.logs || []
-                    }));
+                    // Generate distinguishable names for real patients
+                    const surnames = ['李', '王', '陳', '林', '黃', '周', '吳', '謝', '趙', '劉'];
+                    const mappedPatients = woundsList.map((w, idx) => {
+                        const dateLabel = w.date_of_injury 
+                            ? new Date(w.date_of_injury).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })
+                            : '';
+                        const generatedName = `${surnames[idx % surnames.length]}先生` + (dateLabel ? ` (${dateLabel})` : '');
+                        return {
+                            id: w.id,
+                            name: generatedName,
+                            wound_id: w.id,
+                            surgery_date: w.date_of_injury,
+                            latest_log: w.logs?.[0] || null,
+                            history: w.logs || []
+                        };
+                    });
+
+                    // Inline SVG placeholder for demo patient photos
+                    const demoImg = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect fill="%23e8f5e9" width="300" height="200"/><text x="150" y="90" text-anchor="middle" fill="%232e7d32" font-size="40">🩹</text><text x="150" y="130" text-anchor="middle" fill="%23388e3c" font-size="14" font-family="sans-serif">傷口紀錄照片</text></svg>')}`;
 
                     const demoPatient = {
                         id: 'demo-1',
@@ -33,23 +44,23 @@ export default function WoundsAdminDashboard() {
                         latest_log: {
                             logged_at: new Date().toISOString(),
                             nrs_pain_score: 3,
-                            symptoms: '無明顯不是',
+                            symptoms: '無明顯不適',
                             ai_status_label: '✅ 穩定復原',
                             ai_assessment_summary: '傷口紅腫已消退，滲出液減少，癒合狀況良好。',
-                            image_data: 'https://images.unsplash.com/photo-1584062257926-88ab897858c8?auto=format&fit=crop&q=80&w=300' // Generic medical placeholder
+                            image_data: demoImg
                         },
                         history: [
                             {
                                 id: 'h1',
                                 logged_at: new Date(Date.now() - 14 * 86400000).toISOString(),
                                 ai_status_label: '⚠️ 留意觀察',
-                                image_data: 'https://images.unsplash.com/photo-1584062257926-88ab897858c8?auto=format&fit=crop&q=80&w=300'
+                                image_data: demoImg
                             },
                             {
                                 id: 'h2',
                                 logged_at: new Date(Date.now() - 7 * 86400000).toISOString(),
                                 ai_status_label: '✅ 穩定復原',
-                                image_data: 'https://images.unsplash.com/photo-1584062257926-88ab897858c8?auto=format&fit=crop&q=80&w=300'
+                                image_data: demoImg
                             }
                         ]
                     };
