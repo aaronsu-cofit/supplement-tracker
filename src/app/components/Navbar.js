@@ -9,9 +9,9 @@ export default function Navbar() {
     const { t } = useLanguage();
 
     const links = [
-        { href: '/', icon: '✅', label: t('nav.home') },
-        { href: '/supplements', icon: '💊', label: t('nav.supplements') },
-        { href: '/history', icon: '📊', label: t('nav.history') },
+        { href: '/supplements', icon: '✅', label: t('nav.home') },
+        { href: '/supplements/manage', icon: '💊', label: t('nav.supplements') },
+        { href: '/supplements/history', icon: '📊', label: t('nav.history') },
     ];
 
     return (

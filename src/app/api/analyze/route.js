@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getUserId } from '@/app/lib/userId';
+import { getUserId, withUserCookie } from '@/app/lib/userId';
 import { getSupplements } from '@/app/lib/db';
 
 const MODELS = [
@@ -151,13 +151,7 @@ Guidelines:
             }
 
             const response = NextResponse.json({ success: true, result: parsed });
-            response.cookies.set('supplement_user_id', userId, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                maxAge: 60 * 60 * 24 * 365 * 5,
-            });
-            return response;
+            return withUserCookie(response, userId);
         }
 
         return NextResponse.json({ error: 'Invalid mode. Use "label" or "checkin"' }, { status: 400 });

@@ -2,8 +2,15 @@ import { cookies } from 'next/headers';
 
 export async function getUserId() {
     const cookieStore = await cookies();
-    let userId = cookieStore.get('supplement_user_id')?.value;
+    // 1. Prioritize LINE User ID
+    let userId = cookieStore.get('line_user_id')?.value;
 
+    // 2. Fallback to existing random UUID
+    if (!userId) {
+        userId = cookieStore.get('supplement_user_id')?.value;
+    }
+
+    // 3. Fallback to a new random UUID (for non-line preview)
     if (!userId) {
         userId = crypto.randomUUID();
     }
