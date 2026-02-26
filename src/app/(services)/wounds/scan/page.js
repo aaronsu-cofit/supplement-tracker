@@ -57,6 +57,9 @@ export default function WoundScanPage() {
                 body: JSON.stringify(payload)
             });
             const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'AI Analysis failed');
+            }
 
             // Next, we need to create/ensure a wound exists
             // We're simplifying V1 by fetching first wound or creating one
@@ -100,7 +103,7 @@ export default function WoundScanPage() {
 
         } catch (error) {
             console.error(error);
-            alert('分析失敗，請重試。');
+            alert('發生錯誤: ' + (error.message || JSON.stringify(error)));
         } finally {
             setIsAnalyzing(false);
         }
