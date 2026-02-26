@@ -1,8 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function WoundsResultPage() {
+function WoundsResultContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const woundId = searchParams.get('woundId');
@@ -118,6 +118,14 @@ export default function WoundsResultPage() {
                 完成並回到首頁
             </button>
         </div>
+    );
+}
+
+export default function WoundsResultPage() {
+    return (
+        <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>載入中...</div>}>
+            <WoundsResultContent />
+        </Suspense>
     );
 }
 
