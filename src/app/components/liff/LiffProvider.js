@@ -60,7 +60,7 @@ export default function LiffProvider({ children }) {
                         setLiffState({ liff, profile, isInitialized: true, error: null });
                     } else {
                         // In production, we typically redirect to login or show a button
-                        // liff.login(); 
+                        liff.login({ redirectUri: window.location.href }); 
                         setLiffState({ liff, profile: null, isInitialized: true, error: null });
                     }
                 }
