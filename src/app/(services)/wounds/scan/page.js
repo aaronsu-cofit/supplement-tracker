@@ -1,9 +1,11 @@
 'use client';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLiff } from '@/app/components/liff/LiffProvider';
 
 export default function WoundScanPage() {
     const router = useRouter();
+    const { profile } = useLiff();
     const fileInputRef = useRef(null);
     const [imagePreview, setImagePreview] = useState(null);
     const [nrsScore, setNrsScore] = useState(0); // 0-10 pain scale
@@ -72,7 +74,11 @@ export default function WoundScanPage() {
                  const newWoundRes = await fetch('/api/wounds', {
                      method: 'POST',
                      headers: { 'Content-Type': 'application/json' },
-                     body: JSON.stringify({ name: '追蹤中傷口' })
+                     body: JSON.stringify({ 
+                         name: profile?.displayName ? `${profile.displayName}的傷口` : '追蹤中傷口',
+                         display_name: profile?.displayName || null,
+                         picture_url: profile?.pictureUrl || null
+                     })
                  });
                  const newWound = await newWoundRes.json();
                  woundId = newWound.id;
@@ -96,6 +102,20 @@ export default function WoundScanPage() {
             if (!logRes.ok) {
                 const errData = await logRes.json().catch(() => ({}));
                 throw new Error(errData.error || 'Failed to save wound log');
+            }
+
+            // Send LINE notification after successful scan
+            try {
+                const statusEmoji = data.ai_status_label?.includes('穩定') ? '🟢' : '🟡';
+                await fetch('/api/notify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: `🩹 傷口照護紀錄完成\n\n${statusEmoji} AI 評估：${data.ai_status_label || '已分析'}\n🌡️ 疼痛指數：${nrsScore}/10\n📝 症狀：${symptoms.join(', ')}\n\n請持續追蹤傷口狀態，祖您早日康復！`
+                    })
+                });
+            } catch (notifyErr) {
+                console.log('LINE notification skipped:', notifyErr.message);
             }
 
             // Navigate to results

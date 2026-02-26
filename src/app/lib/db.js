@@ -69,6 +69,8 @@ export async function initializeDatabase() {
       name VARCHAR(200),
       location VARCHAR(200),
       date_of_injury DATE,
+      display_name VARCHAR(200),
+      picture_url TEXT,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
     )
@@ -91,6 +93,11 @@ export async function initializeDatabase() {
   await sql`CREATE INDEX IF NOT EXISTS idx_checkins_user_date ON check_ins(user_id, date)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_wounds_user ON wounds(user_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_wound_logs_user_date ON wound_logs(user_id, date)`;
+
+  // Migrations: add new columns if they don't exist yet
+  try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS display_name VARCHAR(200)`; } catch(e) {}
+  try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS picture_url TEXT`; } catch(e) {}
+
   return { success: true, mode: 'postgres' };
 }
 
@@ -327,6 +334,8 @@ export async function createWound(userId, data) {
       name: data.name || '未命名傷口',
       location: data.location || null,
       date_of_injury: data.date_of_injury || todayStr(),
+      display_name: data.display_name || null,
+      picture_url: data.picture_url || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -335,8 +344,8 @@ export async function createWound(userId, data) {
   }
   const sql = getDb();
   const rows = await sql`
-    INSERT INTO wounds (user_id, name, location, date_of_injury)
-    VALUES (${userId}, ${data.name || '未命名傷口'}, ${data.location || null}, ${data.date_of_injury || todayStr()})
+    INSERT INTO wounds (user_id, name, location, date_of_injury, display_name, picture_url)
+    VALUES (${userId}, ${data.name || '未命名傷口'}, ${data.location || null}, ${data.date_of_injury || todayStr()}, ${data.display_name || null}, ${data.picture_url || null})
     RETURNING *
   `;
   return rows[0];

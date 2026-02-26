@@ -24,10 +24,11 @@ export default function WoundsAdminDashboard() {
                         const dateLabel = w.date_of_injury 
                             ? new Date(w.date_of_injury).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })
                             : '';
-                        const generatedName = `${surnames[idx % surnames.length]}先生` + (dateLabel ? ` (${dateLabel})` : '');
+                        const fallbackName = `${surnames[idx % surnames.length]}先生` + (dateLabel ? ` (${dateLabel})` : '');
                         return {
                             id: w.id,
-                            name: generatedName,
+                            name: w.display_name || w.name || fallbackName,
+                            picture_url: w.picture_url || null,
                             wound_id: w.id,
                             surgery_date: w.date_of_injury,
                             latest_log: w.logs?.[0] || null,
@@ -41,6 +42,7 @@ export default function WoundsAdminDashboard() {
                     const demoPatient = {
                         id: 'demo-1',
                         name: '張大明 (Demo)',
+                        picture_url: null,
                         wound_id: 'demo',
                         surgery_date: '2023-10-01',
                         latest_log: {
@@ -185,7 +187,14 @@ P (Plan - 計畫):
                                     cursor: 'pointer',
                                     boxShadow: selectedPatient?.id === p.id ? '0 2px 8px rgba(0,0,0,0.1)' : 'none'
                                 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+                                    {p.picture_url ? (
+                                        <img src={p.picture_url} alt="" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem' }}>👤</div>
+                                    )}
+                                    <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         {editingId === p.id ? (
                                             <input
                                                 autoFocus
@@ -206,6 +215,8 @@ P (Plan - 計畫):
                                     <div style={{ fontSize: '0.85rem', color: '#7f8c8d' }}>
                                         {p.latest_log?.ai_status_label || '尚未分析'}
                                     </div>
+                                    </div>
+                                </div>
                                 </div>
                             );
                         })
@@ -217,11 +228,18 @@ P (Plan - 計畫):
                     {selectedPatient ? (
                         <div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-                                <div>
-                                    <h2 style={{ margin: '0 0 0.5rem 0', color: '#2c3e50' }}>{selectedPatient.name} - 傷口發展史</h2>
-                                    <span style={{ fontSize: '0.9rem', color: '#7f8c8d' }}>
-                                        手術日期：{selectedPatient.surgery_date}
-                                    </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                                    {selectedPatient.picture_url ? (
+                                        <img src={selectedPatient.picture_url} alt="" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #eee' }} />
+                                    ) : (
+                                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>👤</div>
+                                    )}
+                                    <div>
+                                        <h2 style={{ margin: '0 0 0.3rem 0', color: '#2c3e50' }}>{selectedPatient.name} - 傷口發展史</h2>
+                                        <span style={{ fontSize: '0.9rem', color: '#7f8c8d' }}>
+                                            手術日期：{selectedPatient.surgery_date}
+                                        </span>
+                                    </div>
                                 </div>
                                 <button style={{ background: '#3498db', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
                                     📹 啟動遠距諮詢
