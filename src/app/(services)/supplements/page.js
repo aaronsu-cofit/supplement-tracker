@@ -64,10 +64,13 @@ export default function HomePage() {
                            text: '✅ 太棒了！我已經完成今天的保健品打卡了！'
                        }
                    ]);
+                   alert('傳送成功！這句話應該有出現在 LINE 裡面了。如果沒有，代表您的 LINE 開發者後台可能還沒開放權限。');
                } catch (liffErr) {
                    alert('傳送失敗: ' + (liffErr?.message || JSON.stringify(liffErr)));
                    console.error('Failed to send LIFF message:', liffErr);
                }
+           } else {
+               alert('無法傳送：這不被認定為一個有效的 LIFF 環境 (可能是不在 LINE 裡面打開，或是 LIFF Id 錯誤)。');
            }
         }
 
