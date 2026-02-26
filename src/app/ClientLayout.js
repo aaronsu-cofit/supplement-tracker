@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { LanguageProvider } from '@/app/lib/i18n/LanguageContext';
-import Navbar from '@/app/components/Navbar';
 import LiffProvider from '@/app/components/liff/LiffProvider';
 
 // Ensure a user ID cookie exists before any API calls
@@ -25,7 +24,6 @@ export default function ClientLayout({ children }) {
         <LiffProvider>
             <LanguageProvider>
                 {children}
-                <Navbar />
             </LanguageProvider>
         </LiffProvider>
     );
