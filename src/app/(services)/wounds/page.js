@@ -83,9 +83,14 @@ export default function WoundsDashboard() {
                 <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                         <h3 style={{ margin: 0, fontSize: '1.1rem' }}>目前照護進度</h3>
-                        <span style={{ fontSize: '0.85rem', color: '#ff6b6b', fontWeight: 'bold' }}>
-                            第 {daysSince} 天
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                            <span style={{ fontSize: '0.85rem', color: '#ff6b6b', fontWeight: 'bold' }}>
+                                第 {daysSince} 天
+                            </span>
+                            <Link href="/wounds/history" style={{ ...outlineBtnStyle, padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}>
+                                歷程時間軸
+                            </Link>
+                        </div>
                     </div>
 
                     {/* Quick Access Grid */}

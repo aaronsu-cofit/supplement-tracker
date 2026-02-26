@@ -6,29 +6,26 @@ export default function WoundsAdminDashboard() {
     const [patients, setPatients] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const [selectedPatient, setSelectedPatient] = useState(null);
+    const [generatingSoap, setGeneratingSoap] = useState(false);
+    const [soapNote, setSoapNote] = useState(null);
+
     useEffect(() => {
-        // In a real app we'd fetch all users' wounds. For demo V1, we fetch the current user's wounds 
-        // to simulate a connected dashboard using the data we just generated in /scan
-        const fetchDemoData = async () => {
+        const fetchAllData = async () => {
             try {
-                const woundsRes = await fetch('/api/wounds');
-                if (woundsRes.ok) {
-                    const woundsList = await woundsRes.json();
-                    
-                    // Fetch logs for the first wound as a demo
-                    if (woundsList.length > 0) {
-                        const logsRes = await fetch(`/api/wounds/${woundsList[0].id}/logs`);
-                        const logs = await logsRes.json();
-                        
-                        setPatients([{
-                            id: 'p-001',
-                            name: '林先生',
-                            wound_id: woundsList[0].id,
-                            surgery_date: woundsList[0].date_of_injury,
-                            latest_log: logs[0] || null,
-                            history: logs
-                        }]);
-                    }
+                const res = await fetch('/api/admin/wounds');
+                if (res.ok) {
+                    const woundsList = await res.json();
+                    const mappedPatients = woundsList.map(w => ({
+                        id: w.id,
+                        name: w.name || '未命名病患', // In a real app we'd join user profiles
+                        wound_id: w.id,
+                        surgery_date: w.date_of_injury,
+                        latest_log: w.logs?.[0] || null,
+                        history: w.logs || []
+                    }));
+                    setPatients(mappedPatients);
+                    if (mappedPatients.length > 0) setSelectedPatient(mappedPatients[0]);
                 }
             } catch (err) {
                 console.error(err);
@@ -36,8 +33,33 @@ export default function WoundsAdminDashboard() {
                 setLoading(false);
             }
         };
-        fetchDemoData();
+        fetchAllData();
     }, []);
+
+    const handleSelectPatient = (p) => {
+        setSelectedPatient(p);
+        setSoapNote(null);
+    };
+
+    const handleGenerateSoap = async () => {
+        if (!selectedPatient) return;
+        setGeneratingSoap(true);
+        setSoapNote(null);
+        try {
+            const res = await fetch(`/api/wounds/${selectedPatient.wound_id}/soap`, { method: 'POST' });
+            if (res.ok) {
+                const data = await res.json();
+                setSoapNote(data.soap_note);
+            } else {
+                alert('SOAP 生成失敗');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('發生錯誤');
+        } finally {
+            setGeneratingSoap(false);
+        }
+    };
 
     if (loading) return <div style={{ padding: '2rem' }}>載入遠距病房資料中...</div>;
 
@@ -59,13 +81,16 @@ export default function WoundsAdminDashboard() {
                         patients.map(p => {
                             const isHighRisk = p.latest_log?.ai_status_label?.includes('諮詢') || p.latest_log?.nrs_pain_score > 6;
                             return (
-                                <div key={p.id} style={{
+                                <div key={p.id} onClick={() => handleSelectPatient(p)} style={{
                                     borderLeft: `4px solid ${isHighRisk ? '#e74c3c' : '#2ecc71'}`,
                                     padding: '1rem',
-                                    background: isHighRisk ? '#fff5f5' : '#f9fff9',
+                                    background: selectedPatient?.id === p.id 
+                                        ? (isHighRisk ? '#ffecec' : '#eafaf1') 
+                                        : (isHighRisk ? '#fff5f5' : '#f9fff9'),
                                     borderRadius: '0 8px 8px 0',
                                     marginBottom: '1rem',
-                                    cursor: 'pointer'
+                                    cursor: 'pointer',
+                                    boxShadow: selectedPatient?.id === p.id ? '0 2px 8px rgba(0,0,0,0.1)' : 'none'
                                 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                         <b style={{ color: '#2c3e50' }}>{p.name}</b>
@@ -84,13 +109,13 @@ export default function WoundsAdminDashboard() {
 
                 {/* Right Col: Patient Detail */}
                 <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                    {patients.length > 0 && patients[0].latest_log ? (
+                    {selectedPatient ? (
                         <div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
                                 <div>
-                                    <h2 style={{ margin: '0 0 0.5rem 0', color: '#2c3e50' }}>{patients[0].name} - 傷口發展史</h2>
+                                    <h2 style={{ margin: '0 0 0.5rem 0', color: '#2c3e50' }}>{selectedPatient.name} - 傷口發展史</h2>
                                     <span style={{ fontSize: '0.9rem', color: '#7f8c8d' }}>
-                                        手術日期：{patients[0].surgery_date}
+                                        手術日期：{selectedPatient.surgery_date}
                                     </span>
                                 </div>
                                 <button style={{ background: '#3498db', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
@@ -100,7 +125,10 @@ export default function WoundsAdminDashboard() {
 
                             {/* Timeline Slider */}
                             <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem' }}>
-                                {patients[0].history.map((log, idx) => (
+                                {selectedPatient.history.length === 0 ? (
+                                    <div style={{ color: '#aaa', fontSize: '0.9rem' }}>尚無歷史紀錄</div>
+                                ) : (
+                                    selectedPatient.history.map((log, idx) => (
                                     <div key={log.id} style={{ minWidth: '200px', border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden' }}>
                                         {log.image_data ? (
                                             <img src={log.image_data} alt="Wound" style={{ width: '100%', height: '140px', objectFit: 'cover' }} />
@@ -115,20 +143,46 @@ export default function WoundsAdminDashboard() {
                                                 {log.ai_status_label}
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                        </div>
+                                    ))
+                                )}
                             </div>
 
                             {/* Medical Summary Draft */}
                             <div style={{ marginTop: '1rem', padding: '1.5rem', background: '#f4f6f7', borderRadius: '8px' }}>
-                                <h3 style={{ fontSize: '1rem', color: '#2c3e50', marginBottom: '0.8rem' }}>📝 AI 輔助健保申報摘要初稿</h3>
-                                <p style={{ fontSize: '0.9rem', color: '#555', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                                    {patients[0].latest_log.ai_assessment_summary}
-                                </p>
-                                <div style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#7f8c8d' }}>
-                                    病患主訴疼痛指數：{patients[0].latest_log.nrs_pain_score} / 10 <br/>
-                                    病患主訴症狀：{patients[0].latest_log.symptoms}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <h3 style={{ fontSize: '1.1rem', color: '#2c3e50', margin: 0 }}>📝 醫療護理紀錄 (SOAP)</h3>
+                                    <button 
+                                        onClick={handleGenerateSoap}
+                                        disabled={generatingSoap || selectedPatient.history.length === 0}
+                                        style={{ 
+                                            background: '#8e44ad', color: '#fff', border: 'none', padding: '0.4rem 0.8rem', 
+                                            borderRadius: '6px', cursor: generatingSoap ? 'not-allowed' : 'pointer',
+                                            opacity: generatingSoap ? 0.7 : 1
+                                        }}
+                                    >
+                                        {generatingSoap ? '⏳ 正在分析 14 天紀錄...' : '✨ 一鍵生成 SOAP 病歷'}
+                                    </button>
                                 </div>
+                                
+                                {soapNote ? (
+                                    <div style={{ background: '#fff', padding: '1rem', borderRadius: '6px', borderLeft: '4px solid #8e44ad', whiteSpace: 'pre-wrap', lineHeight: 1.6, color: '#444' }}>
+                                        {soapNote}
+                                    </div>
+                                ) : (
+                                    <div style={{ background: '#fff', padding: '1rem', borderRadius: '6px', color: '#aaa', fontStyle: 'italic' }}>
+                                        點擊右上角按鈕，AI 將自動綜合過去 14 天照片變化與疼痛指數，撰寫專業的 SOAP 醫療筆記。
+                                    </div>
+                                )}
+
+                                {selectedPatient.latest_log && (
+                                    <div style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#7f8c8d', borderTop: '1px solid #ddd', paddingTop: '1rem' }}>
+                                        <b>最新一日基本資料 (供參考)：</b><br/>
+                                        疼痛指數：{selectedPatient.latest_log.nrs_pain_score} / 10 <br/>
+                                        回報症狀：{selectedPatient.latest_log.symptoms} <br/>
+                                        AI 摘要：{selectedPatient.latest_log.ai_assessment_summary}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ) : (

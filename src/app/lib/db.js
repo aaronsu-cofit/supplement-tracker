@@ -300,6 +300,14 @@ export async function getWounds(userId) {
   return await sql`SELECT * FROM wounds WHERE user_id = ${userId} ORDER BY created_at DESC`;
 }
 
+export async function getAllWoundsAdmin() {
+  if (isLocalMode()) {
+    return memoryStore.wounds.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }
+  const sql = getDb();
+  return await sql`SELECT * FROM wounds ORDER BY created_at DESC LIMIT 50`;
+}
+
 export async function createWound(userId, data) {
   if (isLocalMode()) {
     const w = {
@@ -336,6 +344,20 @@ export async function getWoundLogs(userId, woundId) {
   return await sql`
     SELECT * FROM wound_logs 
     WHERE user_id = ${userId} AND wound_id = ${woundId} 
+    ORDER BY logged_at DESC
+  `;
+}
+
+export async function getWoundLogsAdmin(woundId) {
+  if (isLocalMode()) {
+    return memoryStore.woundLogs
+      .filter((lg) => lg.wound_id === woundId)
+      .sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
+  }
+  const sql = getDb();
+  return await sql`
+    SELECT * FROM wound_logs 
+    WHERE wound_id = ${woundId} 
     ORDER BY logged_at DESC
   `;
 }
