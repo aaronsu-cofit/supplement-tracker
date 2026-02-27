@@ -31,17 +31,27 @@ export default function LiffProvider({ children }) {
         const initLiff = async () => {
             try {
                 // Determine which LIFF ID to use based on the route
-                let liffId = process.env.NEXT_PUBLIC_LIFF_ID_SUPPLEMENTS; // Default fallback
+                // Try route-specific first, then fall back to any available ID
+                const allIds = {
+                    wounds: process.env.NEXT_PUBLIC_LIFF_ID_WOUNDS,
+                    bones: process.env.NEXT_PUBLIC_LIFF_ID_BONES,
+                    supplements: process.env.NEXT_PUBLIC_LIFF_ID_SUPPLEMENTS,
+                };
 
-                if (pathname.startsWith('/wounds')) {
-                    liffId = process.env.NEXT_PUBLIC_LIFF_ID_WOUNDS;
-                } else if (pathname.startsWith('/bones')) {
-                    liffId = process.env.NEXT_PUBLIC_LIFF_ID_BONES;
-                } else if (pathname.startsWith('/supplements')) {
-                    liffId = process.env.NEXT_PUBLIC_LIFF_ID_SUPPLEMENTS;
+                let liffId = null;
+                if (pathname.startsWith('/wounds') && allIds.wounds) {
+                    liffId = allIds.wounds;
+                } else if (pathname.startsWith('/bones') && allIds.bones) {
+                    liffId = allIds.bones;
+                } else if (pathname.startsWith('/supplements') && allIds.supplements) {
+                    liffId = allIds.supplements;
                 }
 
-                // If no LIFF ID is configured, we skip initialization (e.g., local dev without env vars)
+                // Fallback: use any available LIFF ID (needed for /login, /, etc.)
+                if (!liffId) {
+                    liffId = allIds.supplements || allIds.wounds || allIds.bones;
+                }
+
                 if (!liffId) {
                     console.log('No LIFF ID found in env, skipping LIFF initialization.');
                     if (isMounted) {

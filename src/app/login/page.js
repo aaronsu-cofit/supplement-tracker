@@ -16,7 +16,11 @@ export default function LoginPage() {
 
     const handleLineLogin = () => {
         if (liff && isInitialized) {
-            liff.login({ redirectUri: window.location.origin });
+            // Use the LIFF endpoint URL (usually the deployment root)
+            // The redirectUri must match the LIFF Endpoint URL configured in LINE Developer Console
+            liff.login();
+        } else {
+            setError('LINE 登入服務尚未初始化，請稍後再試');
         }
     };
 
