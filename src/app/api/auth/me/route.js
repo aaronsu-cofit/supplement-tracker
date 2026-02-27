@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken, clearAuthCookie } from '@/app/lib/auth';
-import { findUserById } from '@/app/lib/db';
+import { initializeDatabase, findUserById, findOrCreateLineUser } from '@/app/lib/db';
 
 export async function GET() {
     try {
+        await initializeDatabase();
         const cookieStore = await cookies();
         const token = cookieStore.get('auth_token')?.value;
 
@@ -41,13 +42,13 @@ export async function GET() {
 // POST /api/auth/me — for LINE login (create/update user from LIFF profile)
 export async function POST(request) {
     try {
+        await initializeDatabase();
         const { lineUserId, displayName, pictureUrl } = await request.json();
 
         if (!lineUserId) {
             return NextResponse.json({ error: 'Missing lineUserId' }, { status: 400 });
         }
 
-        const { findOrCreateLineUser } = await import('@/app/lib/db');
         const user = await findOrCreateLineUser(lineUserId, displayName, pictureUrl);
 
         const { signToken, setAuthCookie } = await import('@/app/lib/auth');

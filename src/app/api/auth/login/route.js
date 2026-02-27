@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { findUserByEmail } from '@/app/lib/db';
+import { initializeDatabase, findUserByEmail } from '@/app/lib/db';
 import { comparePassword, signToken, setAuthCookie } from '@/app/lib/auth';
 
 export async function POST(request) {
     try {
+        await initializeDatabase();
         const { email, password } = await request.json();
 
         if (!email || !password) {

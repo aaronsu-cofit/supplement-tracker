@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { findUserByEmail, createEmailUser } from '@/app/lib/db';
+import { initializeDatabase, findUserByEmail, createEmailUser } from '@/app/lib/db';
 import { hashPassword, signToken, setAuthCookie } from '@/app/lib/auth';
 
 export async function POST(request) {
     try {
+        await initializeDatabase();
         const { email, password, displayName } = await request.json();
 
         // Validation
