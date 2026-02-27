@@ -1,21 +1,26 @@
 import { cookies } from 'next/headers';
+import { verifyToken } from '@/app/lib/auth';
 
 export async function getUserId() {
     const cookieStore = await cookies();
-    // 1. Prioritize LINE User ID
+
+    // 1. Prioritize JWT auth token (email or LINE registered user)
+    const authToken = cookieStore.get('auth_token')?.value;
+    if (authToken) {
+        const payload = await verifyToken(authToken);
+        if (payload?.userId) return payload.userId;
+    }
+
+    // 2. LINE User ID from LIFF (legacy / in-app browser without full auth)
     let userId = cookieStore.get('line_user_id')?.value;
+    if (userId) return userId;
 
-    // 2. Fallback to existing random UUID
-    if (!userId) {
-        userId = cookieStore.get('supplement_user_id')?.value;
-    }
+    // 3. Fallback to existing random UUID
+    userId = cookieStore.get('supplement_user_id')?.value;
+    if (userId) return userId;
 
-    // 3. Fallback to a new random UUID (for non-line preview)
-    if (!userId) {
-        userId = crypto.randomUUID();
-    }
-
-    return userId;
+    // 4. Fallback to a new random UUID (for non-line preview)
+    return crypto.randomUUID();
 }
 
 // Helper to create a response with the user ID cookie set
@@ -28,3 +33,4 @@ export function withUserCookie(response, userId) {
     });
     return response;
 }
+

@@ -89,14 +89,25 @@ export async function initializeDatabase() {
       date DATE DEFAULT CURRENT_DATE
     )
   `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id VARCHAR(64) PRIMARY KEY,
+      email VARCHAR(200) UNIQUE,
+      password_hash VARCHAR(200),
+      display_name VARCHAR(200),
+      picture_url TEXT,
+      auth_provider VARCHAR(20) NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
   await sql`CREATE INDEX IF NOT EXISTS idx_supplements_user ON supplements(user_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_checkins_user_date ON check_ins(user_id, date)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_wounds_user ON wounds(user_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_wound_logs_user_date ON wound_logs(user_id, date)`;
 
   // Migrations: add new columns if they don't exist yet
-  try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS display_name VARCHAR(200)`; } catch(e) {}
-  try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS picture_url TEXT`; } catch(e) {}
+  try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS display_name VARCHAR(200)`; } catch (e) { }
+  try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS picture_url TEXT`; } catch (e) { }
 
   return { success: true, mode: 'postgres' };
 }
@@ -406,4 +417,66 @@ export async function createWoundLog(userId, woundId, data) {
     RETURNING *
   `;
   return rows[0];
+}
+
+// ============================================
+// User Auth
+// ============================================
+export async function findUserByEmail(email) {
+  if (isLocalMode()) {
+    return (memoryStore.users || []).find((u) => u.email === email) || null;
+  }
+  const sql = getDb();
+  const rows = await sql`SELECT * FROM users WHERE email = ${email}`;
+  return rows[0] || null;
+}
+
+export async function createEmailUser(id, email, passwordHash, displayName) {
+  if (isLocalMode()) {
+    if (!memoryStore.users) memoryStore.users = [];
+    const user = { id, email, password_hash: passwordHash, display_name: displayName, picture_url: null, auth_provider: 'email', created_at: new Date().toISOString() };
+    memoryStore.users.push(user);
+    return user;
+  }
+  const sql = getDb();
+  const rows = await sql`
+    INSERT INTO users (id, email, password_hash, display_name, auth_provider)
+    VALUES (${id}, ${email}, ${passwordHash}, ${displayName}, 'email')
+    RETURNING *
+  `;
+  return rows[0];
+}
+
+export async function findOrCreateLineUser(lineUserId, displayName, pictureUrl) {
+  if (isLocalMode()) {
+    if (!memoryStore.users) memoryStore.users = [];
+    let user = memoryStore.users.find((u) => u.id === lineUserId);
+    if (!user) {
+      user = { id: lineUserId, email: null, password_hash: null, display_name: displayName, picture_url: pictureUrl, auth_provider: 'line', created_at: new Date().toISOString() };
+      memoryStore.users.push(user);
+    }
+    return user;
+  }
+  const sql = getDb();
+  const existing = await sql`SELECT * FROM users WHERE id = ${lineUserId}`;
+  if (existing.length > 0) {
+    // Update display name and picture on each login
+    await sql`UPDATE users SET display_name = ${displayName}, picture_url = ${pictureUrl} WHERE id = ${lineUserId}`;
+    return { ...existing[0], display_name: displayName, picture_url: pictureUrl };
+  }
+  const rows = await sql`
+    INSERT INTO users (id, display_name, picture_url, auth_provider)
+    VALUES (${lineUserId}, ${displayName}, ${pictureUrl}, 'line')
+    RETURNING *
+  `;
+  return rows[0];
+}
+
+export async function findUserById(userId) {
+  if (isLocalMode()) {
+    return (memoryStore.users || []).find((u) => u.id === userId) || null;
+  }
+  const sql = getDb();
+  const rows = await sql`SELECT * FROM users WHERE id = ${userId}`;
+  return rows[0] || null;
 }

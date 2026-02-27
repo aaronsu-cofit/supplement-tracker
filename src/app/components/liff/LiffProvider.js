@@ -7,6 +7,7 @@ export const LiffContext = createContext({
     liff: null,
     profile: null,
     isInitialized: false,
+    isInLineClient: false,
     error: null
 });
 
@@ -19,6 +20,7 @@ export default function LiffProvider({ children }) {
         liff: null,
         profile: null,
         isInitialized: false,
+        isInLineClient: false,
         error: null
     });
     const pathname = usePathname();
@@ -53,15 +55,19 @@ export default function LiffProvider({ children }) {
                 await liff.init({ liffId });
 
                 if (isMounted) {
+                    const inLineClient = liff.isInClient();
                     if (liff.isLoggedIn()) {
                         const profile = await liff.getProfile();
                         // Store the true LINE User ID in cookies so APIs can use it
                         document.cookie = `line_user_id=${profile.userId}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
-                        setLiffState({ liff, profile, isInitialized: true, error: null });
+                        setLiffState({ liff, profile, isInitialized: true, isInLineClient: inLineClient, error: null });
+                    } else if (inLineClient) {
+                        // Only auto-login inside LINE's in-app browser
+                        liff.login({ redirectUri: window.location.href });
+                        setLiffState({ liff, profile: null, isInitialized: true, isInLineClient: true, error: null });
                     } else {
-                        // In production, we typically redirect to login or show a button
-                        liff.login({ redirectUri: window.location.href }); 
-                        setLiffState({ liff, profile: null, isInitialized: true, error: null });
+                        // Regular browser — skip login, run in guest mode
+                        setLiffState({ liff, profile: null, isInitialized: true, isInLineClient: false, error: null });
                     }
                 }
             } catch (error) {
