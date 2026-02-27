@@ -108,6 +108,10 @@ export async function initializeDatabase() {
   // Migrations: add new columns if they don't exist yet
   try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS display_name VARCHAR(200)`; } catch (e) { }
   try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS picture_url TEXT`; } catch (e) { }
+  // V2 migrations
+  try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS wound_type VARCHAR(50)`; } catch (e) { }
+  try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS body_location VARCHAR(100)`; } catch (e) { }
+  try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'`; } catch (e) { }
 
   return { success: true, mode: 'postgres' };
 }
@@ -312,10 +316,30 @@ export async function getStreak(userId) {
 // ============================================
 export async function getWounds(userId) {
   if (isLocalMode()) {
-    return memoryStore.wounds.filter((w) => w.user_id === userId);
+    return memoryStore.wounds.filter((w) => w.user_id === userId && (w.status === 'active' || !w.status));
   }
   const sql = getDb();
-  return await sql`SELECT * FROM wounds WHERE user_id = ${userId} ORDER BY created_at DESC`;
+  return await sql`SELECT * FROM wounds WHERE user_id = ${userId} AND (status = 'active' OR status IS NULL) ORDER BY created_at DESC`;
+}
+
+export async function getWoundById(userId, woundId) {
+  if (isLocalMode()) {
+    return memoryStore.wounds.find((w) => w.id === woundId && w.user_id === userId) || null;
+  }
+  const sql = getDb();
+  const rows = await sql`SELECT * FROM wounds WHERE id = ${woundId} AND user_id = ${userId}`;
+  return rows[0] || null;
+}
+
+export async function archiveWound(userId, woundId) {
+  if (isLocalMode()) {
+    const w = memoryStore.wounds.find((w) => w.id === woundId && w.user_id === userId);
+    if (w) w.status = 'archived';
+    return w;
+  }
+  const sql = getDb();
+  const rows = await sql`UPDATE wounds SET status = 'archived' WHERE id = ${woundId} AND user_id = ${userId} RETURNING *`;
+  return rows[0];
 }
 
 export async function getAllWoundsAdmin() {
@@ -347,6 +371,9 @@ export async function createWound(userId, data) {
       date_of_injury: data.date_of_injury || todayStr(),
       display_name: data.display_name || null,
       picture_url: data.picture_url || null,
+      wound_type: data.wound_type || null,
+      body_location: data.body_location || null,
+      status: 'active',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -355,8 +382,8 @@ export async function createWound(userId, data) {
   }
   const sql = getDb();
   const rows = await sql`
-    INSERT INTO wounds (user_id, name, location, date_of_injury, display_name, picture_url)
-    VALUES (${userId}, ${data.name || '未命名傷口'}, ${data.location || null}, ${data.date_of_injury || todayStr()}, ${data.display_name || null}, ${data.picture_url || null})
+    INSERT INTO wounds (user_id, name, location, date_of_injury, display_name, picture_url, wound_type, body_location, status)
+    VALUES (${userId}, ${data.name || '未命名傷口'}, ${data.location || null}, ${data.date_of_injury || todayStr()}, ${data.display_name || null}, ${data.picture_url || null}, ${data.wound_type || null}, ${data.body_location || null}, 'active')
     RETURNING *
   `;
   return rows[0];

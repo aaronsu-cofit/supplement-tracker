@@ -60,9 +60,8 @@ export default function WoundsLayout({ children }) {
                     paddingBottom: 'max(env(safe-area-inset-bottom), 0.6rem)',
                     zIndex: 10,
                 }}>
-                    <NavItem href="/wounds" label="首頁" icon="🏠" active={pathname === '/wounds'} />
-                    <NavItem href="/wounds/scan" label="照護紀錄" icon="📸" active={pathname === '/wounds/scan'} />
-                    <NavItem href="/wounds/history" label="歷程" icon="📅" active={pathname === '/wounds/history'} />
+                    <NavItem href="/wounds" label="傷口列表" icon="🏠" active={pathname === '/wounds'} />
+                    <NavItem href="/wounds/create" label="新增傷口" icon="➕" active={pathname === '/wounds/create'} />
                 </nav>
             )}
         </div>
