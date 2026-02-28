@@ -17,11 +17,16 @@ export default async function SupplementsDashboard() {
         const today = new Date().toISOString().split('T')[0];
 
         // Execute queries concurrently
-        [supplements, checkIns, streak] = await Promise.all([
+        const [rawSupplements, rawCheckIns, rawStreak] = await Promise.all([
             getSupplements(userId),
             getCheckIns(userId, today),
             getStreak(userId),
         ]);
+
+        // Strip Date objects into ISO strings to prevent RSC serialization crash
+        supplements = JSON.parse(JSON.stringify(rawSupplements));
+        checkIns = JSON.parse(JSON.stringify(rawCheckIns));
+        streak = rawStreak;
     } catch (error) {
         console.error('Failed to fetch supplement data on server:', error);
     }

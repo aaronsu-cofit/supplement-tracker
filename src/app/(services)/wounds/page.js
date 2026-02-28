@@ -9,7 +9,10 @@ export default async function WoundsDashboard() {
     try {
         const userId = await getUserId();
         await initializeDatabase();
-        wounds = await getWounds(userId);
+        const rawWounds = await getWounds(userId);
+
+        // Strip Date objects into ISO strings to prevent RSC serialization crash
+        wounds = JSON.parse(JSON.stringify(rawWounds));
     } catch (error) {
         console.error('Failed to fetch wounds data on server:', error);
     }
