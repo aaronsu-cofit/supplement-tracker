@@ -1,4 +1,4 @@
-export const metadata = { title: '🦴 足踝照護 | 足踝中心' };
+export const metadata = { title: '🦴 足踝照護 | Supplement Tracker' };
 
 import BonesClientLayout from './ClientLayout';
 

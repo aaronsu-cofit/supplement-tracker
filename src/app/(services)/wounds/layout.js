@@ -1,4 +1,4 @@
-export const metadata = { title: '🩹 傷口智慧照護 | 足踝中心' };
+export const metadata = { title: '🩹 傷口智慧照護 | Supplement Tracker' };
 
 import WoundsClientLayout from './ClientLayout';
 
