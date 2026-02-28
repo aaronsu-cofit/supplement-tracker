@@ -3,16 +3,27 @@ import { neon } from '@neondatabase/serverless';
 // ============================================
 // In-memory fallback for local dev (no DB)
 // ============================================
-const memoryStore = {
-  supplements: [],
-  checkIns: [],
-  wounds: [],
-  woundLogs: [],
-  nextSupId: 1,
-  nextCiId: 1,
-  nextWoundId: 1,
-  nextWoundLogId: 1,
-};
+let memoryStore = globalThis.__memoryStore;
+
+if (!memoryStore) {
+  memoryStore = {
+    supplements: [],
+    checkIns: [],
+    wounds: [],
+    woundLogs: [],
+    footAssessments: [],
+    footImages: [],
+    users: [], // Added explicitly to support user login
+    nextSupId: 1,
+    nextCiId: 1,
+    nextWoundId: 1,
+    nextWoundLogId: 1,
+    nextFootAssessId: 1,
+    nextFootImageId: 1,
+  };
+  globalThis.__memoryStore = memoryStore;
+}
+
 
 function isLocalMode() {
   return !process.env.POSTGRES_URL;
@@ -100,10 +111,33 @@ export async function initializeDatabase() {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS foot_assessments (
+      id SERIAL PRIMARY KEY,
+      user_id VARCHAR(64) NOT NULL,
+      pain_locations TEXT,
+      nrs_pain_score INTEGER DEFAULT 0,
+      steps_count INTEGER DEFAULT 0,
+      standing_hours FLOAT DEFAULT 0,
+      date DATE DEFAULT CURRENT_DATE
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS foot_images (
+      id SERIAL PRIMARY KEY,
+      user_id VARCHAR(64) NOT NULL,
+      image_data TEXT,
+      ai_severity VARCHAR(50),
+      ai_summary TEXT,
+      logged_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
   await sql`CREATE INDEX IF NOT EXISTS idx_supplements_user ON supplements(user_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_checkins_user_date ON check_ins(user_id, date)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_wounds_user ON wounds(user_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_wound_logs_user_date ON wound_logs(user_id, date)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_foot_assessments_user_date ON foot_assessments(user_id, date)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_foot_images_user ON foot_images(user_id)`;
 
   // Migrations: add new columns if they don't exist yet
   try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS display_name VARCHAR(200)`; } catch (e) { }
@@ -528,3 +562,72 @@ export async function findUserById(userId) {
   const rows = await sql`SELECT * FROM users WHERE id = ${userId}`;
   return rows[0] || null;
 }
+
+// ============================================
+// Foot Care (Bones)
+// ============================================
+export async function getFootAssessments(userId) {
+  if (isLocalMode()) {
+    return memoryStore.footAssessments
+      .filter((a) => a.user_id === userId)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
+  const sql = getDb();
+  return await sql`SELECT * FROM foot_assessments WHERE user_id = ${userId} ORDER BY date DESC`;
+}
+
+export async function createFootAssessment(userId, data) {
+  if (isLocalMode()) {
+    const assessment = {
+      id: memoryStore.nextFootAssessId++,
+      user_id: userId,
+      pain_locations: data.pain_locations || null,
+      nrs_pain_score: data.nrs_pain_score || 0,
+      steps_count: data.steps_count || 0,
+      standing_hours: data.standing_hours || 0,
+      date: data.date || todayStr(),
+    };
+    memoryStore.footAssessments.push(assessment);
+    return assessment;
+  }
+  const sql = getDb();
+  const rows = await sql`
+    INSERT INTO foot_assessments (user_id, pain_locations, nrs_pain_score, steps_count, standing_hours, date)
+    VALUES (${userId}, ${data.pain_locations || null}, ${data.nrs_pain_score || 0}, ${data.steps_count || 0}, ${data.standing_hours || 0}, ${data.date || todayStr()})
+    RETURNING *
+  `;
+  return rows[0];
+}
+
+export async function getFootImages(userId) {
+  if (isLocalMode()) {
+    return memoryStore.footImages
+      .filter((img) => img.user_id === userId)
+      .sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
+  }
+  const sql = getDb();
+  return await sql`SELECT * FROM foot_images WHERE user_id = ${userId} ORDER BY logged_at DESC`;
+}
+
+export async function createFootImage(userId, data) {
+  if (isLocalMode()) {
+    const img = {
+      id: memoryStore.nextFootImageId++,
+      user_id: userId,
+      image_data: data.image_data || null,
+      ai_severity: data.ai_severity || null,
+      ai_summary: data.ai_summary || null,
+      logged_at: new Date().toISOString(),
+    };
+    memoryStore.footImages.push(img);
+    return img;
+  }
+  const sql = getDb();
+  const rows = await sql`
+    INSERT INTO foot_images (user_id, image_data, ai_severity, ai_summary)
+    VALUES (${userId}, ${data.image_data || null}, ${data.ai_severity || null}, ${data.ai_summary || null})
+    RETURNING *
+  `;
+  return rows[0];
+}
+

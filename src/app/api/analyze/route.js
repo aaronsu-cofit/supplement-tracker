@@ -184,9 +184,39 @@ Guidelines:
 
             const response = NextResponse.json({ success: true, ...parsed });
             return withUserCookie(response, userId);
+        } else if (mode === 'hallux_valgus') {
+            const userId = await getUserId();
+            const prompt = `You are an orthopedic foot specialist analyzing a top-down photo of a patient's feet.
+Determine the severity of Hallux Valgus (bunion) present in the big toe.
+
+Return valid JSON only (no markdown, no code fences):
+{
+  "ai_severity": "normal" | "mild" | "moderate" | "severe",
+  "ai_summary": "Brief objective description of the hallux valgus angle and visual appearance (around 30-50 words in Traditional Chinese)."
+}
+
+Guidelines for severity:
+- normal: No obvious deviation of the big toe.
+- mild: Slight outward deviation of the big toe (angle < 20 degrees).
+- moderate: Clear deviation, visible bony bump at the base (angle ~20-40 degrees).
+- severe: Significant deviation, big toe may overlap with or underlap the second toe (angle > 40 degrees).
+- Return ONLY the JSON object.`;
+
+            const text = await callGemini(apiKey, base64Data, mimeType, prompt);
+
+            let parsed;
+            try {
+                const jsonStr = text.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+                parsed = JSON.parse(jsonStr);
+            } catch {
+                return NextResponse.json({ error: 'Could not parse AI response', raw: text }, { status: 422 });
+            }
+
+            const response = NextResponse.json({ success: true, ...parsed });
+            return withUserCookie(response, userId);
         }
 
-        return NextResponse.json({ error: 'Invalid mode. Use "label", "checkin", or "wound"' }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid mode. Use "label", "checkin", "wound", or "hallux_valgus"' }, { status: 400 });
     } catch (error) {
         console.error('AI analysis error:', error);
         return NextResponse.json({ error: error.message || 'Failed to analyze image' }, { status: 500 });
