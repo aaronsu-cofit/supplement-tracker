@@ -11,7 +11,8 @@ export default async function BonesDashboard() {
     try {
         const userId = await getUserId();
         await initializeDatabase();
-        assessments = await getFootAssessments(userId);
+        const rawWounds = await getFootAssessments(userId);
+        assessments = rawWounds;
     } catch (error) {
         console.error('Failed to fetch foot care data on server:', error);
     }

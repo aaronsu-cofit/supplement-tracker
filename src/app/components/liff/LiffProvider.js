@@ -93,7 +93,7 @@ export default function LiffProvider({ children }) {
         }
 
         return () => { isMounted = false; };
-    }, [pathname]);
+    }, []); // <-- Empty array: Only run on initial mount!
 
     return (
         <LiffContext.Provider value={liffState}>
