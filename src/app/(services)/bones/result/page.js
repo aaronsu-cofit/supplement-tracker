@@ -60,7 +60,7 @@ export default function BonesResultPage() {
         return (
             <div style={{
                 background: active.bg,
-                border: \`1px solid \${active.color}\`,
+                border: `1px solid ${active.color}`,
                 padding: '1.5rem',
                 borderRadius: '16px',
                 textAlign: 'center',
@@ -118,9 +118,9 @@ export default function BonesResultPage() {
                         尋找附近合作專科診所
                     </button>
                     {(ai_severity === 'moderate' || ai_severity === 'severe') && (
-                        <div style={{marginTop: '1rem', borderTop: '1px solid rgba(255,154,158,0.2)', paddingTop: '1rem'}}>
+                        <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,154,158,0.2)', paddingTop: '1rem' }}>
                             <p style={{ color: 'rgba(255,255,255,0.7)', margin: '0 0 1rem 0', fontSize: '0.85rem' }}>開刀術後需要傷口照護嗎？</p>
-                             <Link href="/wounds" style={{ textDecoration: 'none' }}>
+                            <Link href="/wounds" style={{ textDecoration: 'none' }}>
                                 <button style={{
                                     width: '100%', padding: '1rem', borderRadius: '12px', border: '1px solid #ff9a9e',
                                     background: 'transparent', color: '#ff9a9e', fontWeight: 'bold', cursor: 'pointer'
@@ -152,13 +152,13 @@ export default function BonesResultPage() {
                     </button>
                 </div>
             )}
-            
+
             {/* View Source Image */}
             <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem', textAlign: 'center' }}>
                 <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', marginBottom: '1rem' }}>本次分析之原始影像紀錄</p>
-                <div style={{ 
+                <div style={{
                     borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)',
-                    maxWidth: '300px', margin: '0 auto' 
+                    maxWidth: '300px', margin: '0 auto'
                 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={image_data} alt="Source Image" style={{ width: '100%', height: 'auto', display: 'block' }} />
