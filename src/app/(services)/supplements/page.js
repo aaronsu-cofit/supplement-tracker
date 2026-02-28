@@ -3,11 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/app/lib/i18n/LanguageContext';
 import { useLiff } from '@/app/components/liff/LiffProvider';
+import { useAuth } from '@/app/components/auth/AuthProvider';
 import CameraCapture from '@/app/components/CameraCapture';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
 
 export default function HomePage() {
   const { t } = useLanguage();
+  const { isLoading: authLoading } = useAuth();
   const { liff, isInitialized } = useLiff();
   const [supplements, setSupplements] = useState([]);
   const [checkIns, setCheckIns] = useState([]);
@@ -54,17 +56,17 @@ export default function HomePage() {
         // We calculate if this was the last one needed to complete the day
         const isChecked = (supId) => checkIns.some((ci) => ci.supplement_id === supId) || supId === supplementId;
         const newCheckedCount = supplements.filter((s) => isChecked(s.id)).length;
-        
+
         if (newCheckedCount === supplements.length && supplements.length > 0) {
-           try {
-               await fetch('/api/notify', {
-                   method: 'POST',
-                   headers: { 'Content-Type': 'application/json' },
-                   body: JSON.stringify({ type: 'daily_completed' })
-               });
-           } catch (notifyErr) {
-               console.error('Failed to trigger push notification:', notifyErr);
-           }
+          try {
+            await fetch('/api/notify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ type: 'daily_completed' })
+            });
+          } catch (notifyErr) {
+            console.error('Failed to trigger push notification:', notifyErr);
+          }
         }
 
         await fetchData();
@@ -150,7 +152,7 @@ export default function HomePage() {
     low: t('ai.low'),
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="page-container">
         <div className="loading-container"><div className="spinner"></div></div>

@@ -39,23 +39,10 @@ function RouteGuard({ children }) {
         }
     }, [isLoading, isAuthenticated, pathname, router]);
 
-    if (isLoading) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#0f0c29' }}>
-                <div style={{
-                    width: '40px', height: '40px',
-                    border: '3px solid rgba(255,255,255,0.1)',
-                    borderTop: '3px solid #7c5cfc',
-                    borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite',
-                }} />
-            </div>
-        );
-    }
-
-    if (!isAuthenticated && !isPublic) {
-        return null; // Will redirect
-    }
+    // ✨ PERFORMANCE OPTIMIZATION: 
+    // We no longer block the entire React Tree when authenticating.
+    // This allows the Module Layouts (Headers, Navbars) to instantly paint (Skeleton Mode).
+    // Individual pages use `const { isLoading } = useAuth()` to show localized spinners.
 
     return children;
 }

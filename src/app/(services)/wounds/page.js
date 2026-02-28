@@ -7,7 +7,7 @@ import { useAuth } from '@/app/components/auth/AuthProvider';
 import { WOUND_TYPES, BODY_LOCATIONS } from '@/app/lib/wounds-constants';
 
 export default function WoundsDashboard() {
-    const { user } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const [wounds, setWounds] = useState([]);
     const [currentWound, setCurrentWound] = useState(null);
@@ -61,7 +61,7 @@ export default function WoundsDashboard() {
 
     const switchWound = (w) => { setCurrentWound(w); setShowSwitcher(false); };
 
-    if (loading) {
+    if (authLoading || loading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
                 <div style={{ width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid #ff9a9e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />

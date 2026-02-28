@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function BonesResultPage() {
+function BonesResultContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [imageRecord, setImageRecord] = useState(null);
@@ -166,5 +166,17 @@ export default function BonesResultPage() {
             </div>
 
         </div>
+    );
+}
+
+export default function BonesResultPage() {
+    return (
+        <Suspense fallback={
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', flexDirection: 'column' }}>
+                <p style={{ color: '#a8a8a8' }}>載入分析結果中...</p>
+            </div>
+        }>
+            <BonesResultContent />
+        </Suspense>
     );
 }
