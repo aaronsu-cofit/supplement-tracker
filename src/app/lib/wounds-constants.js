@@ -17,6 +17,7 @@ export const BODY_LOCATIONS = [
     { code: 'left_leg', label: '左下肢', emoji: '🦵' },
     { code: 'right_leg', label: '右下肢', emoji: '🦵' },
     { code: 'back', label: '背部', emoji: '🔙' },
+    { code: 'other', label: '其他 (自行輸入)', emoji: '📍' },
 ];
 
 // Helper to get label/emoji from code
@@ -25,5 +26,8 @@ export function getWoundType(code) {
 }
 
 export function getBodyLocation(code) {
-    return BODY_LOCATIONS.find(l => l.code === code) || null;
+    const loc = BODY_LOCATIONS.find(l => l.code === code);
+    if (loc) return loc;
+    if (code) return { code, label: code, emoji: '📍' };
+    return null;
 }

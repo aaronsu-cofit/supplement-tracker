@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { initializeDatabase, getWoundById, updateWoundName, archiveWound } from '@/app/lib/db';
+import { initializeDatabase, getWoundById, updateWound, archiveWound } from '@/app/lib/db';
 import { getUserId, withUserCookie } from '@/app/lib/userId';
 
 export async function GET(request, { params }) {
@@ -14,11 +14,15 @@ export async function GET(request, { params }) {
         }
 
         const wound = await getWoundById(userId, parsedId);
+        console.log("DEBUG getWoundById:", { userId, parsedId, wound });
         if (!wound) {
-            return NextResponse.json({ error: 'Wound not found' }, { status: 404 });
+            // Debugging output
+            const allWounds = !process.env.POSTGRES_URL ? require('@/app/lib/db').memoryStore.wounds : [];
+            return NextResponse.json({ error: 'Wound not found', debug: { userId, parsedId, allWounds } }, { status: 404 });
         }
 
-        return NextResponse.json(wound);
+        const response = NextResponse.json(wound);
+        return withUserCookie(response, userId);
     } catch (error) {
         console.error('Error fetching wound:', error);
         return NextResponse.json({ error: 'Failed to fetch wound' }, { status: 500 });
@@ -28,6 +32,7 @@ export async function GET(request, { params }) {
 export async function PATCH(request, { params }) {
     try {
         await initializeDatabase();
+        const userId = await getUserId();
         const { woundId } = await params;
         const parsedWoundId = parseInt(woundId, 10);
 
@@ -36,9 +41,21 @@ export async function PATCH(request, { params }) {
         }
 
         const data = await request.json();
-        const result = await updateWoundName(parsedWoundId, data.name);
 
-        return NextResponse.json({ success: true, id: parsedWoundId, name: data.name });
+        // Build dynamic update
+        const updates = {};
+        if (data.name !== undefined) updates.name = data.name;
+        if (data.wound_type !== undefined) updates.wound_type = data.wound_type;
+        if (data.body_location !== undefined) updates.body_location = data.body_location;
+        if (data.date_of_injury !== undefined) updates.date_of_injury = data.date_of_injury;
+
+        if (Object.keys(updates).length === 0) {
+            return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+        }
+
+        const result = await updateWound(parsedWoundId, userId, updates);
+        const response = NextResponse.json({ success: true, wound: result });
+        return withUserCookie(response, userId);
     } catch (error) {
         console.error('Error updating wound:', error);
         return NextResponse.json({ error: 'Failed to update wound' }, { status: 500 });
@@ -57,7 +74,8 @@ export async function DELETE(request, { params }) {
         }
 
         await archiveWound(userId, parsedId);
-        return NextResponse.json({ success: true });
+        const response = NextResponse.json({ success: true });
+        return withUserCookie(response, userId);
     } catch (error) {
         console.error('Error archiving wound:', error);
         return NextResponse.json({ error: 'Failed to archive wound' }, { status: 500 });

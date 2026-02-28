@@ -324,7 +324,7 @@ export async function getWounds(userId) {
 
 export async function getWoundById(userId, woundId) {
   if (isLocalMode()) {
-    return memoryStore.wounds.find((w) => w.id === woundId && w.user_id === userId) || null;
+    return memoryStore.wounds.find((w) => Number(w.id) === Number(woundId) && String(w.user_id) === String(userId)) || null;
   }
   const sql = getDb();
   const rows = await sql`SELECT * FROM wounds WHERE id = ${woundId} AND user_id = ${userId}`;
@@ -350,6 +350,27 @@ export async function getAllWoundsAdmin() {
   return await sql`SELECT * FROM wounds ORDER BY created_at DESC LIMIT 50`;
 }
 
+export async function updateWound(woundId, userId, updates) {
+  if (isLocalMode()) {
+    const w = memoryStore.wounds.find((w) => w.id === woundId && w.user_id === userId);
+    if (w) Object.assign(w, updates);
+    return w;
+  }
+  const sql = getDb();
+  // Build dynamic update — only set provided fields
+  const rows = await sql`
+    UPDATE wounds SET
+      name = COALESCE(${updates.name || null}, name),
+      wound_type = COALESCE(${updates.wound_type || null}, wound_type),
+      body_location = COALESCE(${updates.body_location || null}, body_location),
+      date_of_injury = COALESCE(${updates.date_of_injury ? updates.date_of_injury : null}, date_of_injury)
+    WHERE id = ${woundId} AND user_id = ${userId}
+    RETURNING *
+  `;
+  return rows[0];
+}
+
+// Legacy alias
 export async function updateWoundName(woundId, name) {
   if (isLocalMode()) {
     const w = memoryStore.wounds.find((w) => w.id === woundId);

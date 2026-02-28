@@ -52,7 +52,7 @@ export async function POST(request) {
 
         return response;
     } catch (error) {
-        console.error('Register error:', error);
-        return NextResponse.json({ error: '註冊失敗，請稍後再試' }, { status: 500 });
+        console.error('Registration error:', error);
+        return NextResponse.json({ error: '註冊失敗，請稍後再試', detail: error.message, stack: error.stack }, { status: 500 });
     }
 }

@@ -114,6 +114,20 @@ assert_contains "Single wound has name" "$SINGLE" '左膝擦傷'
 assert_contains "Single wound has wound_type" "$SINGLE" 'laceration'
 assert_contains "Single wound has body_location" "$SINGLE" 'left_leg'
 
+# ---- 4.5. Edit Wound ----
+echo ""
+echo -e "${YELLOW}▸ 4.5 Edit Wound${NC}"
+EDIT_RES=$(curl -s -b "$COOKIE_JAR" \
+    -X PATCH "$BASE/api/wounds/$WOUND1_ID" \
+    -H "Content-Type: application/json" \
+    -d '{"name":"左膝擦傷(已更新)","wound_type":"surgical","body_location":"right_leg","date_of_injury":"2026-02-24"}')
+assert_contains "Edit response success" "$EDIT_RES" '"success":true'
+
+EDITED=$(curl -s -b "$COOKIE_JAR" "$BASE/api/wounds/$WOUND1_ID")
+assert_contains "Edited name" "$EDITED" '已更新'
+assert_contains "Edited wound_type" "$EDITED" 'surgical'
+assert_contains "Edited body_location" "$EDITED" 'right_leg'
+
 # ---- 5. Create Log for Wound 1 ----
 echo ""
 echo -e "${YELLOW}▸ 5. Create Wound Logs${NC}"

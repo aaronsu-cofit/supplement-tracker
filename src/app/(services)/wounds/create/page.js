@@ -10,6 +10,7 @@ export default function CreateWoundPage() {
     const [name, setName] = useState('');
     const [woundType, setWoundType] = useState('');
     const [bodyLocation, setBodyLocation] = useState('');
+    const [customLocation, setCustomLocation] = useState('');
     const [dateOfInjury, setDateOfInjury] = useState(new Date().toISOString().split('T')[0]);
     const [submitting, setSubmitting] = useState(false);
 
@@ -18,20 +19,21 @@ export default function CreateWoundPage() {
     const canNext = () => {
         if (step === 1) return name.trim().length > 0;
         if (step === 2) return woundType !== '';
-        if (step === 3) return bodyLocation !== '';
+        if (step === 3) return bodyLocation === 'other' ? customLocation.trim() !== '' : bodyLocation !== '';
         return true;
     };
 
     const handleSubmit = async () => {
         setSubmitting(true);
         try {
+            const finalLocation = bodyLocation === 'other' ? customLocation.trim() : bodyLocation;
             const res = await fetch('/api/wounds', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name.trim(), wound_type: woundType, body_location: bodyLocation, date_of_injury: dateOfInjury }),
+                body: JSON.stringify({ name: name.trim(), wound_type: woundType, body_location: finalLocation, date_of_injury: dateOfInjury }),
             });
             const wound = await res.json();
-            router.push(`/wounds/${wound.id}`);
+            router.push(`/wounds?new_id=${wound.id}`);
         } catch (err) {
             console.error('Create wound error:', err);
             setSubmitting(false);
@@ -111,7 +113,7 @@ export default function CreateWoundPage() {
                         <h2 style={{ color: '#fff', fontSize: '1.2rem', margin: 0 }}>傷口位置</h2>
                         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', margin: '0.3rem 0 0' }}>幫助醫護快速辨認</p>
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center', marginBottom: bodyLocation === 'other' ? '1rem' : 0 }}>
                         {BODY_LOCATIONS.map(l => (
                             <button
                                 key={l.code}
@@ -128,6 +130,22 @@ export default function CreateWoundPage() {
                             </button>
                         ))}
                     </div>
+                    {bodyLocation === 'other' && (
+                        <div style={{ animation: 'fadeIn 0.2s ease' }}>
+                            <input
+                                type="text"
+                                value={customLocation}
+                                onChange={e => setCustomLocation(e.target.value)}
+                                placeholder="請輸入傷口位置（例如：右手背、左腳踝）"
+                                autoFocus
+                                style={{
+                                    width: '100%', padding: '1rem', fontSize: '1rem', color: '#fff',
+                                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
+                                    borderRadius: 12, outline: 'none', boxSizing: 'border-box',
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -158,7 +176,7 @@ export default function CreateWoundPage() {
                     }}>
                         <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>建檔摘要</div>
                         <div style={{ color: '#fff', fontSize: '0.9rem' }}>
-                            <strong>{name}</strong> ・ {WOUND_TYPES.find(t => t.code === woundType)?.label} ・ {BODY_LOCATIONS.find(l => l.code === bodyLocation)?.label} ・ {dateOfInjury}
+                            <strong>{name}</strong> ・ {WOUND_TYPES.find(t => t.code === woundType)?.label} ・ {bodyLocation === 'other' ? customLocation.trim() : BODY_LOCATIONS.find(l => l.code === bodyLocation)?.label} ・ {dateOfInjury}
                         </div>
                     </div>
                 </div>
