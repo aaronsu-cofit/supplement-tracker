@@ -1,61 +1,24 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/app/components/auth/AuthProvider';
+import { getUserId } from '@/app/lib/userId';
+import { getFootAssessments, initializeDatabase } from '@/app/lib/db';
 
-export default function BonesDashboard() {
-    const { user, isLoading: authLoading } = useAuth();
-    const router = useRouter();
-    const [assessments, setAssessments] = useState([]);
-    const [images, setImages] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+export const dynamic = 'force-dynamic';
 
-    useEffect(() => {
-        if (authLoading) return;
-        if (!user) {
-            router.replace('/login?redirect=/bones');
-            return;
-        }
-        fetchData();
-    }, [user, authLoading, router]);
-
-    const fetchData = async () => {
-        setIsLoading(true);
-        try {
-            const [assessRes, imagesRes] = await Promise.all([
-                fetch('/api/footcare/assessments'),
-                fetch('/api/footcare/images')
-            ]);
-
-            if (assessRes.ok) {
-                const assessData = await assessRes.json();
-                setAssessments(assessData || []);
-            }
-            if (imagesRes.ok) {
-                const imgData = await imagesRes.json();
-                setImages(imgData || []);
-            }
-        } catch (error) {
-            console.error('Failed to fetch foot care data:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    if (authLoading || isLoading) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ width: 40, height: 40, border: '3px solid rgba(168,255,120,0.3)', borderTopColor: '#a8ff78', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                <p style={{ color: '#a8a8a8', fontSize: '0.9rem' }}>載入您的足部資料中...</p>
-                <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-            </div>
-        );
+// This is now a Server Component
+export default async function BonesDashboard() {
+    // 1. Fetch data on the server side
+    let assessments = [];
+    try {
+        const userId = await getUserId();
+        await initializeDatabase();
+        assessments = await getFootAssessments(userId);
+    } catch (error) {
+        console.error('Failed to fetch foot care data on server:', error);
     }
 
     const latestAssessment = assessments.length > 0 ? assessments[0] : null;
 
+    // 2. Render instantly with data populated
     return (
         <div style={{ padding: '1.5rem', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '90px' }}>
             {/* Header Banner */}
@@ -105,7 +68,7 @@ export default function BonesDashboard() {
                     </div>
                 </Link>
 
-                <a href="#" onClick={(e) => { e.preventDefault(); alert('功能建置中：此按鈕未來將引導開啟 Habit Tracker App 進行足底復健打卡'); }} style={{ textDecoration: 'none' }}>
+                <Link href="#" style={{ textDecoration: 'none' }}>
                     <div style={{
                         background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
                         borderRadius: '16px', padding: '1.25rem', textAlign: 'center',
@@ -113,9 +76,9 @@ export default function BonesDashboard() {
                     }}>
                         <div style={{ fontSize: '2rem' }}>🎯</div>
                         <h3 style={{ margin: 0, color: '#fff', fontSize: '1rem', fontWeight: 600 }}>肌力復健處方</h3>
-                        <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem' }}>前往 Habit Tracker</p>
+                        <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem' }}>即將推出</p>
                     </div>
-                </a>
+                </Link>
             </div>
 
             {/* Status Overview */}
@@ -139,7 +102,7 @@ export default function BonesDashboard() {
                             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
                                 {latestAssessment.pain_locations.split(',').map((loc, idx) => (
                                     <span key={idx} style={{ background: 'rgba(255,255,255,0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>
-                                        {loc} 📍
+                                        {loc.trim()} 📍
                                     </span>
                                 ))}
                             </div>
