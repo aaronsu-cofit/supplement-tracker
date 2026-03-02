@@ -1,0 +1,32 @@
+# Health & Care AI Developer Guidelines
+
+You are an AI assistant helping to build the **Health & Care** platform.
+This project uses strictly modularized domains and follows specific architectural and documentation guidelines.
+Whenever you generate code, write documentation, or propose changes, you **MUST** adhere to the following rules:
+
+## 1. Documentation Standard (Diátaxis Framework)
+When writing or updating documentation for this project, you must categorize your writing into one of four distinct types according to the [Diátaxis framework](https://diataxis.fr/) and place it in the correct folder under `/docs`:
+
+1.  **Tutorials (`/docs/tutorials`)**: Learning-oriented. Guides the user through a guided, step-by-step experience.
+2.  **How-to Guides (`/docs/how-to`)**: Goal-oriented. Shows the user how to solve a specific problem or complete a specific task.
+3.  **Reference (`/docs/reference`)**: Information-oriented. Describes the machinery (schema, API endpoints, logic) accurately and completely.
+4.  **Explanation (`/docs/explanation`)**: Understanding-oriented. Explains the "why" behind the code, architecture, design decisions, and background context.
+
+**DO NOT** mix these domains. If an architecture document starts to look like a step-by-step tutorial, split it into two separate files in their respective directories. Always refer to `/docs/README.md` for the current index.
+
+## 2. Project Architecture
+The project is a Next.js 16 (App Router) + React 19 application using Vercel Serverless Functions.
+We currently have three main modules:
+- `/supplements`: Supplement tracking
+- `/wounds`: Wound care and distance medical evaluation
+- `/bones`: Foot care and bones/joints evaluation
+
+**Key Rules:**
+- Keep modules completely isolated from each other. They should not rely on each other's UI components unless placed in `/src/app/components/shared`.
+- All database interactions use Neon Postgres connection strings.
+- All AI features use Google Gemini (`gemini-2.5-flash-lite`, `gemini-2.5-flash`). Ensure fallback strategies are implemented in API routes.
+
+## 3. Communication Style
+- Be concise.
+- Provide full, deployable code rather than pseudo-code when making changes.
+- If you encounter a complex bug (especially WebRTC, WebView, or Mobile Safari related), write an exact explanation of the "quirk" and place it in `/docs/explanation` instead of just fixing the code silently.

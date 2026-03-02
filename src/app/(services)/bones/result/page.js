@@ -46,29 +46,52 @@ function BonesResultContent() {
 
     if (!imageRecord) return null;
 
-    const { ai_severity, ai_summary, image_data } = imageRecord;
+    const BoundingBoxOverlay = ({ details }) => {
+        if (!details) return null;
 
-    const SeverityDisplay = ({ severity }) => {
-        const config = {
-            normal: { text: '正常', color: '#a8ff78', bg: 'rgba(168, 255, 120, 0.15)' },
-            mild: { text: '輕度外翻', color: '#ffeb3b', bg: 'rgba(255, 235, 59, 0.15)' },
-            moderate: { text: '中度外翻', color: '#ff9a9e', bg: 'rgba(255, 154, 158, 0.15)' },
-            severe: { text: '重度外翻', color: '#ff4b4b', bg: 'rgba(255, 75, 75, 0.15)' },
+        const renderBox = (toeData, label) => {
+            if (!toeData || !toeData.detected || !toeData.box) return null;
+            const { xmin, ymin, xmax, ymax } = toeData.box;
+            const width = xmax - xmin;
+            const height = ymax - ymin;
+
+            // Get color based on severity
+            let color = '#a8ff78'; // normal
+            if (toeData.severity === 'mild') color = '#ffeb3b';
+            if (toeData.severity === 'moderate') color = '#ff9a9e';
+            if (toeData.severity === 'severe') color = '#ff4b4b';
+
+            return (
+                <g>
+                    {/* Bounding Box */}
+                    <rect
+                        x={`${xmin * 100}%`} y={`${ymin * 100}%`}
+                        width={`${width * 100}%`} height={`${height * 100}%`}
+                        fill="none" stroke={color} strokeWidth="3" rx="8"
+                        strokeDasharray="8 4" style={{ filter: `drop-shadow(0 0 6px ${color})` }}
+                    />
+
+                    {/* Angle Line Visualization */}
+                    <path
+                        d={`M${(xmin + width / 2) * 100}% ${(ymin + height) * 100}% L${(xmin + width / 2) * 100}% ${(ymin + height / 2) * 100}% L${(xmin + width / 2 + (label === 'L' ? width / 1.5 : -width / 1.5)) * 100}% ${(ymin) * 100}%`}
+                        fill="none" stroke={color} strokeWidth="2" opacity="0.8"
+                    />
+
+                    {/* Data Label */}
+                    <g transform={`translate(${(xmax + 0.02) * 100}, ${(ymin + 0.05) * 100})`}>
+                        <rect x="-2%" y="-3%" width="22%" height="10%" rx="4" fill="rgba(0,0,0,0.7)" stroke={color} strokeWidth="1" />
+                        <text x="0%" y="2%" fill="#fff" fontSize="5" fontWeight="bold" dominantBaseline="middle">{toeData.angle_degrees}°</text>
+                        <text x="0%" y="5.5%" fill={color} fontSize="3" fontWeight="bold" dominantBaseline="middle" textTransform="uppercase">{toeData.severity}</text>
+                    </g>
+                </g>
+            );
         };
-        const active = config[severity] || config.normal;
 
         return (
-            <div style={{
-                background: active.bg,
-                border: `1px solid ${active.color}`,
-                padding: '1.5rem',
-                borderRadius: '16px',
-                textAlign: 'center',
-                marginBottom: '1.5rem'
-            }}>
-                <h3 style={{ color: active.color, fontSize: '1.5rem', margin: '0 0 0.5rem 0' }}>{active.text}</h3>
-                <p style={{ color: 'rgba(255,255,255,0.8)', margin: 0, fontSize: '0.95rem' }}>AI 客觀檢測結果</p>
-            </div>
+            <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
+                {renderBox(details.left_toe, 'L')}
+                {renderBox(details.right_toe, 'R')}
+            </svg>
         );
     };
 
@@ -81,7 +104,16 @@ function BonesResultContent() {
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>📑 檢測報告</h2>
             </header>
 
-            <SeverityDisplay severity={ai_severity} />
+            {/* View Source Image with Overlay Container */}
+            <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', background: '#000', margin: '0 auto', width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imageRecord.image_data} alt="Foot Source Image" style={{ width: '100%', height: 'auto', display: 'block' }} />
+
+                {/* AI Visual Annnotation Overlay */}
+                <BoundingBoxOverlay details={imageRecord.ai_details} />
+            </div>
+
+            <SeverityDisplay severity={imageRecord.ai_severity} />
 
             <div style={{
                 background: 'rgba(0,0,0,0.2)',
@@ -93,12 +125,12 @@ function BonesResultContent() {
                     <span>🤖</span> AI 說明與建議
                 </h4>
                 <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, margin: 0 }}>
-                    {ai_summary}
+                    {imageRecord.ai_summary}
                 </p>
             </div>
 
             {/* Referral / CTA section based on severity */}
-            {(ai_severity === 'moderate' || ai_severity === 'severe') && (
+            {(imageRecord.ai_severity === 'moderate' || imageRecord.ai_severity === 'severe') && (
                 <div style={{
                     background: 'linear-gradient(135deg, rgba(255, 154, 158, 0.15), rgba(253, 160, 133, 0.15))',
                     border: '1px solid #ff9a9e',
@@ -117,7 +149,7 @@ function BonesResultContent() {
                     }}>
                         尋找附近合作專科診所
                     </button>
-                    {(ai_severity === 'moderate' || ai_severity === 'severe') && (
+                    {(imageRecord.ai_severity === 'moderate' || imageRecord.ai_severity === 'severe') && (
                         <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,154,158,0.2)', paddingTop: '1rem' }}>
                             <p style={{ color: 'rgba(255,255,255,0.7)', margin: '0 0 1rem 0', fontSize: '0.85rem' }}>開刀術後需要傷口照護嗎？</p>
                             <Link href="/wounds" style={{ textDecoration: 'none' }}>
@@ -133,7 +165,7 @@ function BonesResultContent() {
                 </div>
             )}
 
-            {(ai_severity === 'normal' || ai_severity === 'mild' || ai_severity === 'moderate') && (
+            {(imageRecord.ai_severity === 'normal' || imageRecord.ai_severity === 'mild' || imageRecord.ai_severity === 'moderate') && (
                 <div style={{
                     background: 'linear-gradient(135deg, rgba(168, 255, 120, 0.1), rgba(120, 255, 214, 0.1))',
                     border: '1px solid rgba(168, 255, 120, 0.2)',
@@ -152,19 +184,6 @@ function BonesResultContent() {
                     </button>
                 </div>
             )}
-
-            {/* View Source Image */}
-            <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem', textAlign: 'center' }}>
-                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', marginBottom: '1rem' }}>本次分析之原始影像紀錄</p>
-                <div style={{
-                    borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)',
-                    maxWidth: '300px', margin: '0 auto'
-                }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={image_data} alt="Source Image" style={{ width: '100%', height: 'auto', display: 'block' }} />
-                </div>
-            </div>
-
         </div>
     );
 }

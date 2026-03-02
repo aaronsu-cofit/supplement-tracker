@@ -18,61 +18,64 @@ export function useAuth() {
 
 export default function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isSessionChecked, setIsSessionChecked] = useState(false);
+    const [isLineLoginFinished, setIsLineLoginFinished] = useState(false);
     const { profile, isInitialized: liffInitialized, isInLineClient } = useLiff();
 
     // Check existing session on mount
     useEffect(() => {
+        const checkSession = async () => {
+            try {
+                const res = await fetch('/api/auth/me');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.authenticated) {
+                        setUser(data.user);
+                    }
+                }
+            } catch (err) {
+                console.error('Session check failed:', err);
+            } finally {
+                setIsSessionChecked(true);
+            }
+        };
         checkSession();
     }, []);
 
     // Auto-login LINE users when profile becomes available
     useEffect(() => {
-        if (liffInitialized && profile && !user) {
-            loginWithLine(profile);
-        } else if (liffInitialized && !profile && !user) {
-            // LIFF initialized but no profile — not in LINE or not logged in
-            setIsLoading(false);
-        }
-    }, [liffInitialized, profile]);
+        if (!liffInitialized) return;
 
-    const checkSession = async () => {
-        try {
-            const res = await fetch('/api/auth/me');
-            if (res.ok) {
-                const data = await res.json();
-                if (data.authenticated) {
-                    setUser(data.user);
+        if (profile && !user) {
+            const loginWithLine = async () => {
+                try {
+                    const res = await fetch('/api/auth/me', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            lineUserId: profile.userId,
+                            displayName: profile.displayName,
+                            pictureUrl: profile.pictureUrl,
+                        }),
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        setUser(data.user);
+                    }
+                } catch (err) {
+                    console.error('LINE login failed:', err);
+                } finally {
+                    setIsLineLoginFinished(true);
                 }
-            }
-        } catch (err) {
-            console.error('Session check failed:', err);
-        } finally {
-            setIsLoading(false);
+            };
+            loginWithLine();
+        } else {
+            // Either we already have a user from checkSession, or we aren't in LINE
+            setIsLineLoginFinished(true);
         }
-    };
+    }, [liffInitialized, profile]); // intentionally excluded user to prevent re-running loop
 
-    const loginWithLine = async (lineProfile) => {
-        try {
-            const res = await fetch('/api/auth/me', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    lineUserId: lineProfile.userId,
-                    displayName: lineProfile.displayName,
-                    pictureUrl: lineProfile.pictureUrl,
-                }),
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setUser(data.user);
-            }
-        } catch (err) {
-            console.error('LINE login failed:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const isLoading = !isSessionChecked || !liffInitialized || !isLineLoginFinished;
 
     const login = useCallback(async (email, password) => {
         const res = await fetch('/api/auth/login', {

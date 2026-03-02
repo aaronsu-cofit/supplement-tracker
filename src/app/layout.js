@@ -15,12 +15,12 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="zh-TW">
+    <html lang="zh-TW" suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#0a0a12" />
         <link rel="icon" href="/favicon.ico" />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

@@ -13,6 +13,96 @@ export default function BonesScanPage() {
     const [error, setError] = useState(null);
     const [result, setResult] = useState(null);
 
+    // Custom WebRTC Camera States
+    const videoRef = useRef(null);
+    const canvasRef = useRef(null);
+    const [isCameraActive, setIsCameraActive] = useState(false);
+
+    // Start Camera Stream
+    const startCamera = async () => {
+        setError(null);
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setError("您目前的瀏覽器不支援高階智能相機，請點擊下方「一般相機拍照」或點選右上角「以預設瀏覽器開啟」。");
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: 'environment' } }
+            });
+            handleStreamSuccess(stream);
+        } catch (err) {
+            console.error("Camera error (environment):", err);
+            try {
+                const streamFallback = await navigator.mediaDevices.getUserMedia({ video: true });
+                handleStreamSuccess(streamFallback);
+            } catch (fallbackErr) {
+                console.error("Camera fallback error:", fallbackErr);
+                let errorMsg = "無法啟動相機。";
+                if (fallbackErr.name === 'NotAllowedError') {
+                    errorMsg = "🎥 相機權限已被拒絕。請至瀏覽器設定中「允許」此應用程式存取相機。";
+                } else if (fallbackErr.name === 'NotFoundError') {
+                    errorMsg = "找不到相機裝置。";
+                }
+                setError(`${errorMsg} (您也可以點擊下方「一般相機拍照」作為備案)`);
+            }
+        }
+    };
+
+    const handleStreamSuccess = (stream) => {
+        setIsCameraActive(true);
+        // Ensure DOM is updated before attaching stream
+        setTimeout(() => {
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+        }, 50);
+    };
+
+    // Secondary guarantee to play video once metadata is loaded
+    const handleLoadedMetadata = async () => {
+        if (videoRef.current) {
+            try {
+                await videoRef.current.play();
+            } catch (playErr) {
+                console.error("Video play error on metadata load:", playErr);
+            }
+        }
+    };
+
+    // Remove old onCanPlay as it might fire too late or inconsistently on iOS First Load
+    // const handleCanPlay = async () => ...
+
+    // Stop Camera Stream
+    const stopCamera = () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            const tracks = videoRef.current.srcObject.getTracks();
+            tracks.forEach(track => track.stop());
+            videoRef.current.srcObject = null;
+        }
+        setIsCameraActive(false);
+    };
+
+    // Capture Image from Video
+    const captureFromVideo = () => {
+        if (!videoRef.current || !canvasRef.current) return;
+
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+
+        // Set canvas to match video actual dimensions
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setPreview(imageDataUrl);
+        stopCamera();
+    };
+
     const handleCapture = (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -22,6 +112,7 @@ export default function BonesScanPage() {
         const reader = new FileReader();
         reader.onload = (ev) => {
             setPreview(ev.target.result);
+            if (isCameraActive) stopCamera();
         };
         reader.readAsDataURL(file);
     };
@@ -33,6 +124,7 @@ export default function BonesScanPage() {
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
+        startCamera(); // Restart camera on retake
     };
 
     const handleAnalyze = async () => {
@@ -68,14 +160,24 @@ export default function BonesScanPage() {
         setSaving(true);
 
         try {
+            const payload = {
+                image_data: preview,
+                ai_severity: result.ai_severity,
+                ai_summary: result.ai_summary,
+            };
+
+            // If the Gemini model returned the extra coordinates from the new prompt, save them
+            if (result.left_toe || result.right_toe) {
+                payload.ai_details = {
+                    left_toe: result.left_toe,
+                    right_toe: result.right_toe
+                };
+            }
+
             const res = await fetch('/api/footcare/images', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    image_data: preview,
-                    ai_severity: result.ai_severity,
-                    ai_summary: result.ai_summary
-                })
+                body: JSON.stringify(payload)
             });
 
             if (res.ok) {
@@ -103,38 +205,138 @@ export default function BonesScanPage() {
 
             {!preview ? (
                 <div style={{
-                    border: '2px dashed rgba(168, 255, 120, 0.4)',
                     borderRadius: '16px',
-                    padding: '3rem 1rem',
+                    padding: '1.5rem 1rem',
                     textAlign: 'center',
-                    background: 'rgba(0,0,0,0.2)'
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.08)'
                 }}>
-                    <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🦶</div>
-                    <p style={{ color: '#fff', fontWeight: 'bold' }}>請拍攝雙腳正上方俯拍照</p>
-                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: '2rem' }}>確保光線明亮，雙腳平放於地面</p>
+                    <p style={{ color: '#fff', fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '0.5rem' }}>請拍攝雙腳正上方俯拍照</p>
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>確保光線明亮，請將雙腳對齊下方參考線</p>
 
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={handleCapture}
-                        id="camera-input"
-                        style={{ display: 'none' }}
-                    />
-
-                    <label htmlFor="camera-input" style={{
-                        display: 'inline-block',
-                        padding: '1rem 2rem',
-                        background: '#a8ff78',
-                        color: '#1a3630',
-                        fontWeight: 'bold',
-                        borderRadius: '12px',
-                        cursor: 'pointer',
-                        width: '80%'
+                    {/* Custom WebRTC Camera Area */}
+                    <div style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '400px', // Taller for better camera view
+                        background: '#000',
+                        borderRadius: '16px',
+                        marginBottom: '1.5rem',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
                     }}>
-                        開啟相機 / 相簿
-                    </label>
+                        {!isCameraActive ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{ fontSize: '3rem', opacity: 0.5 }}>📷</div>
+                                <button onClick={startCamera} style={{
+                                    padding: '0.8rem 1.5rem', background: '#a8ff78', color: '#1a3630',
+                                    border: 'none', borderRadius: '24px', fontWeight: 'bold', cursor: 'pointer',
+                                    boxShadow: '0 4px 12px rgba(168, 255, 120, 0.3)'
+                                }}>
+                                    啟動智能相機
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Live Video Stream */}
+                                <video
+                                    key={isCameraActive ? 'active' : 'inactive'}
+                                    ref={videoRef}
+                                    autoPlay
+                                    playsInline
+                                    muted={true}
+                                    onLoadedMetadata={handleLoadedMetadata}
+                                    style={{
+                                        position: 'absolute', inset: 0, width: '100%', height: '100%',
+                                        objectFit: 'cover', zIndex: 1,
+                                        transform: 'translateZ(0)',
+                                        WebkitTransform: 'translateZ(0)',
+                                        backgroundColor: '#000'
+                                    }}
+                                />
+
+                                {/* Glowing Foot Guideline SVG Overlaying the Video */}
+                                <svg viewBox="0 0 200 240" style={{
+                                    position: 'absolute', inset: 0, width: '100%', height: '100%',
+                                    stroke: 'rgba(168, 255, 120, 0.9)', strokeWidth: '2', fill: 'none',
+                                    strokeDasharray: '4 4', zIndex: 5, pointerEvents: 'none',
+                                    filter: 'drop-shadow(0 0 4px rgba(168, 255, 120, 0.5))'
+                                }}>
+                                    {/* Left Foot Rough Outline */}
+                                    <path d="M70,40 C50,40 40,80 40,110 C40,150 45,180 50,190 C55,200 65,205 75,200 C85,195 90,170 90,140 C90,100 85,40 70,40 Z" />
+                                    {/* Right Foot Rough Outline */}
+                                    <path d="M130,40 C150,40 160,80 160,110 C160,150 155,180 150,190 C145,200 135,205 125,200 C115,195 110,170 110,140 C110,100 115,40 130,40 Z" />
+                                    {/* Alignment Markers */}
+                                    <line x1="100" y1="20" x2="100" y2="220" stroke="rgba(255,255,255,0.4)" strokeDasharray="2 6" strokeWidth="1" />
+                                    <line x1="40" y1="120" x2="160" y2="120" stroke="rgba(255,255,255,0.4)" strokeDasharray="2 6" strokeWidth="1" />
+                                </svg>
+
+                                {/* Shutter Button */}
+                                <div style={{
+                                    position: 'absolute', bottom: '20px', left: '0', right: '0',
+                                    display: 'flex', justifyContent: 'center', zIndex: 10
+                                }}>
+                                    <button onClick={captureFromVideo} style={{
+                                        width: '64px', height: '64px', borderRadius: '50%',
+                                        background: 'rgba(255,255,255,0.2)', border: '4px solid #fff',
+                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        backdropFilter: 'blur(4px)', boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                                    }}>
+                                        <div style={{ width: '48px', height: '48px', background: '#fff', borderRadius: '50%' }} />
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                        {/* Hidden Canvas for extracting image */}
+                        <canvas ref={canvasRef} style={{ display: 'none' }} />
+                    </div>
+
+                    {error && (
+                        <div style={{ padding: '0.8rem', background: 'rgba(255, 99, 132, 0.1)', color: '#ff6384', borderRadius: '8px', border: '1px solid rgba(255, 99, 132, 0.3)', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+                            {error}
+                        </div>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                        {/* Native Camera Fallback */}
+                        <label style={{
+                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            padding: '0.8rem 1.5rem', background: 'rgba(168, 255, 120, 0.1)', color: '#a8ff78',
+                            border: '1px solid rgba(168, 255, 120, 0.3)', borderRadius: '24px', cursor: 'pointer',
+                            fontSize: '0.9rem'
+                        }} onClick={() => {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = 'image/*';
+                            input.capture = 'environment';
+                            input.onchange = handleCapture;
+                            input.click();
+                        }}>
+                            <span>📱</span>
+                            <span>一般相機拍照</span>
+                        </label>
+
+                        {/* Gallery Input Fallback */}
+                        <label style={{
+                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            padding: '0.8rem 1.5rem', background: 'rgba(255, 255, 255, 0.05)', color: '#fff',
+                            border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '24px', cursor: 'pointer',
+                            fontSize: '0.9rem'
+                        }} onClick={() => {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = 'image/*';
+                            input.onchange = handleCapture;
+                            input.click();
+                        }}>
+                            <span>🖼️</span>
+                            <span>從相簿選取</span>
+                        </label>
+                    </div>
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

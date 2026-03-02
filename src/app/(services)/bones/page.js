@@ -69,15 +69,15 @@ export default async function BonesDashboard() {
                     </div>
                 </Link>
 
-                <Link href="#" style={{ textDecoration: 'none' }}>
+                <Link href="/bones/history" style={{ textDecoration: 'none' }}>
                     <div style={{
                         background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
                         borderRadius: '16px', padding: '1.25rem', textAlign: 'center',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem'
                     }}>
-                        <div style={{ fontSize: '2rem' }}>🎯</div>
-                        <h3 style={{ margin: 0, color: '#fff', fontSize: '1rem', fontWeight: 600 }}>肌力復健處方</h3>
-                        <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem' }}>即將推出</p>
+                        <div style={{ fontSize: '2rem' }}>📸</div>
+                        <h3 style={{ margin: 0, color: '#fff', fontSize: '1rem', fontWeight: 600 }}>檢測歷程追蹤</h3>
+                        <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem' }}>追蹤外翻角度變化</p>
                     </div>
                 </Link>
             </div>

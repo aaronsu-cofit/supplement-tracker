@@ -14,12 +14,14 @@ if (!memoryStore) {
     footAssessments: [],
     footImages: [],
     users: [], // Added explicitly to support user login
+    intimacyAssessments: [],
     nextSupId: 1,
     nextCiId: 1,
     nextWoundId: 1,
     nextWoundLogId: 1,
     nextFootAssessId: 1,
     nextFootImageId: 1,
+    nextIntimacyAssessId: 1,
   };
   globalThis.__memoryStore = memoryStore;
 }
@@ -108,6 +110,7 @@ export async function initializeDatabase() {
       display_name VARCHAR(200),
       picture_url TEXT,
       auth_provider VARCHAR(20) NOT NULL,
+      role VARCHAR(20) DEFAULT 'user',
       created_at TIMESTAMP DEFAULT NOW()
     )
   `;
@@ -129,7 +132,19 @@ export async function initializeDatabase() {
       image_data TEXT,
       ai_severity VARCHAR(50),
       ai_summary TEXT,
+      ai_details JSONB,
       logged_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS intimacy_assessments (
+      id SERIAL PRIMARY KEY,
+      user_id VARCHAR(64) NOT NULL,
+      gender VARCHAR(20),
+      primary_concern VARCHAR(200),
+      assessment_data JSONB,
+      ai_summary TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_supplements_user ON supplements(user_id)`;
@@ -138,6 +153,7 @@ export async function initializeDatabase() {
   await sql`CREATE INDEX IF NOT EXISTS idx_wound_logs_user_date ON wound_logs(user_id, date)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_foot_assessments_user_date ON foot_assessments(user_id, date)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_foot_images_user ON foot_images(user_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_intimacy_assessments_user ON intimacy_assessments(user_id)`;
 
   // Migrations: add new columns if they don't exist yet
   try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS display_name VARCHAR(200)`; } catch (e) { }
@@ -146,6 +162,9 @@ export async function initializeDatabase() {
   try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS wound_type VARCHAR(50)`; } catch (e) { }
   try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS body_location VARCHAR(100)`; } catch (e) { }
   try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'`; } catch (e) { }
+  try { await sql`ALTER TABLE foot_images ADD COLUMN IF NOT EXISTS ai_details JSONB`; } catch (e) { }
+  // RBAC migration
+  try { await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'user'`; } catch (e) { }
 
   return { success: true, mode: 'postgres' };
 }
@@ -563,6 +582,28 @@ export async function findUserById(userId) {
   return rows[0] || null;
 }
 
+export async function getAllUsers() {
+  if (isLocalMode()) {
+    return memoryStore.users || [];
+  }
+  const sql = getDb();
+  return await sql`SELECT id, email, display_name, picture_url, auth_provider, role, created_at FROM users ORDER BY created_at DESC`;
+}
+
+export async function updateUserRole(userId, newRole) {
+  if (isLocalMode()) {
+    const user = (memoryStore.users || []).find((u) => u.id === userId);
+    if (user) {
+      user.role = newRole;
+      return user;
+    }
+    return null;
+  }
+  const sql = getDb();
+  const rows = await sql`UPDATE users SET role = ${newRole} WHERE id = ${userId} RETURNING *`;
+  return rows[0];
+}
+
 // ============================================
 // Foot Care (Bones)
 // ============================================
@@ -617,6 +658,7 @@ export async function createFootImage(userId, data) {
       image_data: data.image_data || null,
       ai_severity: data.ai_severity || null,
       ai_summary: data.ai_summary || null,
+      ai_details: data.ai_details || null,
       logged_at: new Date().toISOString(),
     };
     memoryStore.footImages.push(img);
@@ -624,8 +666,45 @@ export async function createFootImage(userId, data) {
   }
   const sql = getDb();
   const rows = await sql`
-    INSERT INTO foot_images (user_id, image_data, ai_severity, ai_summary)
-    VALUES (${userId}, ${data.image_data || null}, ${data.ai_severity || null}, ${data.ai_summary || null})
+    INSERT INTO foot_images (user_id, image_data, ai_severity, ai_summary, ai_details)
+    VALUES (${userId}, ${data.image_data || null}, ${data.ai_severity || null}, ${data.ai_summary || null}, ${data.ai_details ? JSON.stringify(data.ai_details) : null})
+    RETURNING *
+  `;
+  return rows[0];
+}
+
+// ============================================
+// Sexual Health / Intimacy
+// ============================================
+export async function getIntimacyAssessments(userId) {
+  if (isLocalMode()) {
+    return memoryStore.intimacyAssessments
+      .filter((a) => a.user_id === userId)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }
+  const sql = getDb();
+  return await sql`SELECT * FROM intimacy_assessments WHERE user_id = ${userId} ORDER BY created_at DESC`;
+}
+
+export async function createIntimacyAssessment(userId, data) {
+  if (isLocalMode()) {
+    const assessment = {
+      id: memoryStore.nextIntimacyAssessId++,
+      user_id: userId,
+      gender: data.gender || null,
+      primary_concern: data.primary_concern || null,
+      assessment_data: data.assessment_data || null,
+      ai_summary: data.ai_summary || null,
+      created_at: new Date().toISOString(),
+    };
+    memoryStore.intimacyAssessments.push(assessment);
+    return assessment;
+  }
+  const sql = getDb();
+  // Stringify JSON fields for Neon
+  const rows = await sql`
+    INSERT INTO intimacy_assessments (user_id, gender, primary_concern, assessment_data, ai_summary)
+    VALUES (${userId}, ${data.gender || null}, ${data.primary_concern || null}, ${data.assessment_data ? JSON.stringify(data.assessment_data) : null}, ${data.ai_summary || null})
     RETURNING *
   `;
   return rows[0];

@@ -1,33 +1,193 @@
-import Link from "next/link";
-import Image from "next/image"; // Note: For a portal, we might just use simple links.
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useModules } from '@/app/components/modules/ModuleProvider';
+import { useAuth } from '@/app/components/auth/AuthProvider';
 
 export default function PortalPage() {
-    return (
-        <div style={{ padding: '2rem', textAlign: 'center', fontFamily: 'sans-serif' }}>
-            <h1>Health & Care Portal</h1>
-            <p>Please select a service below or access via LINE Official Account</p>
+    const { modules, isLoading: isModulesLoading } = useModules();
+    const { user } = useAuth();
+    const router = useRouter();
+    const [isNavigating, setIsNavigating] = useState(false);
+    const [isLiffRouting, setIsLiffRouting] = useState(true); // Default to true to prevent initial flash
+    const [imageErrors, setImageErrors] = useState({});
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem', maxWidth: '300px', margin: '2rem auto' }}>
-                <Link href="/supplements" style={buttonStyle}>
-                    💊 保健品追蹤 (Supplements)
-                </Link>
-                <Link href="/wounds" style={buttonStyle}>
-                    🩹 傷口照護 (Wounds)
-                </Link>
-                <Link href="/bones" style={buttonStyle}>
-                    🦴 骨骼關節 (Bones)
-                </Link>
+    const handleImageError = (moduleId) => {
+        setImageErrors(prev => ({ ...prev, [moduleId]: true }));
+    };
+
+    useEffect(() => {
+        try {
+            const url = window.location.href;
+            const decodedUrl = decodeURIComponent(url);
+            // If the URL contains 'path=', they are passing through to a sub-module
+            if (decodedUrl.includes('path=')) {
+                // Keep showing loading. LiffProvider will redirect them.
+                // 3 second fallback in case the redirect fails
+                const t = setTimeout(() => setIsLiffRouting(false), 3000);
+                return () => clearTimeout(t);
+            } else {
+                setIsLiffRouting(false);
+            }
+        } catch (e) {
+            setIsLiffRouting(false);
+        }
+    }, []);
+
+    // Default icon mapping for gamified UI based on module 'icon_type' or 'id'
+    const moduleStyles = {
+        supplements: { bg: 'linear-gradient(135deg, #A0C4FF 0%, #C4B5FD 100%)', emoji: '💊', color: '#1E40AF' },
+        wounds: { bg: 'linear-gradient(135deg, #BDE0FE 0%, #A7F3D0 100%)', emoji: '🩹', color: '#065F46' },
+        bones: { bg: 'linear-gradient(135deg, #FFC8DD 0%, #FFD6A5 100%)', emoji: '🦴', color: '#9A3412' },
+        intimacy: { bg: 'linear-gradient(135deg, #FFAFCC 0%, #FFB5A7 100%)', emoji: '💖', color: '#BE123C' },
+        hormones: { bg: 'linear-gradient(135deg, #9BF6FF 0%, #A0C4FF 100%)', emoji: '☯️', color: '#0369A1' },
+        habits: { bg: 'linear-gradient(135deg, #FDFFB6 0%, #CAFFBF 100%)', emoji: '📅', color: '#3F6212' },
+        default: { bg: 'linear-gradient(135deg, #E2E8F0 0%, #CBD5E1 100%)', emoji: '✨', color: '#334155' }
+    };
+
+    const handleNavigation = (e, url) => {
+        e.preventDefault();
+        setIsNavigating(true);
+        // Force a small delay to allow animation to show smoothly
+        setTimeout(() => {
+            if (url.startsWith('http')) {
+                window.location.href = url;
+            } else {
+                router.push(url);
+            }
+        }, 300);
+    };
+
+    const showLoading = isNavigating || isLiffRouting;
+
+    if (showLoading) {
+        return (
+            <div style={{ backgroundColor: '#0a0a12', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                <div style={overlayStyle}>
+                    <div className="spinner" style={spinnerStyle}></div>
+                    <p style={{ marginTop: '20px', fontSize: '1.2rem', fontWeight: 'bold', color: 'white', letterSpacing: '2px' }}>
+                        Loading...
+                    </p>
+                </div>
+                <style jsx>{`
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                `}</style>
             </div>
+        );
+    }
+
+    return (
+        <div style={{ backgroundColor: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+
+            <style jsx>{`
+                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                .grid-item { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+                .grid-item:active { transform: scale(0.95); }
+            `}</style>
+
+            <header style={{ padding: '2rem 1.5rem 1rem 1.5rem', textAlign: 'center' }}>
+                <p style={{ fontSize: '1rem', color: '#64748B', margin: 0 }}>
+                    {user ? `Hello, ${user.displayName || 'User'}!` : 'Welcome back!'} 👋
+                </p>
+                <h1 style={{ fontSize: '2rem', fontWeight: '800', color: '#0F172A', marginTop: '0.5rem', letterSpacing: '-0.5px' }}>
+                    Health & Care Portal
+                </h1>
+            </header>
+
+            <main style={{ padding: '0 1.5rem 2rem 1.5rem', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {isModulesLoading ? (
+                    <div style={{ color: '#94A3B8', textAlign: 'center', fontWeight: '500' }}>Loading modules...</div>
+                ) : (
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '1rem',
+                        maxWidth: '500px',
+                        width: '100%',
+                    }}>
+                        {modules.filter(m => m.is_active).map(module => {
+                            const styleConfig = moduleStyles[module.id] || moduleStyles.default;
+                            const specialRoutes = {
+                                'sexual_health': '/intimacy',
+                            };
+                            const defaultTarget = specialRoutes[module.id] || `/${module.id}`;
+                            const targetUrl = module.external_url ? module.external_url : defaultTarget;
+
+                            const hasImageError = imageErrors[module.id];
+
+                            return (
+                                <a
+                                    key={module.id}
+                                    href={targetUrl}
+                                    onClick={(e) => handleNavigation(e, targetUrl)}
+                                    className="grid-item"
+                                    style={{
+                                        textDecoration: 'none',
+                                        background: hasImageError ? styleConfig.bg : 'transparent',
+                                        borderRadius: '20px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        textAlign: 'center',
+                                        boxShadow: '0 8px 20px rgba(0,0,0,0.06), inset 0 0 0 1px rgba(255,255,255,0.4)',
+                                        overflow: 'hidden',
+                                        minHeight: hasImageError ? '150px' : 'auto',
+                                        position: 'relative',
+                                        width: '100%',
+                                        aspectRatio: hasImageError ? 'auto' : '833 / 843'
+                                    }}
+                                >
+                                    {!hasImageError ? (
+                                        <img
+                                            src={`/images/portal/${module.id}.jpg`}
+                                            alt={module.name_en}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                            onError={() => handleImageError(module.id)}
+                                        />
+                                    ) : (
+                                        <div style={{ padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                            <div style={{ fontSize: '4.5rem', marginBottom: '1rem', filter: 'drop-shadow(0px 8px 6px rgba(0,0,0,0.15))' }}>
+                                                {styleConfig.emoji}
+                                            </div>
+                                            <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: styleConfig.color, margin: 0, lineHeight: 1.2 }}>
+                                                {module.name_en}
+                                            </h2>
+                                        </div>
+                                    )}
+                                </a>
+                            );
+                        })}
+                    </div>
+                )}
+            </main>
         </div>
     );
 }
 
-const buttonStyle = {
-    display: 'block',
-    padding: '1rem',
-    background: 'var(--accent-primary, #7c5cfc)',
-    color: 'white',
-    textDecoration: 'none',
-    borderRadius: '8px',
-    fontWeight: 'bold',
+const overlayStyle = {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    zIndex: 99999,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+};
+
+const spinnerStyle = {
+    width: '50px',
+    height: '50px',
+    border: '5px solid rgba(255, 255, 255, 0.2)',
+    borderTop: '5px solid #A0C4FF',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
 };

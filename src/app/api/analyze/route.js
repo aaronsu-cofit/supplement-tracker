@@ -186,20 +186,36 @@ Guidelines:
             return withUserCookie(response, userId);
         } else if (mode === 'hallux_valgus') {
             const userId = await getUserId();
-            const prompt = `You are an orthopedic foot specialist analyzing a top-down photo of a patient's feet.
-Determine the severity of Hallux Valgus (bunion) present in the big toe.
+            const prompt = `You are an orthopedic foot specialist and AI computer vision model analyzing a top-down photo of a patient's bare feet.
+Determine the severity of Hallux Valgus (bunion) present in the big toe joints.
+Also, accurately detect the big toe joint (First Metatarsophalangeal Joint / MTP joint) on both the left and right foot if visible.
 
 Return valid JSON only (no markdown, no code fences):
 {
   "ai_severity": "normal" | "mild" | "moderate" | "severe",
-  "ai_summary": "Brief objective description of the hallux valgus angle and visual appearance (around 30-50 words in Traditional Chinese)."
+  "ai_summary": "Brief objective description of the hallux valgus appearance (around 30-50 words in Traditional Chinese).",
+  "left_toe": {
+    "detected": true/false,
+    "severity": "normal" | "mild" | "moderate" | "severe",
+    "angle_degrees": 18,
+    "box": { "ymin": 0.45, "xmin": 0.20, "ymax": 0.55, "xmax": 0.35 }
+  },
+  "right_toe": {
+    "detected": true/false,
+    "severity": "normal" | "mild" | "moderate" | "severe",
+    "angle_degrees": 25,
+    "box": { "ymin": 0.45, "xmin": 0.65, "ymax": 0.55, "xmax": 0.80 }
+  }
 }
 
-Guidelines for severity:
-- normal: No obvious deviation of the big toe.
-- mild: Slight outward deviation of the big toe (angle < 20 degrees).
-- moderate: Clear deviation, visible bony bump at the base (angle ~20-40 degrees).
+Guidelines for severity and angles:
+- normal: No obvious deviation of the big toe (angle < 15 degrees).
+- mild: Slight outward deviation of the big toe (angle 15-20 degrees).
+- moderate: Clear deviation, visible bony bump at the base (angle 20-40 degrees).
 - severe: Significant deviation, big toe may overlap with or underlap the second toe (angle > 40 degrees).
+- The "ai_severity" should be the worse of the two feet.
+- For boxes, use normalized coordinates between 0.0 and 1.0 relative to the image size.
+- Ensure 'ymin' < 'ymax' and 'xmin' < 'xmax'. The box should tightly enclose the big toe MTP joint (the bunion bump).
 - Return ONLY the JSON object.`;
 
             const text = await callGemini(apiKey, base64Data, mimeType, prompt);
@@ -214,9 +230,41 @@ Guidelines for severity:
 
             const response = NextResponse.json({ success: true, ...parsed });
             return withUserCookie(response, userId);
+        } else if (mode === 'sexual_health') {
+            const userId = await getUserId();
+            const prompt = `${customPrompt || "這是一份性健康與親密關係評估問卷。"}
+            
+            請以「頂級性學權威與婦產/泌尿科醫師」的溫婉、包容、且極具醫療專業的口吻，綜合評估上述的問卷狀況。
+            【重要原則】
+            1. 絕對不可批判，用語必須柔軟且充滿同理心，消除患者的羞恥感與表現焦慮。
+            2. 給予 2~3 點具體且有科學根據的建議（包含生活作息調整、伴侶溝通建議或復健運動如凱格爾運動）。
+            3. 評估是否需要進一步醫療介入或使用輔助產品（例如潤滑液、保險套、或是尋求實體醫療協助）。
+            
+            Return valid JSON only (no markdown, no code fences):
+            {
+              "ai_summary": "醫師口吻的綜合評估與溫暖建議 (大約 100-150 字)",
+              "severity": "mild" | "moderate" | "severe",
+              "recommended_action": "kegel_training" | "consult_doctor" | "use_lubricant" | "stress_reduction"
+            }
+            `;
+
+            // For text-only questionnaires, we might not have an image, but this API structure expects base64Data.
+            // If image is just a dummy blank image passed from frontend, Gemini will still process the text prompt.
+            const text = await callGemini(apiKey, base64Data, mimeType, prompt);
+
+            let parsed;
+            try {
+                const jsonStr = text.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+                parsed = JSON.parse(jsonStr);
+            } catch {
+                return NextResponse.json({ error: 'Could not parse AI response', raw: text }, { status: 422 });
+            }
+
+            const response = NextResponse.json({ success: true, ...parsed });
+            return withUserCookie(response, userId);
         }
 
-        return NextResponse.json({ error: 'Invalid mode. Use "label", "checkin", "wound", or "hallux_valgus"' }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid mode. Use "label", "checkin", "wound", "hallux_valgus", or "sexual_health"' }, { status: 400 });
     } catch (error) {
         console.error('AI analysis error:', error);
         return NextResponse.json({ error: error.message || 'Failed to analyze image' }, { status: 500 });

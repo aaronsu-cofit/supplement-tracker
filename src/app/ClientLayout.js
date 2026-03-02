@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { LanguageProvider } from '@/app/lib/i18n/LanguageContext';
 import LiffProvider from '@/app/components/liff/LiffProvider';
 import AuthProvider, { useAuth } from '@/app/components/auth/AuthProvider';
+import { ModuleProvider } from '@/app/components/modules/ModuleProvider';
 
 // Ensure a user ID cookie exists before any API calls
 function ensureUserId() {
@@ -18,7 +19,7 @@ function ensureUserId() {
 }
 
 // Routes that don't require authentication
-const PUBLIC_ROUTES = ['/login', '/api'];
+const PUBLIC_ROUTES = ['/login', '/api', '/hq'];
 
 function RouteGuard({ children }) {
     const { isAuthenticated, isLoading } = useAuth();
@@ -29,13 +30,20 @@ function RouteGuard({ children }) {
 
     useEffect(() => {
         if (!isLoading && !isAuthenticated && !isPublic) {
-            router.replace('/login');
+            const redirectParams = new URLSearchParams();
+            if (pathname !== '/' && pathname !== '/login') {
+                redirectParams.set('path', pathname);
+            }
+            const queryStr = redirectParams.toString();
+            router.replace(`/login${queryStr ? '?' + queryStr : ''}`);
         }
-    }, [isLoading, isAuthenticated, isPublic, router]);
+    }, [isLoading, isAuthenticated, isPublic, router, pathname]);
 
     useEffect(() => {
         if (!isLoading && isAuthenticated && pathname === '/login') {
-            router.replace('/');
+            const searchParams = new URLSearchParams(window.location.search);
+            const redirectPath = searchParams.get('path') || '/';
+            router.replace(redirectPath);
         }
     }, [isLoading, isAuthenticated, pathname, router]);
 
@@ -55,11 +63,13 @@ export default function ClientLayout({ children }) {
     return (
         <LiffProvider>
             <AuthProvider>
-                <LanguageProvider>
-                    <RouteGuard>
-                        {children}
-                    </RouteGuard>
-                </LanguageProvider>
+                <ModuleProvider>
+                    <LanguageProvider>
+                        <RouteGuard>
+                            {children}
+                        </RouteGuard>
+                    </LanguageProvider>
+                </ModuleProvider>
             </AuthProvider>
         </LiffProvider>
     );

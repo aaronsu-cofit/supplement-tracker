@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState, createContext, useContext } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 export const LiffContext = createContext({
     liff: null,
     profile: null,
+    isInitialized: false,
+    isInLineClient: false,
     isInitialized: false,
     isInLineClient: false,
     error: null
@@ -21,9 +23,12 @@ export default function LiffProvider({ children }) {
         profile: null,
         isInitialized: false,
         isInLineClient: false,
+        isInitialized: false,
+        isInLineClient: false,
         error: null
     });
     const pathname = usePathname();
+    const router = useRouter();
 
     useEffect(() => {
         let isMounted = true;
@@ -36,6 +41,7 @@ export default function LiffProvider({ children }) {
                     wounds: process.env.NEXT_PUBLIC_LIFF_ID_WOUNDS,
                     bones: process.env.NEXT_PUBLIC_LIFF_ID_BONES,
                     supplements: process.env.NEXT_PUBLIC_LIFF_ID_SUPPLEMENTS,
+                    intimacy: process.env.NEXT_PUBLIC_LIFF_ID_INTIMACY,
                 };
 
                 let liffId = null;
@@ -45,11 +51,13 @@ export default function LiffProvider({ children }) {
                     liffId = allIds.bones;
                 } else if (pathname.startsWith('/supplements') && allIds.supplements) {
                     liffId = allIds.supplements;
+                } else if (pathname.startsWith('/intimacy') && allIds.intimacy) {
+                    liffId = allIds.intimacy;
                 }
 
                 // Fallback: use any available LIFF ID (needed for /login, /, etc.)
                 if (!liffId) {
-                    liffId = allIds.supplements || allIds.wounds || allIds.bones;
+                    liffId = allIds.supplements || allIds.wounds || allIds.bones || allIds.intimacy;
                 }
 
                 if (!liffId) {
@@ -62,6 +70,46 @@ export default function LiffProvider({ children }) {
 
                 const liff = (await import('@line/liff')).default;
 
+                // Capture liff.state BEFORE init, because liff.init might strip it from the URL
+                const searchParams = new URL(window.location.href).searchParams;
+                let targetPath = searchParams.get('path'); // Direct query check first
+                let rawState = searchParams.get('liff.state');
+
+                // NEW: LINE might inject the path into the hash parameter before `#access_token=`
+                const hashParam = window.location.hash;
+                let hashPath = null;
+                if (hashParam && hashParam.includes('path=')) {
+                    // Example hash: "#?path=/bones#access_token=..." or "#?liff.state=?path=/bones#access_token=..."
+                    const pathMatch = hashParam.match(/path=([^&#]+)/);
+                    if (pathMatch && pathMatch[1]) {
+                        // Decode URL-encoded strings like "%2Fbones" to "/bones"
+                        hashPath = decodeURIComponent(pathMatch[1]);
+                    }
+                }
+
+                if (!targetPath) {
+                    if (hashPath) {
+                        targetPath = hashPath;
+                    } else if (rawState) {
+                        try {
+                            const parsedState = new URLSearchParams(rawState.includes('?') ? rawState.substring(rawState.indexOf('?')) : '?' + rawState);
+                            targetPath = parsedState.get('path');
+                        } catch (e) {
+                            if (rawState.includes('path=')) {
+                                targetPath = rawState.split('path=')[1].split('&')[0];
+                            } else {
+                                targetPath = rawState;
+                            }
+                        }
+                    }
+                }
+
+                // Fallback direct regex to catch any `path=/myroute` in the raw URL
+                if (!targetPath) {
+                    const pathMatch = window.location.href.match(/[?&]path=([^&]+)/);
+                    if (pathMatch) targetPath = decodeURIComponent(pathMatch[1]);
+                }
+
                 await liff.init({ liffId });
 
                 if (isMounted) {
@@ -71,6 +119,13 @@ export default function LiffProvider({ children }) {
                         // Store the true LINE User ID in cookies so APIs can use it
                         document.cookie = `line_user_id=${profile.userId}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
                         setLiffState({ liff, profile, isInitialized: true, isInLineClient: inLineClient, error: null });
+
+                        // Execute redirect if we have a target path from liff.state
+                        if (targetPath && targetPath.startsWith('/') && pathname !== targetPath) {
+                            setTimeout(() => {
+                                router.replace(targetPath);
+                            }, 50);
+                        }
                     } else if (inLineClient) {
                         // Only auto-login inside LINE's in-app browser
                         liff.login({ redirectUri: window.location.href });
@@ -78,7 +133,15 @@ export default function LiffProvider({ children }) {
                     } else {
                         // Regular browser — skip login, run in guest mode
                         setLiffState({ liff, profile: null, isInitialized: true, isInLineClient: false, error: null });
+
+                        // Still execute redirect in regular browser after guest init
+                        if (targetPath && targetPath.startsWith('/') && pathname !== targetPath) {
+                            setTimeout(() => {
+                                router.replace(targetPath);
+                            }, 50);
+                        }
                     }
+
                 }
             } catch (error) {
                 console.error('LIFF init failed', error);

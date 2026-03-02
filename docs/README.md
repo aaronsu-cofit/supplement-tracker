@@ -29,6 +29,7 @@
 * [資料庫 Schema 參考 (DB Schema)](./reference/database-schema.md)
 * [所有 API 路由清單 (API Endpoints)](./reference/api-endpoints.md)
 * [雙重認證與 LIFF 流程規格 (Auth Flow)](./reference/auth-flow.md)
+* [各模組版本與迭代歷程 (Module Versions)](./reference/module-versions.md)
 
 ### 🧠 4. 我想要理解背後原理 (Explanation)
 這個板塊專注於「Why」，解釋系統演進脈絡與架構設計決策。
