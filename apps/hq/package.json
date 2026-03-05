@@ -1,0 +1,22 @@
+{
+  "name": "@cofit/hq",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3005",
+    "build": "next build",
+    "start": "next start -p 3005",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@cofit/lib": "workspace:*",
+    "@cofit/ui": "workspace:*",
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6"
+  }
+}

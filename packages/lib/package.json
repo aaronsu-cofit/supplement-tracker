@@ -1,0 +1,21 @@
+{
+  "name": "@cofit/lib",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./api": "./src/api.js",
+    "./auth": "./src/auth/AuthProvider.js",
+    "./liff": "./src/liff/LiffProvider.js",
+    "./i18n": "./src/i18n/LanguageContext.js",
+    "./wounds-constants": "./src/wounds-constants.js"
+  },
+  "peerDependencies": {
+    "next": ">=14.0.0",
+    "react": ">=18.0.0"
+  },
+  "dependencies": {
+    "@line/liff": "^2.27.3"
+  }
+}
