@@ -107,7 +107,7 @@ export default function WoundsAdminDashboard() {
         // Persist to DB (skip for demo patient)
         if (p.wound_id !== 'demo') {
             try {
-                await fetch(`/api/wounds/${p.wound_id}`, {
+                await apiFetch(`/api/wounds/${p.wound_id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name: newName })
@@ -142,7 +142,7 @@ P (Plan - 計畫):
         }
 
         try {
-            const res = await fetch(`/api/wounds/${selectedPatient.wound_id}/soap`, { method: 'POST' });
+            const res = await apiFetch(`/api/wounds/${selectedPatient.wound_id}/soap`, { method: 'POST' });
             if (res.ok) {
                 const data = await res.json();
                 setSoapNote(data.soap_note);

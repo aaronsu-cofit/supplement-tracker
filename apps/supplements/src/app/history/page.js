@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useLanguage } from '@cofit/lib';
+import { apiFetch, useLanguage } from '@cofit/lib';
 // LanguageSwitcher moved to app-local — import from local copy if needed;
 
 export default function HistoryPage() {
@@ -22,7 +22,7 @@ export default function HistoryPage() {
 
     const fetchHistory = useCallback(async () => {
         try {
-            const res = await fetch(
+            const res = await apiFetch(
                 `/api/checkins?type=history&startDate=${dateRange.start}&endDate=${dateRange.end}`
             );
             if (res.ok) {
@@ -45,7 +45,7 @@ export default function HistoryPage() {
             return;
         }
         try {
-            const res = await fetch(`/api/checkins?date=${date}`);
+            const res = await apiFetch(`/api/checkins?date=${date}`);
             if (res.ok) {
                 const data = await res.json();
                 setDetails((prev) => ({ ...prev, [date]: data }));

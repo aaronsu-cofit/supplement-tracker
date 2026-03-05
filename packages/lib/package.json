@@ -9,7 +9,8 @@
     "./auth": "./src/auth/AuthProvider.js",
     "./liff": "./src/liff/LiffProvider.js",
     "./i18n": "./src/i18n/LanguageContext.js",
-    "./wounds-constants": "./src/wounds-constants.js"
+    "./wounds-constants": "./src/wounds-constants.js",
+    "./modules": "./src/modules/ModuleProvider.js"
   },
   "peerDependencies": {
     "next": ">=14.0.0",

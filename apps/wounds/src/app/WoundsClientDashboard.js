@@ -283,7 +283,7 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
 function ArchiveButton({ woundId, onArchived }) {
     const [confirm, setConfirm] = useState(false);
     const handleArchive = async () => {
-        await fetch(`/api/wounds/${woundId}`, { method: 'DELETE' });
+        await apiFetch(`/api/wounds/${woundId}`, { method: 'DELETE' });
         onArchived();
     };
     return (
@@ -325,7 +325,7 @@ function EditWoundModal({ wound, onClose, onSaved }) {
         setSaving(true);
         try {
             const finalLocation = bodyLocation === 'other' ? customLocation.trim() : bodyLocation;
-            const res = await fetch(`/api/wounds/${wound.id}`, {
+            const res = await apiFetch(`/api/wounds/${wound.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: name.trim(), wound_type: woundType, body_location: finalLocation, date_of_injury: dateOfInjury }),

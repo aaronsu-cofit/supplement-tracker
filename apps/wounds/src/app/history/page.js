@@ -20,7 +20,7 @@ export default function WoundHistoryPage() {
                 const activeWound = woundsData[0];
                 setWound(activeWound);
 
-                const logsRes = await fetch(`/api/wounds/${activeWound.id}/logs`);
+                const logsRes = await apiFetch(`/api/wounds/${activeWound.id}/logs`);
                 if (logsRes.ok) setLogs(await logsRes.json());
             } catch (error) { console.error('Error fetching history:', error); }
             finally { setLoading(false); }

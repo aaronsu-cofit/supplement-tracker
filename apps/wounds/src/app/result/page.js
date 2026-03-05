@@ -1,4 +1,5 @@
 'use client';
+import { apiFetch } from '@cofit/lib';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
@@ -13,7 +14,7 @@ function WoundsResultContent() {
         if (!woundId) return;
         const fetchLog = async () => {
             try {
-                const res = await fetch(`/api/wounds/${woundId}/logs`);
+                const res = await apiFetch(`/api/wounds/${woundId}/logs`);
                 if (res.ok) {
                     const logs = await res.json();
                     if (logs.length > 0) setLogData(logs[0]);

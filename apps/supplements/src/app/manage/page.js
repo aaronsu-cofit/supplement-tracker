@@ -38,7 +38,7 @@ export default function SupplementsPage() {
     const handleSave = async (formData) => {
         try {
             if (editData) {
-                await fetch(`/api/supplements/${editData.id}`, {
+                await apiFetch(`/api/supplements/${editData.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData),
@@ -61,7 +61,7 @@ export default function SupplementsPage() {
 
     const handleDelete = async (id) => {
         try {
-            await fetch(`/api/supplements/${id}`, { method: 'DELETE' });
+            await apiFetch(`/api/supplements/${id}`, { method: 'DELETE' });
             setDeleteConfirm(null);
             fetchSupplements();
         } catch (err) {

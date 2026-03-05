@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { WOUND_TYPES, BODY_LOCATIONS } from '@cofit/lib';
+import { apiFetch, WOUND_TYPES, BODY_LOCATIONS } from '@cofit/lib';
 
 export default function WoundDetailPage() {
     const { id } = useParams();
@@ -13,7 +13,7 @@ export default function WoundDetailPage() {
     const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
     useEffect(() => {
-        fetch(`/api/wounds/${id}`)
+        apiFetch(`/api/wounds/${id}`)
             .then(r => { if (!r.ok) throw new Error('Not found'); return r.json(); })
             .then(data => setWound(data))
             .catch(() => router.replace('/wounds'))
@@ -21,7 +21,7 @@ export default function WoundDetailPage() {
     }, [id]);
 
     const handleArchive = async () => {
-        await fetch(`/api/wounds/${id}`, { method: 'DELETE' });
+        await apiFetch(`/api/wounds/${id}`, { method: 'DELETE' });
         router.replace('/wounds');
     };
 

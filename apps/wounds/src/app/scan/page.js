@@ -102,7 +102,7 @@ export default function WoundScanPage() {
                 woundId = woundsData[0].id;
             }
 
-            const logRes = await fetch(`/api/wounds/${woundId}/logs`, {
+            const logRes = await apiFetch(`/api/wounds/${woundId}/logs`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

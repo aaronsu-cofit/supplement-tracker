@@ -1,4 +1,5 @@
 'use client';
+import { apiFetch } from '@cofit/lib';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -11,8 +12,8 @@ export default function WoundHistoryPage() {
 
     useEffect(() => {
         Promise.all([
-            fetch(`/api/wounds/${id}`).then(r => r.ok ? r.json() : null),
-            fetch(`/api/wounds/${id}/logs`).then(r => r.ok ? r.json() : []),
+            apiFetch(`/api/wounds/${id}`).then(r => r.ok ? r.json() : null),
+            apiFetch(`/api/wounds/${id}/logs`).then(r => r.ok ? r.json() : []),
         ]).then(([w, l]) => {
             setWound(w);
             setLogs(Array.isArray(l) ? l : []);

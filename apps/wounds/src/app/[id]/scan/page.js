@@ -55,7 +55,7 @@ export default function WoundScanPage() {
             // Fetch wound info for type-aware prompt
             let woundInfo = {};
             try {
-                const wr = await fetch(`/api/wounds/${woundId}`);
+                const wr = await apiFetch(`/api/wounds/${woundId}`);
                 if (wr.ok) woundInfo = await wr.json();
             } catch (_) { }
 
@@ -75,7 +75,7 @@ export default function WoundScanPage() {
             const data = await response.json();
             if (!response.ok || !data.success) throw new Error(data.error || 'AI Analysis failed');
 
-            await fetch(`/api/wounds/${woundId}/logs`, {
+            await apiFetch(`/api/wounds/${woundId}/logs`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
