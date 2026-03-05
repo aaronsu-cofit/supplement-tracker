@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/app/components/auth/AuthProvider';
 import { WOUND_TYPES, BODY_LOCATIONS } from '@/app/lib/wounds-constants';
+import AppHeader from '@/app/components/AppHeader';
 
 export default function WoundsClientDashboard({ initialWounds = [] }) {
     const { user, isLoading: authLoading } = useAuth();
@@ -66,21 +67,24 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
     // No wounds — show onboarding
     if (!currentWound) {
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', padding: '2rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🩹</div>
-                <h2 style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 700, margin: '0 0 0.5rem' }}>開始你的傷口照護</h2>
-                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', margin: '0 0 2rem', maxWidth: 280 }}>
-                    建立傷口紀錄，讓 AI 幫你追蹤復原狀態
-                </p>
-                <Link href="/wounds/create" style={{
-                    padding: '0.9rem 2.5rem', borderRadius: 14,
-                    background: 'linear-gradient(135deg, #ff9a9e, #fda085)',
-                    color: '#fff', fontWeight: 700, fontSize: '0.95rem', textDecoration: 'none',
-                    boxShadow: '0 4px 20px rgba(255,154,158,0.35)',
-                }}>
-                    ＋ 建立傷口紀錄
-                </Link>
-            </div>
+            <>
+                <AppHeader backHref="/" title="傷口智慧照護" accent="linear-gradient(135deg, #ff9a9e, #fda085)" />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh', padding: '2rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🩹</div>
+                    <h2 style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 700, margin: '0 0 0.5rem' }}>開始你的傷口照護</h2>
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', margin: '0 0 2rem', maxWidth: 280 }}>
+                        建立傷口紀錄，讓 AI 幫你追蹤復原狀態
+                    </p>
+                    <Link href="/wounds/create" style={{
+                        padding: '0.9rem 2.5rem', borderRadius: 14,
+                        background: 'linear-gradient(135deg, #ff9a9e, #fda085)',
+                        color: '#fff', fontWeight: 700, fontSize: '0.95rem', textDecoration: 'none',
+                        boxShadow: '0 4px 20px rgba(255,154,158,0.35)',
+                    }}>
+                        ＋ 建立傷口紀錄
+                    </Link>
+                </div>
+            </>
         );
     }
 
@@ -95,17 +99,25 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
             <div ref={switcherRef} style={{ position: 'sticky', top: 0, zIndex: 20 }}>
                 <header style={{
                     background: 'rgba(26, 18, 37, 0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                    padding: '0.85rem 1.2rem', borderBottom: '1px solid rgba(255,255,255,0.06)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '0 0.75rem', height: '56px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.25rem',
                 }}>
+                    {/* Back to portal */}
+                    <Link href="/" aria-label="返回服務列表" style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        minWidth: 44, height: 44, flexShrink: 0,
+                        color: 'rgba(255,255,255,0.65)', textDecoration: 'none', fontSize: '1.3rem', borderRadius: 10,
+                    }}>←</Link>
+
+                    {/* Wound switcher — fills remaining space */}
                     <button
                         onClick={() => setShowSwitcher(v => !v)}
                         aria-label="切換傷口"
                         aria-expanded={showSwitcher}
                         style={{
-                            display: 'flex', alignItems: 'center', gap: '0.4rem',
-                            background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem 0',
-                            minHeight: 44,
+                            display: 'flex', alignItems: 'center', gap: '0.4rem', flex: 1,
+                            background: 'none', border: 'none', padding: '0.5rem 0', minHeight: 44,
+                            justifyContent: 'center',
                         }}
                     >
                         <span style={{ fontSize: '1.1rem' }}>{type.emoji}</span>

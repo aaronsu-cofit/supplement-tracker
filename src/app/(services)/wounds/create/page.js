@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { WOUND_TYPES, BODY_LOCATIONS } from '@/app/lib/wounds-constants';
+import AppHeader from '@/app/components/AppHeader';
 
 export default function CreateWoundPage() {
     const router = useRouter();
@@ -41,7 +42,9 @@ export default function CreateWoundPage() {
     };
 
     return (
-        <div style={{ padding: '0 1rem 2rem', maxWidth: 480, margin: '0 auto' }}>
+        <>
+        <AppHeader backHref="/wounds" title="建立傷口紀錄" accent="linear-gradient(135deg, #ff9a9e, #fda085)" />
+        <div style={{ padding: '1.25rem 1rem 2rem', maxWidth: 480, margin: '0 auto' }}>
             {/* Progress bar */}
             <div style={{ display: 'flex', gap: 4, marginBottom: '2rem' }}>
                 {[1, 2, 3, 4].map(s => (
@@ -212,5 +215,6 @@ export default function CreateWoundPage() {
 
             <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
         </div>
+        </>
     );
 }

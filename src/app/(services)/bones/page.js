@@ -21,16 +21,7 @@ export default async function BonesDashboard() {
 
     // 2. Render instantly with data populated
     return (
-        <div style={{ padding: '1.5rem', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '90px' }}>
-            {/* Header Banner */}
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                    <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 0.25rem 0', color: '#fff' }}>
-                        足踝照護中心
-                    </h1>
-                    <p style={{ margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>掌握足部健康，找回正確步態 👣</p>
-                </div>
-            </header>
+        <div style={{ padding: '1.5rem', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '2rem' }}>
 
             {/* AI Call to Action */}
             <Link href="/bones/scan" style={{ textDecoration: 'none' }}>
@@ -147,17 +138,6 @@ export default async function BonesDashboard() {
                 </button>
             </div>
 
-            {/* Global Navigation */}
-            <div style={{ position: 'fixed', bottom: '1.5rem', left: '1.5rem', right: '1.5rem', zIndex: 100 }}>
-                <Link href="/" style={{
-                    display: 'block', padding: '1rem', background: 'rgba(20,20,20,0.85)',
-                    backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
-                    color: '#fff', textAlign: 'center', borderRadius: '12px', textDecoration: 'none',
-                    border: '1px solid rgba(255,255,255,0.1)', fontWeight: 'bold'
-                }}>
-                    ← 返回所有服務
-                </Link>
-            </div>
         </div>
     );
 }

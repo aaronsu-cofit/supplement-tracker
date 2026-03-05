@@ -1,15 +1,15 @@
 'use client';
 
-// A specialized layout for Intimacy module to enforce a dark/intimate theme
-// and ensure extreme privacy.
-
 export default function IntimacyLayout({ children }) {
     return (
         <div style={{
             minHeight: '100vh',
-            backgroundColor: '#FAFAF9',
-            backgroundImage: 'radial-gradient(circle at 100% 0%, #FFF0F5 0%, transparent 60%), radial-gradient(circle at 0% 100%, #F0F9FF 0%, transparent 60%)',
-            color: '#0F172A',
+            backgroundColor: '#0a0a12',
+            backgroundImage: [
+                'radial-gradient(ellipse 70% 40% at 80% 0%, rgba(190, 18, 60, 0.12), transparent)',
+                'radial-gradient(ellipse 50% 35% at 0% 100%, rgba(224, 29, 72, 0.07), transparent)',
+            ].join(', '),
+            color: '#f0f0f5',
         }}>
             {children}
         </div>
