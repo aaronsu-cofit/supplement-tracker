@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import pg from 'pg';
 
 // ============================================
 // In-memory fallback for local dev (no DB)
@@ -19,13 +20,33 @@ function isLocalMode() {
   return !process.env.POSTGRES_URL;
 }
 
+function isLocalPostgres() {
+  const url = process.env.POSTGRES_URL || '';
+  return url.includes('localhost') || url.includes('127.0.0.1');
+}
+
 function todayStr() {
   return new Date().toISOString().split('T')[0];
 }
 
+// Adapter: wraps pg.Pool to match the neon tagged template literal API
+function createPgSql(connectionString) {
+  const pool = new pg.Pool({ connectionString });
+  return function sql(strings, ...values) {
+    let text = '';
+    values.forEach((val, i) => { text += strings[i] + `$${i + 1}`; });
+    text += strings[strings.length - 1];
+    return pool.query(text, values).then(r => r.rows);
+  };
+}
+
 let sql;
 function getDb() {
-  if (!sql) sql = neon(process.env.POSTGRES_URL);
+  if (!sql) {
+    sql = isLocalPostgres()
+      ? createPgSql(process.env.POSTGRES_URL)
+      : neon(process.env.POSTGRES_URL);
+  }
   return sql;
 }
 

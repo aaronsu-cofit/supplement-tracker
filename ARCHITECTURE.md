@@ -138,12 +138,12 @@ cp backend/.env.example backend/.env
 **前端（每個 App 各別設定，或統一設定後複製）：**
 ```bash
 # 在每個 apps/* 目錄建立 .env.local
-echo "NEXT_PUBLIC_API_URL=http://localhost:8080" > apps/portal/.env.local
-echo "NEXT_PUBLIC_API_URL=http://localhost:8080" > apps/wounds/.env.local
-echo "NEXT_PUBLIC_API_URL=http://localhost:8080" > apps/supplements/.env.local
-echo "NEXT_PUBLIC_API_URL=http://localhost:8080" > apps/bones/.env.local
-echo "NEXT_PUBLIC_API_URL=http://localhost:8080" > apps/intimacy/.env.local
-echo "NEXT_PUBLIC_API_URL=http://localhost:8080" > apps/hq/.env.local
+echo "NEXT_PUBLIC_API_URL=http://localhost:3000" > apps/portal/.env.local
+echo "NEXT_PUBLIC_API_URL=http://localhost:3001" > apps/wounds/.env.local
+echo "NEXT_PUBLIC_API_URL=http://localhost:3002" > apps/bones/.env.local
+echo "NEXT_PUBLIC_API_URL=http://localhost:3003" > apps/intimacy/.env.local
+echo "NEXT_PUBLIC_API_URL=http://localhost:3004" > apps/supplements/.env.local
+echo "NEXT_PUBLIC_API_URL=http://localhost:3005" > apps/hq/.env.local
 ```
 
 若有 LINE LIFF 整合，另外設定（各 App 的 LIFF ID 不同）：
