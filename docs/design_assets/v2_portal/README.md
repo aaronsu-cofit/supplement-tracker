@@ -1,6 +1,6 @@
 # V2 Portal Design Assets Handoff
 
-歡迎來到 Cofit Health & Care Portal (V2) 的設計資源區。
+歡迎來到 Vitera Health & Care Portal (V2) 的設計資源區。
 本資料夾包含了我們與產品團隊初步凝聚共識的「遊戲化 (Gamification) + 毛玻璃 (Glassmorphism)」參考設計圖。
 
 ## 📍 目錄結構與檔案說明

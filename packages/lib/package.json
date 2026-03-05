@@ -1,5 +1,5 @@
 {
-  "name": "@cofit/lib",
+  "name": "@vitera/lib",
   "version": "0.1.0",
   "private": true,
   "main": "./src/index.js",

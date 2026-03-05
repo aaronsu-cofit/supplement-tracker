@@ -7,7 +7,7 @@
 只要將代碼庫推上 GitHub，Vercel 就會自動觸發部署（Auto-deploy from master/main branch）。
 
 在 Vercel 面板的新增專案流程中：
-1. Import 您的 GitHub Repository (`weichun1008/supplement-tracker`)。
+1. Import 您的 GitHub Repository (`weichun1008/vitera`)。
 2. **Framework Preset**：選擇 `Next.js` (通常會自動精準識別)。
 3. **Build Command**：確保是 `npm run build` 或留空使用預設。
 4. **Output Directory**：`.next/`

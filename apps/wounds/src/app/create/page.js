@@ -1,10 +1,10 @@
 'use client';
-import { apiFetch } from '@cofit/lib';
+import { apiFetch } from '@vitera/lib';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { WOUND_TYPES, BODY_LOCATIONS } from '@cofit/lib';
-import { AppHeader } from '@cofit/ui';
+import { WOUND_TYPES, BODY_LOCATIONS } from '@vitera/lib';
+import { AppHeader } from '@vitera/ui';
 
 export default function CreateWoundPage() {
     const router = useRouter();

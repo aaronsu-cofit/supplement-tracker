@@ -1,8 +1,8 @@
 'use client';
-import { apiFetch } from '@cofit/lib';
+import { apiFetch } from '@vitera/lib';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@cofit/lib';
+import { useAuth } from '@vitera/lib';
 
 export default function WoundScanPage() {
     const router = useRouter();

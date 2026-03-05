@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { apiFetch } from '@cofit/lib';
+import { apiFetch } from '@vitera/lib';
 
 export default function BonesDashboard() {
   const [latestAssessment, setLatestAssessment] = useState(null);

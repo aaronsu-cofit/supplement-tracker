@@ -1,9 +1,9 @@
-# Cofit Monorepo — 架構說明 & 啟動指南
+# Vitera Monorepo — 架構說明 & 啟動指南
 
 ## 目錄結構
 
 ```
-supplement-tracker/
+vitera/
 ├── apps/                    # 前端 Next.js Apps（各自獨立部署到 Vercel）
 │   ├── portal/              # 入口頁（模組選擇、登入）           port 3000
 │   ├── wounds/              # 傷口照護                          port 3001
@@ -36,7 +36,7 @@ supplement-tracker/
 │   └── .env.example
 │
 ├── packages/
-│   ├── lib/                 # @cofit/lib — 共用邏輯
+│   ├── lib/                 # @vitera/lib — 共用邏輯
 │   │   └── src/
 │   │       ├── api.js            # apiFetch, setAuthToken, clearAuthToken
 │   │       ├── auth/AuthProvider.js
@@ -44,7 +44,7 @@ supplement-tracker/
 │   │       ├── i18n/LanguageContext.js
 │   │       ├── modules/ModuleProvider.js
 │   │       └── wounds-constants.js
-│   └── ui/                  # @cofit/ui — 共用 React 元件
+│   └── ui/                  # @vitera/ui — 共用 React 元件
 │       └── src/
 │           ├── AppHeader.jsx
 │           ├── CameraCapture.jsx
@@ -88,7 +88,7 @@ LINE App / Browser
 ### 認證機制
 
 1. 登入成功後，後端回傳 JWT `token`
-2. 前端用 `setAuthToken(token)` 存入 `localStorage`（key: `cofit_auth_token`）
+2. 前端用 `setAuthToken(token)` 存入 `localStorage`（key: `vitera_auth_token`）
 3. 後續所有 API 呼叫透過 `apiFetch()` 自動附加 `Authorization: Bearer <token>` header
 4. 後端 `authMiddleware` 優先讀取 Bearer token，fallback 到 cookie（向後相容）
 5. LINE 用戶：LIFF 初始化後自動呼叫 `/api/auth/me` (POST) 完成靜默登入
@@ -97,12 +97,12 @@ LINE App / Browser
 
 | 套件 | 用途 |
 |------|------|
-| `@cofit/lib` | `apiFetch`, `AuthProvider`, `LiffProvider`, `ModuleProvider`, `LanguageProvider`, wounds 常數 |
-| `@cofit/ui` | `AppHeader`, `CameraCapture`, icon 元件 |
+| `@vitera/lib` | `apiFetch`, `AuthProvider`, `LiffProvider`, `ModuleProvider`, `LanguageProvider`, wounds 常數 |
+| `@vitera/ui` | `AppHeader`, `CameraCapture`, icon 元件 |
 
 所有 Apps 的 `next.config.mjs` 必須加上：
 ```js
-const nextConfig = { transpilePackages: ['@cofit/ui', '@cofit/lib'] };
+const nextConfig = { transpilePackages: ['@vitera/ui', '@vitera/lib'] };
 ```
 
 ---
@@ -168,8 +168,8 @@ cd backend && pnpm dev
 cd apps/wounds && pnpm dev
 
 # 或使用 turbo filter
-pnpm turbo dev --filter=@cofit/wounds
-pnpm turbo dev --filter=@cofit/backend
+pnpm turbo dev --filter=@vitera/wounds
+pnpm turbo dev --filter=@vitera/backend
 ```
 
 啟動後各服務位址：
@@ -242,7 +242,7 @@ export NEXT_PUBLIC_API_URL=https://your-backend.run.app
    ```
 
 2. 修改 `apps/newservice/package.json`：
-   - `name`: `@cofit/newservice`
+   - `name`: `@vitera/newservice`
    - `scripts.dev`: `next dev -p <新 port>`
 
 3. 修改 `apps/newservice/src/app/layout.js`：更新 `metadata.title`

@@ -1,5 +1,5 @@
 'use client';
-import { apiFetch } from '@cofit/lib';
+import { apiFetch } from '@vitera/lib';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 

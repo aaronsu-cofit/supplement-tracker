@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth, apiFetch, WOUND_TYPES, BODY_LOCATIONS } from '@cofit/lib';
-import { AppHeader } from '@cofit/ui';
+import { useAuth, apiFetch, WOUND_TYPES, BODY_LOCATIONS } from '@vitera/lib';
+import { AppHeader } from '@vitera/ui';
 
 export default function WoundsClientDashboard({ initialWounds = [] }) {
     const { user, isLoading: authLoading } = useAuth();

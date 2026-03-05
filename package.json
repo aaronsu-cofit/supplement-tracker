@@ -1,5 +1,5 @@
 {
-  "name": "cofit-monorepo",
+  "name": "vitera-monorepo",
   "private": true,
   "scripts": {
     "dev": "turbo dev",

@@ -7,8 +7,8 @@
 你需要 Node.js (建議 v20+) 與 npm。
 
 ```bash
-git clone https://github.com/weichun1008/supplement-tracker.git
-cd supplement-tracker
+git clone https://github.com/weichun1008/vitera.git
+cd vitera
 npm install
 # 複製環境變數檔 (至少需要 GEMINI_API_KEY 才能使用 AI)
 cp .env.example .env.local

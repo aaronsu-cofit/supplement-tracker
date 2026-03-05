@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@cofit/lib';
-import { useLiff } from '@cofit/lib';
+import { useAuth } from '@vitera/lib';
+import { useLiff } from '@vitera/lib';
 
 export default function LoginPage() {
     const { login, register, isLoading } = useAuth();

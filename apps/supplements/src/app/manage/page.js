@@ -1,12 +1,12 @@
 'use client';
-import { apiFetch } from '@cofit/lib';
+import { apiFetch } from '@vitera/lib';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useLanguage } from '@cofit/lib';
+import { useLanguage } from '@vitera/lib';
 // AddSupplementModal moved to app-local — import from local copy if needed;
-import { CameraCapture } from '@cofit/ui';
+import { CameraCapture } from '@vitera/ui';
 // LanguageSwitcher moved to app-local — import from local copy if needed;
-import { IconPencil, IconTrash, IconPlus, IconCamera } from '@cofit/ui';
+import { IconPencil, IconTrash, IconPlus, IconCamera } from '@vitera/ui';
 
 export default function SupplementsPage() {
     const { t } = useLanguage();

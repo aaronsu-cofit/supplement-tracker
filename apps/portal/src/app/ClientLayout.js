@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { LanguageProvider, LiffProvider, AuthProvider, ModuleProvider, useAuth } from '@cofit/lib';
+import { LanguageProvider, LiffProvider, AuthProvider, ModuleProvider, useAuth } from '@vitera/lib';
 
 const PUBLIC_ROUTES = ['/login'];
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useModules, useAuth } from '@cofit/lib';
+import { useModules, useAuth } from '@vitera/lib';
 
 export default function PortalPage() {
   const { modules, isLoading: isModulesLoading } = useModules();

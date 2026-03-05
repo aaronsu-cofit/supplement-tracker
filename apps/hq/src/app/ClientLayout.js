@@ -1,6 +1,6 @@
 'use client';
 
-import { LanguageProvider, LiffProvider, AuthProvider, useAuth } from '@cofit/lib';
+import { LanguageProvider, LiffProvider, AuthProvider, useAuth } from '@vitera/lib';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 

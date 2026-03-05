@@ -4,7 +4,7 @@ set -euo pipefail
 # ─── Config ───────────────────────────────────────────────────────────────────
 GCP_PROJECT="${GCP_PROJECT:-your-gcp-project-id}"
 GCP_REGION="${GCP_REGION:-asia-east1}"
-SERVICE_NAME="${SERVICE_NAME:-cofit-backend}"
+SERVICE_NAME="${SERVICE_NAME:-vitera-backend}"
 IMAGE_NAME="gcr.io/${GCP_PROJECT}/${SERVICE_NAME}"
 
 # ─── Validate ─────────────────────────────────────────────────────────────────

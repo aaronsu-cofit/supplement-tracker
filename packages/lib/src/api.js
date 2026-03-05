@@ -6,7 +6,7 @@ export function getApiUrl() {
 
 function getToken() {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('cofit_auth_token');
+  return localStorage.getItem('vitera_auth_token');
 }
 
 /**
@@ -39,14 +39,14 @@ export function apiFetch(path, options = {}) {
 export function setAuthToken(token) {
   if (typeof window === 'undefined') return;
   if (token) {
-    localStorage.setItem('cofit_auth_token', token);
+    localStorage.setItem('vitera_auth_token', token);
   } else {
-    localStorage.removeItem('cofit_auth_token');
+    localStorage.removeItem('vitera_auth_token');
   }
 }
 
 /** Clear auth token on logout */
 export function clearAuthToken() {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem('cofit_auth_token');
+  localStorage.removeItem('vitera_auth_token');
 }

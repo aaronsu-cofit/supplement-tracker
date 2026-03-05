@@ -1,6 +1,6 @@
 'use client';
 import { usePathname } from 'next/navigation';
-import { AppHeader } from '@cofit/ui';
+import { AppHeader } from '@vitera/ui';
 
 export default function WoundsLayout({ children }) {
     const pathname = usePathname();

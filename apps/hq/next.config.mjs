@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@cofit/ui', '@cofit/lib'],
+  transpilePackages: ['@vitera/ui', '@vitera/lib'],
 };
 
 export default nextConfig;

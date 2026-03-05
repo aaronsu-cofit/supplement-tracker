@@ -1,13 +1,13 @@
 'use client';
-import { apiFetch } from '@cofit/lib';
+import { apiFetch } from '@vitera/lib';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useLanguage } from '@cofit/lib';
-import { useLiff } from '@cofit/lib';
-import { useAuth } from '@cofit/lib';
-import { CameraCapture } from '@cofit/ui';
+import { useLanguage } from '@vitera/lib';
+import { useLiff } from '@vitera/lib';
+import { useAuth } from '@vitera/lib';
+import { CameraCapture } from '@vitera/ui';
 // LanguageSwitcher moved to app-local — import from local copy if needed;
-import { IconCamera } from '@cofit/ui';
+import { IconCamera } from '@vitera/ui';
 
 export default function SupplementsClientDashboard({ initialSupplements = [], initialCheckIns = [], initialStreak = 0 }) {
   const { t } = useLanguage();

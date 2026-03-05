@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { apiFetch, useLanguage } from '@cofit/lib';
+import { apiFetch, useLanguage } from '@vitera/lib';
 // LanguageSwitcher moved to app-local — import from local copy if needed;
 
 export default function HistoryPage() {
