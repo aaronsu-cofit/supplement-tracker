@@ -110,6 +110,24 @@
   color: var(--hq-text-title);
 }
 
+.hq-nav-link-active {
+  background-color: #1A1A1A;
+  color: var(--hq-text-title);
+  position: relative;
+}
+
+.hq-nav-link-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  background-color: var(--hq-cyan);
+  border-radius: 0 2px 2px 0;
+}
+
 .hq-nav-back {
   margin-top: 32px;
   color: var(--hq-text-muted);
@@ -606,4 +624,66 @@
 
 .hq-select:focus {
   border-color: var(--hq-cyan);
+}
+
+/* Table text input — used in HQModulesClient */
+.hq-input {
+  background-color: var(--hq-bg-input);
+  border: 1px solid var(--hq-border-default);
+  color: var(--hq-text-title);
+  font-size: 14px;
+  font-family: inherit;
+  border-radius: 6px;
+  padding: 6px 10px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.hq-input:focus {
+  border-color: var(--hq-cyan);
+}
+
+.hq-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Full-page loading placeholder */
+.hq-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--hq-text-body);
+  font-size: 14px;
+  gap: 10px;
+}
+
+/* Inline error banner */
+.hq-error {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 16px;
+  background-color: var(--hq-alert-error-bg);
+  color: var(--hq-alert-error-text);
+  border: 1px solid var(--hq-alert-error-border);
+}
+
+/* CSS spinner — replaces emoji animate-spin */
+.hq-spinner {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: hqSpin 0.7s linear infinite;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+@keyframes hqSpin {
+  to { transform: rotate(360deg); }
 }

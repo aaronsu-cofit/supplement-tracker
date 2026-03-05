@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 const MODULES = [
@@ -55,22 +55,22 @@ export default function HQClientDashboard() {
     const [imageFile, setImageFile] = useState(null);
     const [isDeploying, setIsDeploying] = useState(false);
     const [deployStatus, setDeployStatus] = useState(null);
+    const [deployError, setDeployError] = useState(null);
 
     // Fetch base url on mount to form accurate copy links
-    useState(() => {
-        if (typeof window !== 'undefined') {
-            setBaseUrl(window.location.origin);
-        }
+    useEffect(() => {
+        setBaseUrl(window.location.origin);
     }, []);
 
     const handleDeploy = async () => {
         if (!imageFile) {
-            alert('請先選擇一張 2500x1686 像素的圖片！');
+            setDeployError('請先選擇一張 2500x1686 像素的圖片！');
             return;
         }
 
         setIsDeploying(true);
         setDeployStatus(null);
+        setDeployError(null);
 
         try {
             const formData = new FormData();
@@ -97,19 +97,18 @@ export default function HQClientDashboard() {
     };
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="hq-fade-in">
             {/* Header */}
             <div className="mb-12 border-b border-neutral-800 pb-8">
                 <div className="flex items-center gap-3 mb-2">
-                    <span className="text-3xl">🌐</span>
                     <h1 className="text-3xl font-bold tracking-tight text-white">總管理中樞 (Control Center)</h1>
                 </div>
                 <p className="text-neutral-400">管理四大健康模組的入口網址與 LINE LIFF 生態圈系統。</p>
             </div>
 
             {/* Modules Grid */}
-            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                <span>📦</span> 模組大廳 (Module Registry)
+            <h2 className="text-xl font-semibold text-white mb-6">
+                模組大廳 (Module Registry)
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
                 {MODULES.map(mod => (
@@ -165,8 +164,8 @@ export default function HQClientDashboard() {
             </div>
 
             {/* LINE Engine Placeholder */}
-            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                <span className="text-[#06C755]">💬</span> LINE 中樞神經控制 (Matrix Engine)
+            <h2 className="text-xl font-semibold text-white mb-6">
+                LINE 中樞神經控制 (Matrix Engine)
             </h2>
             <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8 mb-8 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-[#06C755]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
@@ -203,13 +202,19 @@ export default function HQClientDashboard() {
                         </div>
                     )}
 
+                    {deployError && (
+                        <div className="p-4 mb-6 rounded-xl text-sm bg-rose-950/50 text-rose-400 border border-rose-800">
+                            {deployError}
+                        </div>
+                    )}
+
                     <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                         <label className="flex flex-col gap-1 cursor-pointer">
                             <span className="text-xs text-neutral-500">上傳選單圖片 (2500x1686 JPG/PNG)</span>
                             <input
                                 type="file"
                                 accept="image/jpeg, image/png"
-                                onChange={(e) => setImageFile(e.target.files[0])}
+                                onChange={(e) => { setImageFile(e.target.files[0]); setDeployError(null); }}
                                 className="block w-full text-sm text-neutral-500
                                     file:mr-4 file:py-2 file:px-4
                                     file:rounded-full file:border-0
@@ -229,11 +234,11 @@ export default function HQClientDashboard() {
                         >
                             {isDeploying ? (
                                 <>
-                                    <span className="animate-spin text-xl">⚪</span> 部署中...
+                                    <span className="hq-spinner"></span> 部署中...
                                 </>
                             ) : (
                                 <>
-                                    <span className="text-xl">🚀</span> 同步發布全球圖文選單
+                                    同步發布全球圖文選單
                                 </>
                             )}
                         </button>

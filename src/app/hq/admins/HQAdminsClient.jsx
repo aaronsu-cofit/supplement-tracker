@@ -6,6 +6,7 @@ export default function HQAdminsClient() {
     const [users, setUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [roleChangeError, setRoleChangeError] = useState(null);
 
     useEffect(() => {
         fetchUsers();
@@ -27,6 +28,7 @@ export default function HQAdminsClient() {
     };
 
     const handleRoleChange = async (userId, newRole) => {
+        setRoleChangeError(null);
         try {
             const res = await fetch('/api/hq/admins', {
                 method: 'PATCH',
@@ -37,10 +39,10 @@ export default function HQAdminsClient() {
             if (data.success) {
                 setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
             } else {
-                alert(data.error || '權限變更失敗');
+                setRoleChangeError(data.error || '權限變更失敗');
             }
         } catch (err) {
-            alert('網路錯誤，無法變更權限');
+            setRoleChangeError('網路錯誤，無法變更權限');
         }
     };
 
@@ -73,6 +75,12 @@ export default function HQAdminsClient() {
             {error && (
                 <div className="hq-alert hq-alert-error mb-24">
                     {error}
+                </div>
+            )}
+
+            {roleChangeError && (
+                <div className="hq-alert hq-alert-error mb-4">
+                    {roleChangeError}
                 </div>
             )}
 
