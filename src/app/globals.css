@@ -325,7 +325,6 @@ body {
   align-items: center;
   justify-content: center;
   transition: all var(--transition-fast);
-  font-size: 16px;
 }
 
 .icon-btn:hover {
@@ -630,29 +629,46 @@ textarea.form-input {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 6px 16px;
+  padding: 6px 14px;
   border-radius: var(--radius-md);
   text-decoration: none;
   color: var(--text-muted);
   font-size: 11px;
   font-weight: 500;
-  transition: all var(--transition-fast);
-  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
   background: none;
   border: none;
   font-family: var(--font-family);
+  position: relative;
 }
 
 .nav-link:hover {
   color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .nav-link.active {
   color: var(--accent-primary);
+  background: rgba(124, 92, 252, 0.12);
+}
+
+/* Top indicator bar on active tab */
+.nav-link.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  background: var(--accent-primary);
+  border-radius: 0 0 4px 4px;
 }
 
 .nav-icon {
-  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
 }
 
@@ -952,7 +968,9 @@ textarea.form-input {
 }
 
 .camera-icon {
-  font-size: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 8px;
 }
 

@@ -5,6 +5,7 @@ import { useLanguage } from '@/app/lib/i18n/LanguageContext';
 import AddSupplementModal from '@/app/components/AddSupplementModal';
 import CameraCapture from '@/app/components/CameraCapture';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
+import { IconPencil, IconTrash, IconPlus, IconCamera } from '@/app/components/icons';
 
 export default function SupplementsPage() {
     const { t } = useLanguage();
@@ -126,10 +127,10 @@ export default function SupplementsPage() {
             {/* Action Buttons */}
             <div className="action-group">
                 <button className="btn-action" onClick={openAdd}>
-                    ➕ {t('supplements.add')}
+                    <IconPlus /> {t('supplements.add')}
                 </button>
                 <button className="btn-action primary" onClick={() => setCameraOpen(true)}>
-                    📸 {t('ai.photoAdd')}
+                    <IconCamera /> {t('ai.photoAdd')}
                 </button>
             </div>
 
@@ -147,10 +148,10 @@ export default function SupplementsPage() {
                                 <div className="supplement-card-name">{sup.name}</div>
                                 <div className="supplement-card-actions">
                                     <button className="icon-btn" onClick={() => openEdit(sup)} title={t('supplements.edit')} aria-label={`${t('supplements.edit')} ${sup.name}`}>
-                                        ✏️
+                                        <IconPencil />
                                     </button>
                                     <button className="icon-btn danger" onClick={() => setDeleteConfirm(sup.id)} title={t('supplements.delete')} aria-label={`${t('supplements.delete')} ${sup.name}`}>
-                                        🗑️
+                                        <IconTrash />
                                     </button>
                                 </div>
                             </div>

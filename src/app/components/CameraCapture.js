@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { IconCamera } from '@/app/components/icons';
 import { useLanguage } from '@/app/lib/i18n/LanguageContext';
 
 export default function CameraCapture({ mode, onResult, onClose }) {
@@ -73,7 +74,9 @@ export default function CameraCapture({ mode, onResult, onClose }) {
 
                 {!preview ? (
                     <div className="camera-capture-area">
-                        <div className="camera-icon">📸</div>
+                        <div className="camera-icon" style={{ color: 'var(--accent-primary)' }}>
+                            <IconCamera size={52} />
+                        </div>
                         <p className="camera-hint">
                             {mode === 'label' ? t('ai.labelHint') : t('ai.pillHint')}
                         </p>

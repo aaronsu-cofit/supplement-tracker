@@ -6,6 +6,7 @@ import { useLiff } from '@/app/components/liff/LiffProvider';
 import { useAuth } from '@/app/components/auth/AuthProvider';
 import CameraCapture from '@/app/components/CameraCapture';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
+import { IconCamera } from '@/app/components/icons';
 
 export default function SupplementsClientDashboard({ initialSupplements = [], initialCheckIns = [], initialStreak = 0 }) {
   const { t } = useLanguage();
@@ -228,7 +229,7 @@ export default function SupplementsClientDashboard({ initialSupplements = [], in
           {/* AI Photo Check-in Button */}
           <div className="action-group">
             <button className="btn-action primary" onClick={() => setCameraOpen(true)} style={{ flex: 1 }}>
-              📸 {t('ai.photoCheckin')}
+              <IconCamera /> {t('ai.photoCheckin')}
             </button>
           </div>
 
