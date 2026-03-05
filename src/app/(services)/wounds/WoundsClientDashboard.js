@@ -100,9 +100,12 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
                 }}>
                     <button
                         onClick={() => setShowSwitcher(v => !v)}
+                        aria-label="切換傷口"
+                        aria-expanded={showSwitcher}
                         style={{
                             display: 'flex', alignItems: 'center', gap: '0.4rem',
-                            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                            background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem 0',
+                            minHeight: 44,
                         }}
                     >
                         <span style={{ fontSize: '1.1rem' }}>{type.emoji}</span>
@@ -119,10 +122,11 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
                             transition: 'transform 0.2s',
                         }}>▼</span>
                     </button>
-                    <button onClick={() => setShowEdit(true)} style={{
-                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: 8, padding: '0.35rem 0.6rem', cursor: 'pointer',
-                        color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem',
+                    <button onClick={() => setShowEdit(true)} aria-label="編輯傷口資訊" style={{
+                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: 8, padding: '0.5rem 0.75rem', cursor: 'pointer',
+                        color: 'rgba(255,255,255,0.75)', fontSize: '0.8rem',
+                        minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>✏️</button>
                 </header>
 
@@ -187,14 +191,14 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
                                 {loc && <span style={{ background: 'rgba(93,156,236,0.15)', color: '#5d9cec', padding: '2px 8px', borderRadius: 6, fontSize: '0.75rem' }}>{loc.emoji} {loc.label}</span>}
                                 <span style={{ background: `${phase.color}22`, color: phase.color, padding: '2px 8px', borderRadius: 6, fontSize: '0.75rem' }}>{phase.label}</span>
                             </div>
-                            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem' }}>受傷日期：{currentWound.date_of_injury}</div>
+                            <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.85rem' }}>受傷日期：{currentWound.date_of_injury}</div>
                         </div>
                         <div style={{
                             background: 'linear-gradient(135deg, #ff9a9e, #fda085)',
                             borderRadius: 14, padding: '0.5rem 0.8rem', textAlign: 'center',
                         }}>
                             <div style={{ color: '#fff', fontSize: '1.4rem', fontWeight: 800, lineHeight: 1 }}>{days}</div>
-                            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.6rem', marginTop: 2 }}>天</div>
+                            <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.75rem', marginTop: 2 }}>天</div>
                         </div>
                     </div>
                 </div>
@@ -215,21 +219,23 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
                         background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)',
                         border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16,
                         padding: '1.5rem 1rem', textAlign: 'center', textDecoration: 'none',
-                        transition: 'transform 0.15s',
+                        transition: 'transform 0.15s', cursor: 'pointer',
+                        minHeight: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                     }}>
                         <div style={{ fontSize: '2rem', marginBottom: '0.4rem' }}>📸</div>
                         <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600 }}>今日掃描</div>
-                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.72rem', marginTop: 2 }}>拍照 + AI 分析</div>
+                        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', marginTop: 2 }}>拍照 + AI 分析</div>
                     </Link>
                     <Link href={`/wounds/${currentWound.id}/history`} style={{
                         background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)',
                         border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16,
                         padding: '1.5rem 1rem', textAlign: 'center', textDecoration: 'none',
-                        transition: 'transform 0.15s',
+                        transition: 'transform 0.15s', cursor: 'pointer',
+                        minHeight: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                     }}>
                         <div style={{ fontSize: '2rem', marginBottom: '0.4rem' }}>📅</div>
                         <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600 }}>照護歷程</div>
-                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.72rem', marginTop: 2 }}>Timeline 回顧</div>
+                        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', marginTop: 2 }}>Timeline 回顧</div>
                     </Link>
                 </div>
 
@@ -274,10 +280,11 @@ function ArchiveButton({ woundId, onArchived }) {
             <button onClick={() => setConfirm(true)} style={{
                 width: '100%', padding: '0.7rem', borderRadius: 12,
                 background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-                color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem', cursor: 'pointer',
+                color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', cursor: 'pointer',
+                minHeight: 44,
             }}>🗃️ 傷口已癒合，歸檔此紀錄</button>
             {confirm && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem' }}>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem', overscrollBehavior: 'contain' }} role="dialog" aria-modal="true" aria-label="確認歸檔">
                     <div style={{ background: '#1e1a2e', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 20, padding: '1.5rem', maxWidth: 320, width: '100%', textAlign: 'center' }}>
                         <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🗃️</div>
                         <h3 style={{ color: '#fff', margin: '0 0 0.5rem' }}>確認歸檔？</h3>

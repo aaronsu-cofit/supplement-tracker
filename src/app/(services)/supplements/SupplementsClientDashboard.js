@@ -284,7 +284,7 @@ export default function SupplementsClientDashboard({ initialSupplements = [], in
 
       {/* AI Match Results Modal */}
       {aiMatches && (
-        <div className="modal-overlay" onClick={() => setAiMatches(null)}>
+        <div className="modal-overlay" onClick={() => setAiMatches(null)} role="dialog" aria-modal="true" aria-label={aiMatches.matches.length > 0 ? t('ai.matchFound') : t('ai.noMatch')}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2 className="modal-title">
               {aiMatches.matches.length > 0 ? t('ai.matchFound') : t('ai.noMatch')}

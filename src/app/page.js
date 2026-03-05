@@ -68,7 +68,7 @@ export default function PortalPage() {
                 <div style={overlayStyle}>
                     <div className="spinner" style={spinnerStyle}></div>
                     <p style={{ marginTop: '20px', fontSize: '1.2rem', fontWeight: 'bold', color: 'white', letterSpacing: '2px' }}>
-                        Loading...
+                        載入中...
                     </p>
                 </div>
                 <style jsx>{`

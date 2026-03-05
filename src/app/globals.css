@@ -314,8 +314,8 @@ body {
 }
 
 .icon-btn {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-sm);
   border: none;
   background: transparent;
@@ -371,6 +371,7 @@ body {
   z-index: 1000;
   padding: 20px;
   animation: fadeIn 0.2s ease;
+  overscroll-behavior: contain;
 }
 
 .modal-content {
@@ -405,7 +406,7 @@ body {
 
 .form-input {
   width: 100%;
-  padding: 10px 14px;
+  padding: 13px 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
   background: var(--bg-card);
@@ -414,6 +415,7 @@ body {
   font-family: var(--font-family);
   transition: border-color var(--transition-fast);
   outline: none;
+  min-height: 44px;
 }
 
 .form-input:focus {
@@ -762,8 +764,8 @@ textarea.form-input {
 }
 
 .date-nav-btn {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-light);
   background: var(--bg-glass);
@@ -1130,4 +1132,22 @@ textarea.form-input {
 
 .btn-action.primary:hover {
   background: rgba(124, 92, 252, 0.2);
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .spinner,
+  .spinner-small {
+    animation: none;
+    border: 3px solid var(--accent-primary);
+    opacity: 0.6;
+  }
 }

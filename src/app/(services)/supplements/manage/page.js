@@ -146,10 +146,10 @@ export default function SupplementsPage() {
                             <div className="supplement-card-header">
                                 <div className="supplement-card-name">{sup.name}</div>
                                 <div className="supplement-card-actions">
-                                    <button className="icon-btn" onClick={() => openEdit(sup)} title={t('supplements.edit')}>
+                                    <button className="icon-btn" onClick={() => openEdit(sup)} title={t('supplements.edit')} aria-label={`${t('supplements.edit')} ${sup.name}`}>
                                         ✏️
                                     </button>
-                                    <button className="icon-btn danger" onClick={() => setDeleteConfirm(sup.id)} title={t('supplements.delete')}>
+                                    <button className="icon-btn danger" onClick={() => setDeleteConfirm(sup.id)} title={t('supplements.delete')} aria-label={`${t('supplements.delete')} ${sup.name}`}>
                                         🗑️
                                     </button>
                                 </div>
@@ -207,7 +207,7 @@ export default function SupplementsPage() {
 
             {/* Delete Confirmation */}
             {deleteConfirm && (
-                <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+                <div className="modal-overlay" onClick={() => setDeleteConfirm(null)} role="dialog" aria-modal="true" aria-label={t('supplements.delete')}>
                     <div className="modal-content confirm-dialog" onClick={(e) => e.stopPropagation()}>
                         <h2 className="modal-title">{t('supplements.delete')}</h2>
                         <p>{t('supplements.deleteConfirm')}</p>
