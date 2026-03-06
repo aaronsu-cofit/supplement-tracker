@@ -183,7 +183,7 @@ export default function BonesScanPage() {
 
             if (res.ok) {
                 const savedImage = await res.json();
-                router.push(`/bones/result?id=${savedImage.id}`);
+                router.push(`/result?id=${savedImage.id}`);
             } else {
                 setError('無法儲存分析結果');
             }

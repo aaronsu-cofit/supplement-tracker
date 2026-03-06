@@ -14,7 +14,7 @@ function BonesResultContent() {
     useEffect(() => {
         const id = searchParams?.get('id');
         if (!id) {
-            router.replace('/bones');
+            router.replace('/');
             return;
         }
 
@@ -27,12 +27,12 @@ function BonesResultContent() {
                 if (record) {
                     setImageRecord(record);
                 } else {
-                    router.replace('/bones');
+                    router.replace('/');
                 }
             })
             .catch(err => {
                 console.error(err);
-                router.replace('/bones');
+                router.replace('/');
             })
             .finally(() => setLoading(false));
     }, [router, searchParams]);
@@ -99,7 +99,7 @@ function BonesResultContent() {
     return (
         <div style={{ padding: '1.5rem', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <header>
-                <Link href="/bones" style={{ color: '#a8ff78', textDecoration: 'none', fontSize: '0.9rem', marginBottom: '1rem', display: 'inline-block' }}>
+                <Link href="/" style={{ color: '#a8ff78', textDecoration: 'none', fontSize: '0.9rem', marginBottom: '1rem', display: 'inline-block' }}>
                     ← 返回中心
                 </Link>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>📑 檢測報告</h2>

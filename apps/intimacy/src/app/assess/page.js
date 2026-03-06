@@ -73,9 +73,9 @@ function AssessContent() {
             const data = await res.json();
 
             if (data.success && data.assessment?.id) {
-                router.push(`/intimacy/result?id=${data.assessment.id}`);
+                router.push(`/result?id=${data.assessment.id}`);
             } else {
-                router.push('/intimacy');
+                router.push('/');
             }
         } catch (error) {
             console.error(error);

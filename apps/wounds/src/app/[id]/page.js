@@ -16,13 +16,13 @@ export default function WoundDetailPage() {
         apiFetch(`/api/wounds/${id}`)
             .then(r => { if (!r.ok) throw new Error('Not found'); return r.json(); })
             .then(data => setWound(data))
-            .catch(() => router.replace('/wounds'))
+            .catch(() => router.replace('/'))
             .finally(() => setLoading(false));
     }, [id]);
 
     const handleArchive = async () => {
         await apiFetch(`/api/wounds/${id}`, { method: 'DELETE' });
-        router.replace('/wounds');
+        router.replace('/');
     };
 
     if (loading || !wound) {
@@ -49,7 +49,7 @@ export default function WoundDetailPage() {
     return (
         <div style={{ padding: '0 1rem 6rem', maxWidth: 480, margin: '0 auto' }}>
             {/* Back */}
-            <Link href="/wounds" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: '1rem' }}>
+            <Link href="/" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: '1rem' }}>
                 ← 傷口列表
             </Link>
 
@@ -102,7 +102,7 @@ export default function WoundDetailPage() {
 
             {/* Action Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '1.5rem' }}>
-                <Link href={`/wounds/${id}/scan`} style={{
+                <Link href={`/${id}/scan`} style={{
                     background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)',
                     border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16,
                     padding: '1.5rem 1rem', textAlign: 'center', textDecoration: 'none',
@@ -112,7 +112,7 @@ export default function WoundDetailPage() {
                     <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600 }}>今日掃描</div>
                     <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', marginTop: 2 }}>拍照 + AI 分析</div>
                 </Link>
-                <Link href={`/wounds/${id}/history`} style={{
+                <Link href={`/${id}/history`} style={{
                     background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)',
                     border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16,
                     padding: '1.5rem 1rem', textAlign: 'center', textDecoration: 'none',

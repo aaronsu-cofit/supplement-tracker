@@ -129,7 +129,7 @@ export default function WoundScanPage() {
                 console.log('LINE notification skipped:', notifyErr.message);
             }
 
-            router.push(`/wounds/result?logId=latest&woundId=${woundId}`);
+            router.push(`/result?logId=latest&woundId=${woundId}`);
         } catch (error) {
             console.error(error);
             alert('發生錯誤: ' + (error.message || JSON.stringify(error)));

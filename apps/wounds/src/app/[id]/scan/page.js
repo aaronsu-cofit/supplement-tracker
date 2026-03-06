@@ -98,7 +98,7 @@ export default function WoundScanPage() {
                 });
             } catch (_) { }
 
-            router.push(`/wounds/${woundId}/result?analysis=${encodeURIComponent(data.analysis || '')}&status=${encodeURIComponent(data.ai_status_label || '')}&nrs=${nrsScore}&symptoms=${encodeURIComponent(symptoms.join(','))}`);
+            router.push(`/${woundId}/result?analysis=${encodeURIComponent(data.analysis || '')}&status=${encodeURIComponent(data.ai_status_label || '')}&nrs=${nrsScore}&symptoms=${encodeURIComponent(symptoms.join(','))}`);
         } catch (error) {
             alert('發生錯誤: ' + (error.message || ''));
         } finally { setIsAnalyzing(false); }

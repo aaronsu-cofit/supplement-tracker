@@ -79,7 +79,7 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
                     <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', margin: '0 0 2rem', maxWidth: 280 }}>
                         建立傷口紀錄，讓 AI 幫你追蹤復原狀態
                     </p>
-                    <Link href="/wounds/create" style={{
+                    <Link href="/create" style={{
                         padding: '0.9rem 2.5rem', borderRadius: 14,
                         background: 'linear-gradient(135deg, #ff9a9e, #fda085)',
                         color: '#fff', fontWeight: 700, fontSize: '0.95rem', textDecoration: 'none',
@@ -176,7 +176,7 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
                                 </button>
                             );
                         })}
-                        <Link href="/wounds/create" onClick={() => setShowSwitcher(false)} style={{
+                        <Link href="/create" onClick={() => setShowSwitcher(false)} style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
                             padding: '0.6rem', marginTop: '0.3rem', borderRadius: 10,
                             background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.12)',
@@ -231,7 +231,7 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
 
                 {/* Action Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '1.5rem' }}>
-                    <Link href={`/wounds/${currentWound.id}/scan`} style={{
+                    <Link href={`/${currentWound.id}/scan`} style={{
                         background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)',
                         border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16,
                         padding: '1.5rem 1rem', textAlign: 'center', textDecoration: 'none',
@@ -242,7 +242,7 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
                         <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600 }}>今日掃描</div>
                         <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', marginTop: 2 }}>拍照 + AI 分析</div>
                     </Link>
-                    <Link href={`/wounds/${currentWound.id}/history`} style={{
+                    <Link href={`/${currentWound.id}/history`} style={{
                         background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)',
                         border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16,
                         padding: '1.5rem 1rem', textAlign: 'center', textDecoration: 'none',

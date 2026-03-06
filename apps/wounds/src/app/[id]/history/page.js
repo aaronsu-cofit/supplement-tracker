@@ -44,7 +44,7 @@ export default function WoundHistoryPage() {
 
     return (
         <div style={{ padding: '0 1rem 6rem', maxWidth: 480, margin: '0 auto' }}>
-            <Link href={`/wounds/${id}`} style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: '1rem' }}>
+            <Link href={`/${id}`} style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: '1rem' }}>
                 ← 返回傷口
             </Link>
             <h2 style={{ color: '#fff', fontSize: '1.15rem', fontWeight: 700, margin: '0 0 0.3rem' }}>📅 照護歷程</h2>
@@ -54,7 +54,7 @@ export default function WoundHistoryPage() {
                 <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'rgba(255,255,255,0.03)', borderRadius: 20, border: '1px dashed rgba(255,255,255,0.15)' }}>
                     <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📭</div>
                     <p style={{ color: 'rgba(255,255,255,0.5)' }}>尚無紀錄</p>
-                    <Link href={`/wounds/${id}/scan`} style={{ color: '#ff9a9e', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }}>→ 開始第一次掃描</Link>
+                    <Link href={`/${id}/scan`} style={{ color: '#ff9a9e', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }}>→ 開始第一次掃描</Link>
                 </div>
             ) : (
                 <div style={{ position: 'relative', paddingLeft: '1.5rem' }}>

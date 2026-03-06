@@ -68,12 +68,12 @@ function ResultContent() {
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: '0.8rem' }}>
-                <Link href={`/wounds/${id}/history`} style={{
+                <Link href={`/${id}/history`} style={{
                     flex: 1, padding: '0.9rem', borderRadius: 12, textAlign: 'center', textDecoration: 'none',
                     background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
                     color: '#fff', fontSize: '0.9rem', fontWeight: 600,
                 }}>📅 查看歷程</Link>
-                <Link href={`/wounds/${id}`} style={{
+                <Link href={`/${id}`} style={{
                     flex: 1, padding: '0.9rem', borderRadius: 12, textAlign: 'center', textDecoration: 'none',
                     background: 'linear-gradient(135deg, #ff9a9e, #fda085)',
                     color: '#fff', fontSize: '0.9rem', fontWeight: 600,

@@ -39,7 +39,7 @@ export default function BonesHistoryPage() {
                 <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
                     <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>📂</div>
                     <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem' }}>您目前還沒有任何拇趾外翻 AI 攝影檢測紀錄。</p>
-                    <Link href="/bones/scan">
+                    <Link href="/scan">
                         <button style={{
                             marginTop: '1.5rem', padding: '0.8rem 1.5rem', borderRadius: '12px', border: 'none',
                             background: '#a8ff78', color: '#1a3630', fontWeight: 'bold', cursor: 'pointer'
@@ -56,7 +56,7 @@ export default function BonesHistoryPage() {
                         const dateStr = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}`;
 
                         return (
-                            <Link href={`/bones/result?id=${img.id}`} key={img.id} style={{ textDecoration: 'none' }}>
+                            <Link href={`/result?id=${img.id}`} key={img.id} style={{ textDecoration: 'none' }}>
                                 <div style={{
                                     display: 'flex', gap: '1rem', background: 'var(--bg-card)',
                                     padding: '1rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)',

@@ -184,7 +184,7 @@ export default function SupplementsClientDashboard({ initialSupplements = [], in
         <div className="empty-state">
           <div className="empty-icon">💊</div>
           <p className="empty-title">{t('home.noSupplements')}</p>
-          <a href="/supplements/manage" className="btn btn-primary" style={{ display: 'inline-block', marginTop: 8 }}>
+          <a href="/manage" className="btn btn-primary" style={{ display: 'inline-block', marginTop: 8 }}>
             {t('home.addFirst')}
           </a>
         </div>

@@ -71,7 +71,7 @@ export default function BonesAssessPage() {
             });
 
             if (res.ok) {
-                router.push('/bones');
+                router.push('/');
             } else {
                 const err = await res.json();
                 alert('儲存失敗：' + (err.error || '未知錯誤'));

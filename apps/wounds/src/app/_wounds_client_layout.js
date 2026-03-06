@@ -8,8 +8,8 @@ export default function WoundsLayout({ children }) {
 
     // Dashboard (/wounds) and create page manage their own headers internally.
     // Sub-pages (scan, history, result) get the shared AppHeader from the layout.
-    const isDashboard = pathname === '/wounds';
-    const isCreate = pathname === '/wounds/create';
+    const isDashboard = pathname === '/';
+    const isCreate = pathname === '/create';
 
     const showLayoutHeader = !isAdmin && !isDashboard && !isCreate;
 
@@ -23,7 +23,7 @@ export default function WoundsLayout({ children }) {
         }}>
             {showLayoutHeader && (
                 <AppHeader
-                    backHref="/wounds"
+                    backHref="/"
                     title="傷口智慧照護"
                     accent="linear-gradient(135deg, #ff9a9e, #fda085)"
                 />

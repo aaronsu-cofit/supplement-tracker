@@ -20,7 +20,7 @@ export default function BonesDashboard() {
   return (
     <div style={{ padding: '1.5rem', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '2rem' }}>
 
-      <Link href="/bones/scan" style={{ textDecoration: 'none' }}>
+      <Link href="/scan" style={{ textDecoration: 'none' }}>
         <div style={{ background: 'linear-gradient(135deg, rgba(82, 194, 52, 0.2), rgba(6, 23, 0, 0.4))', border: '1px solid rgba(168, 255, 120, 0.3)', borderRadius: '16px', padding: '1.5rem', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div style={{ fontSize: '2.5rem' }}>📷</div>
           <div style={{ flex: 1 }}>
@@ -31,14 +31,14 @@ export default function BonesDashboard() {
       </Link>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-        <Link href="/bones/assess" style={{ textDecoration: 'none' }}>
+        <Link href="/assess" style={{ textDecoration: 'none' }}>
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '1.25rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
             <div style={{ fontSize: '2rem' }}>📝</div>
             <h3 style={{ margin: 0, color: '#fff', fontSize: '1rem', fontWeight: 600 }}>今日痛點評估</h3>
             <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem' }}>紀錄疼痛與活動力</p>
           </div>
         </Link>
-        <Link href="/bones/history" style={{ textDecoration: 'none' }}>
+        <Link href="/history" style={{ textDecoration: 'none' }}>
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '1.25rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
             <div style={{ fontSize: '2rem' }}>📸</div>
             <h3 style={{ margin: 0, color: '#fff', fontSize: '1rem', fontWeight: 600 }}>檢測歷程追蹤</h3>
