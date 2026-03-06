@@ -1,8 +1,8 @@
 'use client';
-import { apiFetch } from '@cofit/lib';
+import { apiFetch } from '@vitera/lib';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@cofit/lib';
+import { useAuth } from '@vitera/lib';
 import { useRouter } from 'next/navigation';
 
 export default function HQModulesClient() {

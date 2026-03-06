@@ -3,6 +3,12 @@
   "private": true,
   "scripts": {
     "dev": "turbo dev",
+    "dev:wounds": "turbo dev --filter=backend --filter=wounds",
+    "dev:bones": "turbo dev --filter=backend --filter=bones",
+    "dev:supplements": "turbo dev --filter=backend --filter=supplements",
+    "dev:hq": "turbo dev --filter=backend --filter=hq",
+    "dev:intimacy": "turbo dev --filter=backend --filter=intimacy",
+    "dev:portal": "turbo dev --filter=backend --filter=portal",
     "build": "turbo build",
     "lint": "turbo lint"
   },

@@ -34,10 +34,8 @@ export default function LoginPage() {
             } else {
                 await login(email, password);
             }
-            // Redirect to home or target path on success
-            const params = new URLSearchParams(window.location.search);
-            const redirectPath = params.get('path') || '/';
-            window.location.href = redirectPath;
+            // Always redirect to home after login (portal has no sub-routes)
+            window.location.href = '/';
         } catch (err) {
             setError(err.message);
         } finally {

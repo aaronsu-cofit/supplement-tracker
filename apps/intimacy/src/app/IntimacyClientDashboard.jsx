@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@cofit/lib';
+import { useAuth } from '@vitera/lib';
 import { AppHeader } from '@cofit/ui';
 
 const ACCENT = 'linear-gradient(135deg, #BE123C 0%, #E11D48 100%)';
