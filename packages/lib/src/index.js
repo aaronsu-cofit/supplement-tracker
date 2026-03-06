@@ -1,4 +1,5 @@
-export { apiFetch, getApiUrl, setAuthToken, clearAuthToken } from './api.js';
+export { apiFetch, getApiUrl } from './api.js';
+export { default as AuthGuard } from './auth/AuthGuard.js';
 export { useLiff, default as LiffProvider, LiffContext } from './liff/LiffProvider.js';
 export { useAuth, default as AuthProvider } from './auth/AuthProvider.js';
 export { LanguageProvider, useLanguage } from './i18n/LanguageContext.js';

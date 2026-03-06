@@ -6,6 +6,29 @@ import { getCookie } from 'hono/cookie';
 
 const auth = new Hono();
 
+const isProd = process.env.NODE_ENV === 'production';
+
+/** Shared cookie options — sameSite: Lax + domain in prod, None in dev */
+function cookieOptions() {
+  if (isProd) {
+    return {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Lax',
+      domain: process.env.COOKIE_DOMAIN || undefined, // e.g. '.vitera.com'
+      maxAge: 60 * 60 * 24 * 365,
+      path: '/',
+    };
+  }
+  return {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'Lax',  // Lax works fine for localhost cross-port (same site by domain)
+    maxAge: 60 * 60 * 24 * 365,
+    path: '/',
+  };
+}
+
 // POST /api/auth/login
 auth.post('/login', async (c) => {
   try {
@@ -23,18 +46,10 @@ auth.post('/login', async (c) => {
     if (!valid) return c.json({ error: 'Email 或密碼不正確' }, 401);
 
     const token = await signToken(user.id);
-
-    setCookie(c, 'auth_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'None',
-      maxAge: 60 * 60 * 24 * 365,
-      path: '/',
-    });
+    setCookie(c, 'auth_token', token, cookieOptions());
 
     return c.json({
       success: true,
-      token,
       user: { id: user.id, email: user.email, displayName: user.display_name, authProvider: user.auth_provider },
     });
   } catch (error) {
@@ -60,17 +75,10 @@ auth.post('/register', async (c) => {
     const user = await createEmailUser(id, email.toLowerCase(), passwordHash, displayName || email.split('@')[0]);
     const token = await signToken(user.id);
 
-    setCookie(c, 'auth_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'None',
-      maxAge: 60 * 60 * 24 * 365,
-      path: '/',
-    });
+    setCookie(c, 'auth_token', token, cookieOptions());
 
     return c.json({
       success: true,
-      token,
       user: { id: user.id, email: user.email, displayName: user.display_name, authProvider: user.auth_provider },
     }, 201);
   } catch (error) {
@@ -115,17 +123,10 @@ auth.post('/me', async (c) => {
     const user = await findOrCreateLineUser(lineUserId, displayName, pictureUrl);
     const token = await signToken(user.id);
 
-    setCookie(c, 'auth_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'None',
-      maxAge: 60 * 60 * 24 * 365,
-      path: '/',
-    });
+    setCookie(c, 'auth_token', token, cookieOptions());
 
     return c.json({
       authenticated: true,
-      token,
       user: { id: user.id, displayName: user.display_name, pictureUrl: user.picture_url, authProvider: user.auth_provider },
     });
   } catch (error) {

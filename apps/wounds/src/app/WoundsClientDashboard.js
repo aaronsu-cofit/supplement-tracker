@@ -15,23 +15,28 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
     const [showEdit, setShowEdit] = useState(false);
     const switcherRef = useRef(null);
 
+    const initialized = useRef(false);
+
     useEffect(() => {
-        if (Array.isArray(initialWounds)) {
-            setWounds(initialWounds);
+        if (initialized.current) return;
+        if (!Array.isArray(initialWounds) || initialWounds.length === 0) return;
+        initialized.current = true;
 
-            const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-            const newId = urlParams?.get('new_id');
+        setWounds(initialWounds);
 
-            if (newId && initialWounds.length > 0) {
-                const target = initialWounds.find(w => String(w.id) === String(newId));
-                if (target) {
-                    setCurrentWound(target);
-                    return;
-                }
+        const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+        const newId = urlParams?.get('new_id');
+
+        if (newId) {
+            const target = initialWounds.find(w => String(w.id) === String(newId));
+            if (target) {
+                setCurrentWound(target);
+                return;
             }
-            if (initialWounds.length > 0) setCurrentWound(initialWounds[0]);
         }
+        setCurrentWound(initialWounds[0]);
     }, [initialWounds]);
+
 
     // Close switcher on outside click
     useEffect(() => {

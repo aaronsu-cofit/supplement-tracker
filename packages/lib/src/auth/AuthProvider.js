@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useLiff } from '../liff/LiffProvider.js';
-import { apiFetch, setAuthToken, clearAuthToken } from '../api.js';
+import { apiFetch } from '../api.js';
 
 const AuthContext = createContext({
   user: null,
@@ -23,7 +23,7 @@ export default function AuthProvider({ children }) {
   const [isLineLoginFinished, setIsLineLoginFinished] = useState(false);
   const { profile, isInitialized: liffInitialized, isInLineClient } = useLiff();
 
-  // Check existing session on mount
+  // Check existing session on mount (reads auth_token cookie via backend)
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -58,7 +58,6 @@ export default function AuthProvider({ children }) {
           });
           if (res.ok) {
             const data = await res.json();
-            if (data.token) setAuthToken(data.token);
             setUser(data.user);
           }
         } catch (err) {
@@ -82,7 +81,6 @@ export default function AuthProvider({ children }) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    if (data.token) setAuthToken(data.token);
     setUser(data.user);
     return data;
   }, []);
@@ -94,7 +92,6 @@ export default function AuthProvider({ children }) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    if (data.token) setAuthToken(data.token);
     setUser(data.user);
     return data;
   }, []);
@@ -105,7 +102,6 @@ export default function AuthProvider({ children }) {
     } catch (err) {
       console.error('Logout error:', err);
     }
-    clearAuthToken();
     setUser(null);
   }, []);
 

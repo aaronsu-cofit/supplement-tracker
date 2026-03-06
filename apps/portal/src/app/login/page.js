@@ -4,6 +4,36 @@ import { useState } from 'react';
 import { useAuth } from '@vitera/lib';
 import { useLiff } from '@vitera/lib';
 
+/**
+ * Allowed origins for redirect after login.
+ * Add production domains here when deploying.
+ */
+const ALLOWED_REDIRECT_ORIGINS = (
+  process.env.NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS || ''
+)
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+// Always allow localhost in development
+if (process.env.NODE_ENV !== 'production') {
+  for (let port = 3000; port <= 3010; port++) {
+    ALLOWED_REDIRECT_ORIGINS.push(`http://localhost:${port}`);
+  }
+}
+
+function getSafeRedirectUrl() {
+  if (typeof window === 'undefined') return '/';
+  const params = new URLSearchParams(window.location.search);
+  const redirect = params.get('redirect');
+  if (!redirect) return '/';
+  try {
+    const url = new URL(redirect);
+    if (ALLOWED_REDIRECT_ORIGINS.includes(url.origin)) return redirect;
+  } catch {}
+  return '/';
+}
+
 export default function LoginPage() {
     const { login, register, isLoading } = useAuth();
     const { liff, isInitialized } = useLiff();
@@ -16,8 +46,6 @@ export default function LoginPage() {
 
     const handleLineLogin = () => {
         if (liff && isInitialized) {
-            // Use the LIFF endpoint URL (usually the deployment root)
-            // The redirectUri must match the LIFF Endpoint URL configured in LINE Developer Console
             liff.login();
         } else {
             setError('LINE 登入服務尚未初始化，請稍後再試');
@@ -34,14 +62,14 @@ export default function LoginPage() {
             } else {
                 await login(email, password);
             }
-            // Always redirect to home after login (portal has no sub-routes)
-            window.location.href = '/';
+            window.location.href = getSafeRedirectUrl();
         } catch (err) {
             setError(err.message);
         } finally {
             setSubmitting(false);
         }
     };
+
 
     if (isLoading) {
         return (

@@ -14,22 +14,22 @@ function RouteGuard({ children }) {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !isPublic) {
-      const params = new URLSearchParams();
-      if (pathname !== '/' && pathname !== '/login') params.set('path', pathname);
-      const q = params.toString();
-      router.replace(`/login${q ? '?' + q : ''}`);
+      // Encode full current URL as redirect param (consistent with sub-apps)
+      const redirect = encodeURIComponent(window.location.href);
+      router.replace(`/login?redirect=${redirect}`);
     }
   }, [isLoading, isAuthenticated, isPublic, router, pathname]);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated && pathname === '/login') {
-      const sp = new URLSearchParams(window.location.search);
-      router.replace(sp.get('path') || '/');
+      // Already handled by portal/login/page.js getSafeRedirectUrl()
+      router.replace('/');
     }
   }, [isLoading, isAuthenticated, pathname, router]);
 
   return children;
 }
+
 
 export default function ClientLayout({ children }) {
   return (
