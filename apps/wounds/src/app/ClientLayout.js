@@ -17,15 +17,8 @@ function RouteGuard({ children }) {
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <div style={{
-          width: 36, height: 36,
-          border: '3px solid rgba(255,255,255,0.1)',
-          borderTop: '3px solid rgba(255,255,255,0.6)',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="w-9 h-9 border-[3px] border-white/10 border-t-white/60 rounded-full animate-spin" />
       </div>
     );
   }
@@ -39,7 +32,7 @@ export default function ClientLayout({ children }) {
       <AuthProvider>
         <LanguageProvider>
           <RouteGuard>
-            <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'linear-gradient(180deg, #1a1225 0%, #1e1530 40%, #16202e 100%)', color: '#e8e6f0' }}>
+            <div className="flex flex-col min-h-screen bg-w-app text-[#e8e6f0]">
               {children}
             </div>
           </RouteGuard>

@@ -4,6 +4,21 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
+const getConcern = (label) => {
+    if (!label) return 'unknown';
+    if (label.includes('穩定') || label.includes('符合')) return 'false';
+    return 'true';
+};
+
+const STATUS_CLASSES = {
+    'true':    'bg-w-orange/[0.12] text-w-orange',
+    'false':   'bg-w-green/[0.12] text-w-green',
+    'unknown': 'bg-white/[0.06] text-white/40',
+};
+
+const getNrsMiniClass = (s) =>
+    s <= 3 ? 'text-w-green' : s <= 6 ? 'text-w-orange' : 'text-w-red';
+
 export default function WoundHistoryPage() {
     const { id } = useParams();
     const [logs, setLogs] = useState([]);
@@ -26,80 +41,68 @@ export default function WoundHistoryPage() {
         return diff >= 0 ? `第 ${diff + 1} 天` : '';
     };
 
-    const getStatusStyle = (label) => {
-        if (!label) return { bg: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' };
-        if (label.includes('穩定') || label.includes('符合')) return { bg: 'rgba(46,213,115,0.12)', color: '#2ed573' };
-        if (label.includes('留意')) return { bg: 'rgba(255,165,2,0.12)', color: '#ffa502' };
-        return { bg: 'rgba(255,71,87,0.12)', color: '#ff4757' };
-    };
-
     if (loading) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-                <div style={{ width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid #ff9a9e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <div className="flex justify-center items-center min-h-[60vh]">
+                <div className="w-10 h-10 border-[3px] border-white/10 border-t-w-pink rounded-full animate-spin" />
             </div>
         );
     }
 
     return (
-        <div style={{ padding: '0 1rem 6rem', maxWidth: 480, margin: '0 auto' }}>
-            <Link href={`/${id}`} style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: '1rem' }}>
+        <div className="max-w-[480px] mx-auto px-4 pb-24">
+            <Link href={`/${id}`} className="text-white/50 no-underline text-[0.85rem] inline-flex items-center gap-1 mb-4">
                 ← 返回傷口
             </Link>
-            <h2 style={{ color: '#fff', fontSize: '1.15rem', fontWeight: 700, margin: '0 0 0.3rem' }}>📅 照護歷程</h2>
-            {wound && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', margin: '0 0 1.2rem' }}>{wound.name} ・ 受傷日期 {wound.date_of_injury}</p>}
+            <h2 className="text-white text-[1.15rem] font-bold m-0 mb-[0.3rem]">📅 照護歷程</h2>
+            {wound && (
+                <p className="text-white/40 text-[0.8rem] m-0 mb-5">
+                    {wound.name} ・ 受傷日期 {wound.date_of_injury}
+                </p>
+            )}
 
             {logs.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'rgba(255,255,255,0.03)', borderRadius: 20, border: '1px dashed rgba(255,255,255,0.15)' }}>
-                    <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📭</div>
-                    <p style={{ color: 'rgba(255,255,255,0.5)' }}>尚無紀錄</p>
-                    <Link href={`/${id}/scan`} style={{ color: '#ff9a9e', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }}>→ 開始第一次掃描</Link>
+                <div className="text-center p-12 bg-white/[0.03] rounded-[20px] border border-dashed border-white/15">
+                    <div className="text-[2.5rem] mb-2">📭</div>
+                    <p className="text-white/50">尚無紀錄</p>
+                    <Link href={`/${id}/scan`} className="text-w-pink no-underline font-semibold text-[0.9rem]">→ 開始第一次掃描</Link>
                 </div>
             ) : (
-                <div style={{ position: 'relative', paddingLeft: '1.5rem' }}>
+                <div className="relative pl-6">
                     {/* Timeline line */}
-                    <div style={{
-                        position: 'absolute', left: 5, top: 12, bottom: 12, width: 2,
-                        background: 'linear-gradient(to bottom, rgba(255,154,158,0.3), rgba(255,154,158,0.05))',
-                    }} />
+                    <div className="absolute left-[5px] top-3 bottom-3 w-[2px] bg-gradient-to-b from-w-pink/30 to-w-pink/5" />
 
                     {logs.map((log, i) => {
-                        const st = getStatusStyle(log.ai_status_label);
+                        const concern = getConcern(log.ai_status_label);
                         return (
-                            <div key={log.id || i} style={{ position: 'relative', marginBottom: '1rem' }}>
-                                {/* Dot */}
-                                <div style={{
-                                    position: 'absolute', left: '-1.5rem', top: 18, width: 12, height: 12,
-                                    borderRadius: '50%', background: '#ff9a9e',
-                                    boxShadow: '0 0 8px rgba(255,154,158,0.4)',
-                                }} />
-                                {/* Card */}
-                                <div style={{
-                                    background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(16px)',
-                                    border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '1rem',
-                                }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.78rem' }}>
+                            <div key={log.id || i} className="relative mb-4">
+                                <div className="absolute -left-6 top-[18px] w-3 h-3 rounded-full bg-w-pink shadow-[0_0_8px_rgba(255,154,158,0.4)]" />
+                                <div className="bg-white/[0.04] backdrop-blur-[16px] border border-white/[0.08] rounded-[14px] p-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-white/50 text-[0.78rem]">
                                             {new Date(log.logged_at || log.date).toLocaleDateString('zh-TW')} {daysSince(log.date, wound?.date_of_injury)}
                                         </span>
-                                        <span style={{ background: st.bg, color: st.color, padding: '2px 8px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 600 }}>
+                                        <span className={`${STATUS_CLASSES[concern]} px-2 py-[2px] rounded-[6px] text-[0.7rem] font-semibold`}>
                                             {log.ai_status_label || '—'}
                                         </span>
                                     </div>
                                     {log.image_data && (
-                                        <img src={log.image_data} alt="" style={{ width: '100%', borderRadius: 10, maxHeight: 160, objectFit: 'cover', marginBottom: '0.5rem' }} />
+                                        <img src={log.image_data} alt="" className="w-full rounded-[10px] max-h-[160px] object-cover mb-2" />
                                     )}
                                     {log.ai_assessment_summary && (
-                                        <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.82rem', lineHeight: 1.6, margin: '0 0 0.5rem', whiteSpace: 'pre-wrap' }}>
-                                            {log.ai_assessment_summary.length > 120 ? log.ai_assessment_summary.slice(0, 120) + '...' : log.ai_assessment_summary}
+                                        <p className="text-white/65 text-[0.82rem] leading-relaxed m-0 mb-2 whitespace-pre-wrap">
+                                            {log.ai_assessment_summary.length > 120
+                                                ? log.ai_assessment_summary.slice(0, 120) + '...'
+                                                : log.ai_assessment_summary}
                                         </p>
                                     )}
-                                    <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-                                        <span style={{ fontSize: '0.75rem', color: log.nrs_pain_score <= 3 ? '#2ed573' : log.nrs_pain_score <= 6 ? '#ffa502' : '#ff4757' }}>
+                                    <div className="flex gap-[0.6rem] flex-wrap">
+                                        <span className={`text-[0.75rem] ${getNrsMiniClass(log.nrs_pain_score)}`}>
                                             🌡️ NRS {log.nrs_pain_score}/10
                                         </span>
-                                        {log.symptoms && <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>📝 {log.symptoms}</span>}
+                                        {log.symptoms && (
+                                            <span className="text-[0.75rem] text-white/40">📝 {log.symptoms}</span>
+                                        )}
                                     </div>
                                 </div>
                             </div>

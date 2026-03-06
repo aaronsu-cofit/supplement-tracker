@@ -6,7 +6,6 @@ import Link from 'next/link';
 export default function WoundsAdminDashboard() {
     const [patients, setPatients] = useState([]);
     const [loading, setLoading] = useState(true);
-
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [generatingSoap, setGeneratingSoap] = useState(false);
     const [soapNote, setSoapNote] = useState(null);
@@ -19,10 +18,9 @@ export default function WoundsAdminDashboard() {
                 const res = await apiFetch('/api/admin/wounds');
                 if (res.ok) {
                     const woundsList = await res.json();
-                    // Generate distinguishable names for real patients
                     const surnames = ['李', '王', '陳', '林', '黃', '周', '吳', '謝', '趙', '劉'];
                     const mappedPatients = woundsList.map((w, idx) => {
-                        const dateLabel = w.date_of_injury 
+                        const dateLabel = w.date_of_injury
                             ? new Date(w.date_of_injury).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })
                             : '';
                         const fallbackName = `${surnames[idx % surnames.length]}先生` + (dateLabel ? ` (${dateLabel})` : '');
@@ -37,7 +35,6 @@ export default function WoundsAdminDashboard() {
                         };
                     });
 
-                    // Inline SVG placeholder for demo patient photos
                     const demoImg = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect fill="%23e8f5e9" width="300" height="200"/><text x="150" y="90" text-anchor="middle" fill="%232e7d32" font-size="40">🩹</text><text x="150" y="130" text-anchor="middle" fill="%23388e3c" font-size="14" font-family="sans-serif">傷口紀錄照片</text></svg>')}`;
 
                     const demoPatient = {
@@ -55,18 +52,8 @@ export default function WoundsAdminDashboard() {
                             image_data: demoImg
                         },
                         history: [
-                            {
-                                id: 'h1',
-                                logged_at: new Date(Date.now() - 14 * 86400000).toISOString(),
-                                ai_status_label: '⚠️ 留意觀察',
-                                image_data: demoImg
-                            },
-                            {
-                                id: 'h2',
-                                logged_at: new Date(Date.now() - 7 * 86400000).toISOString(),
-                                ai_status_label: '✅ 穩定復原',
-                                image_data: demoImg
-                            }
+                            { id: 'h1', logged_at: new Date(Date.now() - 14 * 86400000).toISOString(), ai_status_label: '⚠️ 留意觀察', image_data: demoImg },
+                            { id: 'h2', logged_at: new Date(Date.now() - 7 * 86400000).toISOString(), ai_status_label: '✅ 穩定復原', image_data: demoImg }
                         ]
                     };
 
@@ -83,28 +70,17 @@ export default function WoundsAdminDashboard() {
         fetchAllData();
     }, []);
 
-    const handleSelectPatient = (p) => {
-        setSelectedPatient(p);
-        setSoapNote(null);
-    };
+    const handleSelectPatient = (p) => { setSelectedPatient(p); setSoapNote(null); };
 
-    const handleStartEdit = (p, e) => {
-        e.stopPropagation();
-        setEditingId(p.id);
-        setEditingName(p.name);
-    };
+    const handleStartEdit = (p, e) => { e.stopPropagation(); setEditingId(p.id); setEditingName(p.name); };
 
     const handleSaveRename = async (p) => {
         const newName = editingName.trim();
         setEditingId(null);
         if (!newName || newName === p.name) return;
-
-        // Update local state immediately
         const updated = patients.map(pt => pt.id === p.id ? { ...pt, name: newName } : pt);
         setPatients(updated);
         if (selectedPatient?.id === p.id) setSelectedPatient({ ...selectedPatient, name: newName });
-
-        // Persist to DB (skip for demo patient)
         if (p.wound_id !== 'demo') {
             try {
                 await apiFetch(`/api/wounds/${p.wound_id}`, {
@@ -112,9 +88,7 @@ export default function WoundsAdminDashboard() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name: newName })
                 });
-            } catch (err) {
-                console.error('Failed to save name:', err);
-            }
+            } catch (err) { console.error('Failed to save name:', err); }
         }
     };
 
@@ -122,7 +96,6 @@ export default function WoundsAdminDashboard() {
         if (!selectedPatient) return;
         setGeneratingSoap(true);
         setSoapNote(null);
-
         if (selectedPatient.wound_id === 'demo') {
             setTimeout(() => {
                 setSoapNote(`S (Subjective - 主觀資料):
@@ -140,7 +113,6 @@ P (Plan - 計畫):
             }, 1500);
             return;
         }
-
         try {
             const res = await apiFetch(`/api/wounds/${selectedPatient.wound_id}/soap`, { method: 'POST' });
             if (res.ok) {
@@ -157,125 +129,113 @@ P (Plan - 計畫):
         }
     };
 
-    if (loading) return <div style={{ padding: '2rem' }}>載入遠距病房資料中...</div>;
+    if (loading) return <div className="p-8 text-gray-600">載入遠距病房資料中...</div>;
 
     return (
-        <div style={{ padding: '1.5rem', fontFamily: 'sans-serif', background: '#f8f9fa', minHeight: '100vh' }}>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '2px solid #eee', paddingBottom: '1rem' }}>
-                <h1 style={{ fontSize: '1.5rem', color: '#2c3e50', margin: 0 }}>🏥 遠距傷口追蹤中心 (Demo)</h1>
-                <Link href="/wounds" style={{ color: '#3498db', textDecoration: 'none', fontWeight: 'bold' }}>返回病患端</Link>
+        <div className="p-6 font-sans bg-gray-50 min-h-screen">
+            <header className="flex justify-between items-center mb-8 border-b-2 border-gray-200 pb-4">
+                <h1 className="text-[1.5rem] text-[#2c3e50] m-0">🏥 遠距傷口追蹤中心 (Demo)</h1>
+                <Link href="/wounds" className="text-[#3498db] no-underline font-bold">返回病患端</Link>
             </header>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem' }}>
-                {/* Left Col: Patient List */}
-                <div style={{ background: '#fff', padding: '1rem', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                    <h2 style={{ fontSize: '1.1rem', color: '#7f8c8d', marginBottom: '1rem' }}>高風險預警清單</h2>
-                    
+            <div className="grid grid-cols-[1fr_2fr] gap-8">
+                {/* Patient List */}
+                <div className="bg-white p-4 rounded-[12px] shadow-sm">
+                    <h2 className="text-[1.1rem] text-[#7f8c8d] mb-4">高風險預警清單</h2>
                     {patients.length === 0 ? (
-                        <p style={{ color: '#aaa', fontSize: '0.9rem' }}>目前無病患資料</p>
+                        <p className="text-gray-400 text-[0.9rem]">目前無病患資料</p>
                     ) : (
                         patients.map(p => {
                             const isHighRisk = p.latest_log?.ai_status_label?.includes('諮詢') || p.latest_log?.nrs_pain_score > 6;
+                            const isSelected = selectedPatient?.id === p.id;
+                            const bgClass = isSelected
+                                ? (isHighRisk ? 'bg-[#ffecec] shadow-md' : 'bg-[#eafaf1] shadow-md')
+                                : (isHighRisk ? 'bg-[#fff5f5]' : 'bg-[#f9fff9]');
                             return (
-                                <div key={p.id} onClick={() => handleSelectPatient(p)} style={{
-                                    borderLeft: `4px solid ${isHighRisk ? '#e74c3c' : '#2ecc71'}`,
-                                    padding: '1rem',
-                                    background: selectedPatient?.id === p.id 
-                                        ? (isHighRisk ? '#ffecec' : '#eafaf1') 
-                                        : (isHighRisk ? '#fff5f5' : '#f9fff9'),
-                                    borderRadius: '0 8px 8px 0',
-                                    marginBottom: '1rem',
-                                    cursor: 'pointer',
-                                    boxShadow: selectedPatient?.id === p.id ? '0 2px 8px rgba(0,0,0,0.1)' : 'none'
-                                }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
-                                    {p.picture_url ? (
-                                        <img src={p.picture_url} alt="" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
-                                    ) : (
-                                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem' }}>👤</div>
-                                    )}
-                                    <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        {editingId === p.id ? (
-                                            <input
-                                                autoFocus
-                                                value={editingName}
-                                                onChange={e => setEditingName(e.target.value)}
-                                                onBlur={() => handleSaveRename(p)}
-                                                onKeyDown={e => { if (e.key === 'Enter') handleSaveRename(p); }}
-                                                onClick={e => e.stopPropagation()}
-                                                style={{ border: '1px solid #3498db', borderRadius: '4px', padding: '0.2rem 0.4rem', fontSize: '0.9rem', fontWeight: 'bold', width: '100%', maxWidth: '120px' }}
-                                            />
+                                <div
+                                    key={p.id}
+                                    onClick={() => handleSelectPatient(p)}
+                                    className={`${bgClass} ${isHighRisk ? 'border-l-4 border-l-[#e74c3c]' : 'border-l-4 border-l-[#2ecc71]'} p-4 rounded-r-lg mb-4 cursor-pointer`}
+                                >
+                                    <div className="flex items-center gap-[0.6rem] mb-2">
+                                        {p.picture_url ? (
+                                            <img src={p.picture_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                                         ) : (
-                                            <b style={{ color: '#2c3e50', cursor: 'text' }} onClick={e => handleStartEdit(p, e)}>{p.name} ✏️</b>
+                                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-[0.9rem]">👤</div>
                                         )}
-                                        <span style={{ fontSize: '0.8rem', color: '#888' }}>
-                                            NRS: {p.latest_log?.nrs_pain_score || 0}
-                                        </span>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-center">
+                                                {editingId === p.id ? (
+                                                    <input
+                                                        autoFocus
+                                                        value={editingName}
+                                                        onChange={e => setEditingName(e.target.value)}
+                                                        onBlur={() => handleSaveRename(p)}
+                                                        onKeyDown={e => { if (e.key === 'Enter') handleSaveRename(p); }}
+                                                        onClick={e => e.stopPropagation()}
+                                                        className="border border-[#3498db] rounded px-[0.4rem] py-[0.2rem] text-[0.9rem] font-bold w-full max-w-[120px]"
+                                                    />
+                                                ) : (
+                                                    <b className="text-[#2c3e50] cursor-text" onClick={e => handleStartEdit(p, e)}>{p.name} ✏️</b>
+                                                )}
+                                                <span className="text-[0.8rem] text-gray-500">NRS: {p.latest_log?.nrs_pain_score || 0}</span>
+                                            </div>
+                                            <div className="text-[0.85rem] text-[#7f8c8d]">{p.latest_log?.ai_status_label || '尚未分析'}</div>
+                                        </div>
                                     </div>
-                                    <div style={{ fontSize: '0.85rem', color: '#7f8c8d' }}>
-                                        {p.latest_log?.ai_status_label || '尚未分析'}
-                                    </div>
-                                    </div>
-                                </div>
                                 </div>
                             );
                         })
                     )}
                 </div>
 
-                {/* Right Col: Patient Detail */}
-                <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+                {/* Patient Detail */}
+                <div className="bg-white p-6 rounded-[12px] shadow-sm">
                     {selectedPatient ? (
                         <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                            <div className="flex justify-between border-b border-gray-200 pb-4 mb-6">
+                                <div className="flex items-center gap-[0.8rem]">
                                     {selectedPatient.picture_url ? (
-                                        <img src={selectedPatient.picture_url} alt="" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #eee' }} />
+                                        <img src={selectedPatient.picture_url} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-gray-200" />
                                     ) : (
-                                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>👤</div>
+                                        <div className="w-12 h-12 rounded-full bg-[#e8f5e9] flex items-center justify-center text-[1.5rem]">👤</div>
                                     )}
                                     <div>
-                                        <h2 style={{ margin: '0 0 0.3rem 0', color: '#2c3e50' }}>{selectedPatient.name} - 傷口發展史</h2>
-                                        <span style={{ fontSize: '0.9rem', color: '#7f8c8d' }}>
-                                            手術日期：{selectedPatient.surgery_date}
-                                        </span>
+                                        <h2 className="m-0 mb-[0.3rem] text-[#2c3e50]">{selectedPatient.name} - 傷口發展史</h2>
+                                        <span className="text-[0.9rem] text-[#7f8c8d]">手術日期：{selectedPatient.surgery_date}</span>
                                     </div>
                                 </div>
-                                <button style={{ background: '#3498db', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+                                <button className="bg-[#3498db] text-white border-none py-2 px-4 rounded-lg font-bold cursor-pointer">
                                     📹 啟動遠距諮詢
                                 </button>
                             </div>
 
-                            {/* Detailed Vertical Timeline */}
-                            <h3 style={{ fontSize: '1rem', color: '#7f8c8d', margin: '0 0 1rem 0' }}>📅 完整照護歷程</h3>
+                            <h3 className="text-[1rem] text-[#7f8c8d] m-0 mb-4">📅 完整照護歷程</h3>
                             {selectedPatient.history.length === 0 ? (
-                                <div style={{ color: '#aaa', fontSize: '0.9rem', padding: '1rem', background: '#f9f9f9', borderRadius: '8px' }}>尚無歷史紀錄</div>
+                                <div className="text-gray-400 text-[0.9rem] p-4 bg-gray-50 rounded-lg">尚無歷史紀錄</div>
                             ) : (
-                                <div style={{ position: 'relative', paddingLeft: '18px', maxHeight: '400px', overflowY: 'auto' }}>
-                                    {/* Vertical Line */}
-                                    <div style={{ position: 'absolute', left: '24px', top: '8px', bottom: '8px', width: '2px', background: '#e0e0e0', zIndex: 0 }}></div>
+                                <div className="relative pl-[18px] max-h-[400px] overflow-y-auto">
+                                    <div className="absolute left-6 top-2 bottom-2 w-[2px] bg-gray-200" />
                                     {selectedPatient.history.map((log) => {
                                         const logDate = new Date(log.logged_at);
                                         const isConcern = log.ai_status_label?.includes('留意') || log.ai_status_label?.includes('諮詢');
-                                        const dotColor = isConcern ? '#ffa502' : '#2ed573';
                                         return (
-                                            <div key={log.id} style={{ position: 'relative', zIndex: 1, marginBottom: '1.2rem' }}>
-                                                <div style={{ position: 'absolute', left: 0, top: '12px', width: '13px', height: '13px', borderRadius: '50%', background: dotColor, border: '2px solid #fff', boxShadow: '0 0 0 2px #e0e0e0' }}></div>
-                                                <div style={{ marginLeft: '28px', background: '#fafafa', borderRadius: '8px', padding: '0.8rem', border: '1px solid #eee' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                                        <span style={{ fontSize: '0.8rem', color: '#888' }}>{logDate.toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-                                                        <span style={{ background: isConcern ? '#fff3cd' : '#d4edda', color: isConcern ? '#856404' : '#155724', padding: '0.15rem 0.4rem', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                                            <div key={log.id} className="relative z-[1] mb-5">
+                                                <div className={`absolute left-0 top-3 w-[13px] h-[13px] rounded-full border-2 border-white shadow-[0_0_0_2px_#e0e0e0] ${isConcern ? 'bg-[#ffa502]' : 'bg-[#2ed573]'}`} />
+                                                <div className="ml-7 bg-gray-50 rounded-lg p-[0.8rem] border border-gray-200">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="text-[0.8rem] text-gray-400">{logDate.toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                                                        <span className={`py-[0.15rem] px-[0.4rem] rounded-lg text-[0.7rem] font-bold ${isConcern ? 'bg-[#fff3cd] text-[#856404]' : 'bg-[#d4edda] text-[#155724]'}`}>
                                                             {log.ai_status_label || '穩定'}
                                                         </span>
                                                     </div>
                                                     {log.image_data && (
-                                                        <img src={log.image_data} alt="Wound" style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '6px', marginBottom: '0.5rem' }} />
+                                                        <img src={log.image_data} alt="Wound" className="w-full h-[100px] object-cover rounded-md mb-2" />
                                                     )}
                                                     {log.ai_assessment_summary && (
-                                                        <div style={{ fontSize: '0.8rem', color: '#555', lineHeight: 1.4, marginBottom: '0.4rem' }}>{log.ai_assessment_summary}</div>
+                                                        <div className="text-[0.8rem] text-gray-600 leading-[1.4] mb-[0.4rem]">{log.ai_assessment_summary}</div>
                                                     )}
-                                                    <div style={{ fontSize: '0.75rem', color: '#999', display: 'flex', gap: '0.8rem' }}>
+                                                    <div className="text-[0.75rem] text-gray-400 flex gap-[0.8rem]">
                                                         <span>🌡️ 痛感: {log.nrs_pain_score ?? '-'}/10</span>
                                                         <span>📝 症狀: {log.symptoms || '皆無'}</span>
                                                     </div>
@@ -286,45 +246,39 @@ P (Plan - 計畫):
                                 </div>
                             )}
 
-                            {/* Medical Summary Draft */}
-                            <div style={{ marginTop: '1rem', padding: '1.5rem', background: '#f4f6f7', borderRadius: '8px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                    <h3 style={{ fontSize: '1.1rem', color: '#2c3e50', margin: 0 }}>📝 醫療護理紀錄 (SOAP)</h3>
-                                    <button 
+                            {/* SOAP */}
+                            <div className="mt-4 p-6 bg-[#f4f6f7] rounded-lg">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-[1.1rem] text-[#2c3e50] m-0">📝 醫療護理紀錄 (SOAP)</h3>
+                                    <button
                                         onClick={handleGenerateSoap}
                                         disabled={generatingSoap || selectedPatient.history.length === 0}
-                                        style={{ 
-                                            background: '#8e44ad', color: '#fff', border: 'none', padding: '0.4rem 0.8rem', 
-                                            borderRadius: '6px', cursor: generatingSoap ? 'not-allowed' : 'pointer',
-                                            opacity: generatingSoap ? 0.7 : 1
-                                        }}
+                                        className={`bg-[#8e44ad] text-white border-none py-[0.4rem] px-[0.8rem] rounded-md ${generatingSoap ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
                                     >
                                         {generatingSoap ? '⏳ 正在分析 14 天紀錄...' : '✨ 一鍵生成 SOAP 病歷'}
                                     </button>
                                 </div>
-                                
                                 {soapNote ? (
-                                    <div style={{ background: '#fff', padding: '1rem', borderRadius: '6px', borderLeft: '4px solid #8e44ad', whiteSpace: 'pre-wrap', lineHeight: 1.6, color: '#444' }}>
+                                    <div className="bg-white p-4 rounded-md border-l-4 border-l-[#8e44ad] whitespace-pre-wrap leading-[1.6] text-[#444]">
                                         {soapNote}
                                     </div>
                                 ) : (
-                                    <div style={{ background: '#fff', padding: '1rem', borderRadius: '6px', color: '#aaa', fontStyle: 'italic' }}>
+                                    <div className="bg-white p-4 rounded-md text-gray-400 italic">
                                         點擊右上角按鈕，AI 將自動綜合過去 14 天照片變化與疼痛指數，撰寫專業的 SOAP 醫療筆記。
                                     </div>
                                 )}
-
                                 {selectedPatient.latest_log && (
-                                    <div style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#7f8c8d', borderTop: '1px solid #ddd', paddingTop: '1rem' }}>
-                                        <b>最新一日基本資料 (供參考)：</b><br/>
-                                        疼痛指數：{selectedPatient.latest_log.nrs_pain_score} / 10 <br/>
-                                        回報症狀：{selectedPatient.latest_log.symptoms} <br/>
+                                    <div className="mt-4 text-[0.85rem] text-[#7f8c8d] border-t border-gray-300 pt-4">
+                                        <b>最新一日基本資料 (供參考)：</b><br />
+                                        疼痛指數：{selectedPatient.latest_log.nrs_pain_score} / 10 <br />
+                                        回報症狀：{selectedPatient.latest_log.symptoms} <br />
                                         AI 摘要：{selectedPatient.latest_log.ai_assessment_summary}
                                     </div>
                                 )}
                             </div>
                         </div>
                     ) : (
-                        <div style={{ textAlign: 'center', color: '#aaa', padding: '3rem' }}>請點選左側病患以查看詳情</div>
+                        <div className="text-center text-gray-400 py-12">請點選左側病患以查看詳情</div>
                     )}
                 </div>
             </div>

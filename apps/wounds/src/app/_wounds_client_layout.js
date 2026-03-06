@@ -5,22 +5,12 @@ import { AppHeader } from '@vitera/ui';
 export default function WoundsLayout({ children }) {
     const pathname = usePathname();
     const isAdmin = pathname?.includes('/admin');
-
-    // Dashboard (/wounds) and create page manage their own headers internally.
-    // Sub-pages (scan, history, result) get the shared AppHeader from the layout.
     const isDashboard = pathname === '/';
     const isCreate = pathname === '/create';
-
     const showLayoutHeader = !isAdmin && !isDashboard && !isCreate;
 
     return (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            minHeight: '100vh',
-            background: 'linear-gradient(180deg, #1a1225 0%, #1e1530 40%, #16202e 100%)',
-            color: '#e8e6f0',
-        }}>
+        <div className="flex flex-col min-h-screen bg-w-app text-[#e8e6f0]">
             {showLayoutHeader && (
                 <AppHeader
                     backHref="/"
@@ -28,7 +18,7 @@ export default function WoundsLayout({ children }) {
                     accent="linear-gradient(135deg, #ff9a9e, #fda085)"
                 />
             )}
-            <main style={{ flex: 1, overflowY: 'auto' }}>
+            <main className="flex-1 overflow-y-auto">
                 {children}
             </main>
         </div>

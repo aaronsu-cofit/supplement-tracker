@@ -6,6 +6,13 @@ import Link from 'next/link';
 import { useAuth, apiFetch, WOUND_TYPES, BODY_LOCATIONS } from '@vitera/lib';
 import { AppHeader } from '@vitera/ui';
 
+const PHASE_CLASSES = {
+    inflammation:  'phase-inflammation',
+    proliferation: 'phase-proliferation',
+    remodeling:    'phase-remodeling',
+    mature:        'phase-mature',
+};
+
 export default function WoundsClientDashboard({ initialWounds = [] }) {
     const { user, isLoading: authLoading } = useAuth();
     const router = useRouter();
@@ -14,31 +21,22 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
     const [showSwitcher, setShowSwitcher] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
     const switcherRef = useRef(null);
-
     const initialized = useRef(false);
 
     useEffect(() => {
         if (initialized.current) return;
         if (!Array.isArray(initialWounds) || initialWounds.length === 0) return;
         initialized.current = true;
-
         setWounds(initialWounds);
-
         const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
         const newId = urlParams?.get('new_id');
-
         if (newId) {
             const target = initialWounds.find(w => String(w.id) === String(newId));
-            if (target) {
-                setCurrentWound(target);
-                return;
-            }
+            if (target) { setCurrentWound(target); return; }
         }
         setCurrentWound(initialWounds[0]);
     }, [initialWounds]);
 
-
-    // Close switcher on outside click
     useEffect(() => {
         const handler = (e) => {
             if (switcherRef.current && !switcherRef.current.contains(e.target)) setShowSwitcher(false);
@@ -51,40 +49,33 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
     const getLoc = (code) => BODY_LOCATIONS.find(l => l.code === code) || (code ? { code, label: code, emoji: '📍' } : null);
     const daysSince = (d) => d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : 0;
     const getPhase = (d) => {
-        if (d <= 3) return { label: '炎症期', color: '#ff6b6b' };
-        if (d <= 14) return { label: '增生期', color: '#ffa502' };
-        if (d <= 28) return { label: '重塑期', color: '#2ed573' };
-        return { label: '成熟期', color: '#5d9cec' };
+        if (d <= 3)  return { label: '炎症期', key: 'inflammation', color: '#ff6b6b' };
+        if (d <= 14) return { label: '增生期', key: 'proliferation', color: '#ffa502' };
+        if (d <= 28) return { label: '重塑期', key: 'remodeling',    color: '#2ed573' };
+        return           { label: '成熟期', key: 'mature',        color: '#5d9cec' };
     };
 
     const switchWound = (w) => { setCurrentWound(w); setShowSwitcher(false); };
 
     if (authLoading) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-                <div style={{ width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid #ff9a9e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <div className="flex justify-center items-center min-h-[80vh]">
+                <div className="w-10 h-10 border-[3px] border-white/10 border-t-w-pink rounded-full animate-spin" />
             </div>
         );
     }
 
-    // No wounds — show onboarding
     if (!currentWound) {
         return (
             <>
                 <AppHeader backHref="/" title="傷口智慧照護" accent="linear-gradient(135deg, #ff9a9e, #fda085)" />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh', padding: '2rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🩹</div>
-                    <h2 style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 700, margin: '0 0 0.5rem' }}>開始你的傷口照護</h2>
-                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', margin: '0 0 2rem', maxWidth: 280 }}>
+                <div className="flex flex-col items-center justify-center min-h-[70vh] p-8 text-center">
+                    <div className="text-[3.5rem] mb-4">🩹</div>
+                    <h2 className="text-white text-[1.2rem] font-bold m-0 mb-2">開始你的傷口照護</h2>
+                    <p className="text-white/50 text-[0.85rem] m-0 mb-8 max-w-[280px]">
                         建立傷口紀錄，讓 AI 幫你追蹤復原狀態
                     </p>
-                    <Link href="/create" style={{
-                        padding: '0.9rem 2.5rem', borderRadius: 14,
-                        background: 'linear-gradient(135deg, #ff9a9e, #fda085)',
-                        color: '#fff', fontWeight: 700, fontSize: '0.95rem', textDecoration: 'none',
-                        boxShadow: '0 4px 20px rgba(255,154,158,0.35)',
-                    }}>
+                    <Link href="/create" className="py-[0.9rem] px-10 rounded-[14px] bg-w-gradient text-white font-bold text-[0.95rem] no-underline shadow-[0_4px_20px_rgba(255,154,158,0.35)]">
                         ＋ 建立傷口紀錄
                     </Link>
                 </div>
@@ -98,164 +89,95 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
     const phase = getPhase(days);
 
     return (
-        <div style={{ padding: '0', maxWidth: 480, margin: '0 auto' }}>
-            {/* ═══ Header with Wound Switcher ═══ */}
-            <div ref={switcherRef} style={{ position: 'sticky', top: 0, zIndex: 20 }}>
-                <header style={{
-                    background: 'rgba(26, 18, 37, 0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                    padding: '0 0.75rem', height: '56px', borderBottom: '1px solid rgba(255,255,255,0.06)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.25rem',
-                }}>
-                    {/* Back to portal */}
-                    <Link href="/" aria-label="返回服務列表" style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        minWidth: 44, height: 44, flexShrink: 0,
-                        color: 'rgba(255,255,255,0.65)', textDecoration: 'none', fontSize: '1.3rem', borderRadius: 10,
-                    }}>←</Link>
+        <div className="max-w-[480px] mx-auto">
+            {/* Header with Wound Switcher */}
+            <div ref={switcherRef} className="sticky top-0 z-20">
+                <header className="bg-w-header backdrop-blur-[20px] px-3 h-14 border-b border-white/[0.06] flex items-center justify-between gap-1">
+                    <Link href="/" aria-label="返回服務列表" className="flex items-center justify-center min-w-11 h-11 shrink-0 text-white/65 no-underline text-[1.3rem] rounded-[10px]">←</Link>
 
-                    {/* Wound switcher — fills remaining space */}
                     <button
                         onClick={() => setShowSwitcher(v => !v)}
                         aria-label="切換傷口"
                         aria-expanded={showSwitcher}
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: '0.4rem', flex: 1,
-                            background: 'none', border: 'none', padding: '0.5rem 0', minHeight: 44,
-                            justifyContent: 'center',
-                        }}
+                        className="flex items-center gap-[0.4rem] flex-1 bg-transparent border-none py-2 min-h-11 justify-center cursor-pointer"
                     >
-                        <span style={{ fontSize: '1.1rem' }}>{type.emoji}</span>
-                        <span style={{
-                            background: 'linear-gradient(135deg, #ff9a9e, #fda085)',
-                            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                            fontSize: '1.05rem', fontWeight: 700,
-                        }}>
+                        <span className="text-[1.1rem]">{type.emoji}</span>
+                        <span className="text-w-gradient text-[1.05rem] font-bold">
                             {currentWound.name || '未命名傷口'}
                         </span>
-                        <span style={{
-                            color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem',
-                            transform: showSwitcher ? 'rotate(180deg)' : 'rotate(0deg)',
-                            transition: 'transform 0.2s',
-                        }}>▼</span>
+                        <span className={`text-white/40 text-[0.7rem] transition-transform duration-200 ${showSwitcher ? 'rotate-180' : 'rotate-0'}`}>▼</span>
                     </button>
-                    <button onClick={() => setShowEdit(true)} aria-label="編輯傷口資訊" style={{
-                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)',
-                        borderRadius: 8, padding: '0.5rem 0.75rem', cursor: 'pointer',
-                        color: 'rgba(255,255,255,0.75)', fontSize: '0.8rem',
-                        minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>✏️</button>
+
+                    <button onClick={() => setShowEdit(true)} aria-label="編輯傷口資訊" className="bg-white/[0.06] border border-white/15 rounded-lg py-2 px-3 cursor-pointer text-white/75 text-[0.8rem] min-w-11 min-h-11 flex items-center justify-center">✏️</button>
                 </header>
 
-                {/* Wound Switcher Dropdown */}
                 {showSwitcher && (
-                    <div style={{
-                        position: 'absolute', left: 0, right: 0, top: '100%',
-                        background: 'rgba(30, 26, 46, 0.97)', backdropFilter: 'blur(20px)',
-                        border: '1px solid rgba(255,255,255,0.08)', borderTop: 'none',
-                        borderRadius: '0 0 16px 16px', padding: '0.5rem',
-                        boxShadow: '0 12px 40px rgba(0,0,0,0.4)',
-                        animation: 'slideDown 0.2s ease',
-                    }}>
+                    <div className="absolute left-0 right-0 top-full bg-w-dropdown backdrop-blur-[20px] border border-white/[0.08] border-t-0 rounded-b-2xl p-2 shadow-[0_12px_40px_rgba(0,0,0,0.4)] animate-slide-down">
                         {wounds.map(w => {
                             const wType = getType(w.wound_type);
                             const isActive = w.id === currentWound.id;
                             return (
-                                <button key={w.id} onClick={() => switchWound(w)} style={{
-                                    display: 'flex', alignItems: 'center', gap: '0.6rem', width: '100%',
-                                    padding: '0.7rem 0.8rem', borderRadius: 10, cursor: 'pointer',
-                                    background: isActive ? 'rgba(255,154,158,0.12)' : 'transparent',
-                                    border: isActive ? '1px solid rgba(255,154,158,0.25)' : '1px solid transparent',
-                                    transition: 'background 0.15s',
-                                }}>
-                                    <span style={{ fontSize: '1.1rem' }}>{wType.emoji}</span>
-                                    <div style={{ flex: 1, textAlign: 'left' }}>
-                                        <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: isActive ? 600 : 400 }}>{w.name}</div>
+                                <button key={w.id} onClick={() => switchWound(w)} className={`flex items-center gap-[0.6rem] w-full py-[0.7rem] px-[0.8rem] rounded-[10px] cursor-pointer transition-colors duration-150 ${isActive ? 'bg-w-pink/[0.12] border border-w-pink/25' : 'bg-transparent border border-transparent'}`}>
+                                    <span className="text-[1.1rem]">{wType.emoji}</span>
+                                    <div className="flex-1 text-left">
+                                        <div className={`text-[0.9rem] text-white ${isActive ? 'font-semibold' : 'font-normal'}`}>{w.name}</div>
                                     </div>
-                                    <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem' }}>第{daysSince(w.date_of_injury)}天</span>
-                                    {isActive && <span style={{ color: '#ff9a9e', fontSize: '0.8rem' }}>✓</span>}
+                                    <span className="text-white/30 text-[0.75rem]">第{daysSince(w.date_of_injury)}天</span>
+                                    {isActive && <span className="text-w-pink text-[0.8rem]">✓</span>}
                                 </button>
                             );
                         })}
-                        <Link href="/create" onClick={() => setShowSwitcher(false)} style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-                            padding: '0.6rem', marginTop: '0.3rem', borderRadius: 10,
-                            background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.12)',
-                            color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', textDecoration: 'none',
-                        }}>
+                        <Link href="/create" onClick={() => setShowSwitcher(false)} className="flex items-center justify-center gap-[0.4rem] py-[0.6rem] mt-[0.3rem] rounded-[10px] bg-white/[0.03] border border-dashed border-white/12 text-white/40 text-[0.85rem] no-underline">
                             ＋ 新增傷口
                         </Link>
                     </div>
                 )}
             </div>
 
-            {/* ═══ Dashboard Content ═══ */}
-            <div style={{ padding: '1rem 1.2rem 2rem' }}>
+            {/* Dashboard Content */}
+            <div className="px-[1.2rem] pt-4 pb-8">
                 {/* Wound Info Card */}
-                <div style={{
-                    background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(20px)',
-                    border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20,
-                    padding: '1.3rem', marginBottom: '1rem', position: 'relative', overflow: 'hidden',
-                }}>
-                    <div style={{
-                        position: 'absolute', top: -30, right: -30, width: 120, height: 120,
-                        background: `radial-gradient(circle, ${phase.color}22 0%, transparent 70%)`, borderRadius: '50%',
-                    }} />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative' }}>
+                <div className="bg-white/5 backdrop-blur-[20px] border border-white/[0.08] rounded-[20px] p-[1.3rem] mb-4 relative overflow-hidden">
+                    <div
+                        className="absolute -top-[30px] -right-[30px] w-[120px] h-[120px] rounded-full"
+                        style={{ background: `radial-gradient(circle, ${phase.color}22 0%, transparent 70%)` }}
+                    />
+                    <div className="flex justify-between items-start relative">
                         <div>
-                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
-                                <span style={{ background: 'rgba(255,154,158,0.15)', color: '#ff9a9e', padding: '2px 8px', borderRadius: 6, fontSize: '0.75rem' }}>{type.label}</span>
-                                {loc && <span style={{ background: 'rgba(93,156,236,0.15)', color: '#5d9cec', padding: '2px 8px', borderRadius: 6, fontSize: '0.75rem' }}>{loc.emoji} {loc.label}</span>}
-                                <span style={{ background: `${phase.color}22`, color: phase.color, padding: '2px 8px', borderRadius: 6, fontSize: '0.75rem' }}>{phase.label}</span>
+                            <div className="flex gap-[0.4rem] flex-wrap mb-[0.6rem]">
+                                <span className="bg-w-pink/15 text-w-pink px-2 py-[2px] rounded-[6px] text-[0.75rem]">{type.label}</span>
+                                {loc && <span className="bg-w-blue/15 text-w-blue px-2 py-[2px] rounded-[6px] text-[0.75rem]">{loc.emoji} {loc.label}</span>}
+                                <span className={`${PHASE_CLASSES[phase.key]} px-2 py-[2px] rounded-[6px] text-[0.75rem]`}>{phase.label}</span>
                             </div>
-                            <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.85rem' }}>受傷日期：{currentWound.date_of_injury}</div>
+                            <div className="text-white/65 text-[0.85rem]">受傷日期：{currentWound.date_of_injury}</div>
                         </div>
-                        <div style={{
-                            background: 'linear-gradient(135deg, #ff9a9e, #fda085)',
-                            borderRadius: 14, padding: '0.5rem 0.8rem', textAlign: 'center',
-                        }}>
-                            <div style={{ color: '#fff', fontSize: '1.4rem', fontWeight: 800, lineHeight: 1 }}>{days}</div>
-                            <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.75rem', marginTop: 2 }}>天</div>
+                        <div className="bg-w-gradient rounded-[14px] px-[0.8rem] py-[0.5rem] text-center shrink-0">
+                            <div className="text-white text-[1.4rem] font-extrabold leading-none">{days}</div>
+                            <div className="text-white/85 text-[0.75rem] mt-[2px]">天</div>
                         </div>
                     </div>
                 </div>
 
                 {/* Care Tip */}
-                <div style={{
-                    background: 'rgba(255,154,158,0.08)', border: '1px solid rgba(255,154,158,0.15)',
-                    borderRadius: 14, padding: '0.7rem 1rem', marginBottom: '1rem',
-                    display: 'flex', alignItems: 'center', gap: '0.6rem',
-                }}>
-                    <span style={{ fontSize: '1.1rem' }}>💡</span>
-                    <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.8rem' }}>{type.careNote}</span>
+                <div className="bg-w-pink/[0.08] border border-w-pink/15 rounded-[14px] px-4 py-[0.7rem] mb-4 flex items-center gap-[0.6rem]">
+                    <span className="text-[1.1rem]">💡</span>
+                    <span className="text-white/65 text-[0.8rem]">{type.careNote}</span>
                 </div>
 
                 {/* Action Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '1.5rem' }}>
-                    <Link href={`/${currentWound.id}/scan`} style={{
-                        background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)',
-                        border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16,
-                        padding: '1.5rem 1rem', textAlign: 'center', textDecoration: 'none',
-                        transition: 'transform 0.15s', cursor: 'pointer',
-                        minHeight: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                        <div style={{ fontSize: '2rem', marginBottom: '0.4rem' }}>📸</div>
-                        <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600 }}>今日掃描</div>
-                        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', marginTop: 2 }}>拍照 + AI 分析</div>
+                <div className="grid grid-cols-2 gap-[0.8rem] mb-6">
+                    <Link href={`/${currentWound.id}/scan`} className="bg-white/5 backdrop-blur-[16px] border border-white/[0.08] rounded-2xl px-4 py-6 text-center no-underline flex flex-col items-center justify-center">
+                        <div className="text-[2rem] mb-[0.4rem]">📸</div>
+                        <div className="text-white text-[0.9rem] font-semibold">今日掃描</div>
+                        <div className="text-white/60 text-[0.78rem] mt-[2px]">拍照 + AI 分析</div>
                     </Link>
-                    <Link href={`/${currentWound.id}/history`} style={{
-                        background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(16px)',
-                        border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16,
-                        padding: '1.5rem 1rem', textAlign: 'center', textDecoration: 'none',
-                        transition: 'transform 0.15s', cursor: 'pointer',
-                        minHeight: 44, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                        <div style={{ fontSize: '2rem', marginBottom: '0.4rem' }}>📅</div>
-                        <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600 }}>照護歷程</div>
-                        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', marginTop: 2 }}>Timeline 回顧</div>
+                    <Link href={`/${currentWound.id}/history`} className="bg-white/5 backdrop-blur-[16px] border border-white/[0.08] rounded-2xl px-4 py-6 text-center no-underline flex flex-col items-center justify-center">
+                        <div className="text-[2rem] mb-[0.4rem]">📅</div>
+                        <div className="text-white text-[0.9rem] font-semibold">照護歷程</div>
+                        <div className="text-white/60 text-[0.78rem] mt-[2px]">Timeline 回顧</div>
                     </Link>
                 </div>
 
-                {/* Archive */}
                 <ArchiveButton woundId={currentWound.id} onArchived={() => {
                     const remaining = wounds.filter(w => w.id !== currentWound.id);
                     setWounds(remaining);
@@ -263,7 +185,6 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
                 }} />
             </div>
 
-            {/* ═══ Edit Wound Modal ═══ */}
             {showEdit && (
                 <EditWoundModal
                     wound={currentWound}
@@ -276,15 +197,11 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
                     }}
                 />
             )}
-
-            <style>{`
-                @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-            `}</style>
         </div>
     );
 }
 
-/* ─── Archive Button ─── */
+/* Archive Button */
 function ArchiveButton({ woundId, onArchived }) {
     const [confirm, setConfirm] = useState(false);
     const handleArchive = async () => {
@@ -293,21 +210,18 @@ function ArchiveButton({ woundId, onArchived }) {
     };
     return (
         <>
-            <button onClick={() => setConfirm(true)} style={{
-                width: '100%', padding: '0.7rem', borderRadius: 12,
-                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-                color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', cursor: 'pointer',
-                minHeight: 44,
-            }}>🗃️ 傷口已癒合，歸檔此紀錄</button>
+            <button onClick={() => setConfirm(true)} className="w-full py-[0.7rem] rounded-[12px] bg-white/[0.03] border border-white/[0.08] text-white/50 text-[0.85rem] cursor-pointer min-h-11">
+                🗃️ 傷口已癒合，歸檔此紀錄
+            </button>
             {confirm && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem', overscrollBehavior: 'contain' }} role="dialog" aria-modal="true" aria-label="確認歸檔">
-                    <div style={{ background: '#1e1a2e', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 20, padding: '1.5rem', maxWidth: 320, width: '100%', textAlign: 'center' }}>
-                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🗃️</div>
-                        <h3 style={{ color: '#fff', margin: '0 0 0.5rem' }}>確認歸檔？</h3>
-                        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', margin: '0 0 1.5rem' }}>歸檔後不再顯示，歷史紀錄仍保留。</p>
-                        <div style={{ display: 'flex', gap: '0.6rem' }}>
-                            <button onClick={() => setConfirm(false)} style={{ flex: 1, padding: '0.7rem', borderRadius: 10, cursor: 'pointer', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.9rem' }}>取消</button>
-                            <button onClick={handleArchive} style={{ flex: 1, padding: '0.7rem', borderRadius: 10, cursor: 'pointer', background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)', border: 'none', color: '#fff', fontSize: '0.9rem', fontWeight: 600 }}>確認歸檔</button>
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4" role="dialog" aria-modal="true" aria-label="確認歸檔">
+                    <div className="bg-w-dialog border border-white/15 rounded-[20px] p-6 max-w-[320px] w-full text-center">
+                        <div className="text-[2rem] mb-2">🗃️</div>
+                        <h3 className="text-white m-0 mb-2">確認歸檔？</h3>
+                        <p className="text-white/50 text-[0.85rem] m-0 mb-6">歸檔後不再顯示，歷史紀錄仍保留。</p>
+                        <div className="flex gap-[0.6rem]">
+                            <button onClick={() => setConfirm(false)} className="flex-1 py-[0.7rem] rounded-[10px] cursor-pointer bg-white/[0.08] border border-white/15 text-white text-[0.9rem]">取消</button>
+                            <button onClick={handleArchive} className="flex-1 py-[0.7rem] rounded-[10px] cursor-pointer bg-w-gradient-red border-none text-white text-[0.9rem] font-semibold">確認歸檔</button>
                         </div>
                     </div>
                 </div>
@@ -316,7 +230,7 @@ function ArchiveButton({ woundId, onArchived }) {
     );
 }
 
-/* ─── Edit Wound Modal ─── */
+/* Edit Wound Modal */
 function EditWoundModal({ wound, onClose, onSaved }) {
     const [name, setName] = useState(wound.name || '');
     const [woundType, setWoundType] = useState(wound.wound_type || 'other');
@@ -343,87 +257,64 @@ function EditWoundModal({ wound, onClose, onSaved }) {
     };
 
     return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 100 }}>
-            <div style={{
-                background: '#1e1a2e', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480,
-                padding: '1.5rem 1.2rem 2rem', maxHeight: '85vh', overflowY: 'auto',
-                border: '1px solid rgba(255,255,255,0.1)', borderBottom: 'none',
-                animation: 'slideUp 0.25s ease',
-            }}>
-                <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 2, margin: '0 auto 1rem' }} />
-                <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 700, margin: '0 0 1.2rem', textAlign: 'center' }}>編輯傷口資訊</h3>
+        <div className="fixed inset-0 bg-black/60 flex items-end justify-center z-[100]">
+            <div className="bg-w-dialog rounded-t-[20px] w-full max-w-[480px] px-[1.2rem] pt-6 pb-8 max-h-[85vh] overflow-y-auto border border-white/10 border-b-0 animate-slide-up">
+                <div className="w-10 h-1 bg-white/20 rounded mx-auto mb-4" />
+                <h3 className="text-white text-[1.1rem] font-bold m-0 mb-[1.2rem] text-center">編輯傷口資訊</h3>
 
-                {/* Name */}
-                <label style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', display: 'block', marginBottom: '0.3rem' }}>傷口名稱</label>
-                <input value={name} onChange={e => setName(e.target.value)} style={{
-                    width: '100%', padding: '0.8rem', fontSize: '0.95rem', color: '#fff',
-                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: 10, outline: 'none', boxSizing: 'border-box', marginBottom: '1rem',
-                }} />
+                <label className="text-white/50 text-[0.8rem] block mb-[0.3rem]">傷口名稱</label>
+                <input
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    className="w-full p-[0.8rem] text-[0.95rem] text-white bg-white/[0.06] border border-white/[0.12] rounded-[10px] outline-none box-border mb-4"
+                />
 
-                {/* Wound Type */}
-                <label style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', display: 'block', marginBottom: '0.3rem' }}>傷口類型</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1rem' }}>
+                <label className="text-white/50 text-[0.8rem] block mb-[0.3rem]">傷口類型</label>
+                <div className="flex flex-wrap gap-[0.4rem] mb-4">
                     {WOUND_TYPES.map(t => (
-                        <button key={t.code} onClick={() => setWoundType(t.code)} style={{
-                            padding: '0.45rem 0.8rem', borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem',
-                            border: woundType === t.code ? '1.5px solid #ff9a9e' : '1px solid rgba(255,255,255,0.1)',
-                            background: woundType === t.code ? 'rgba(255,154,158,0.15)' : 'rgba(255,255,255,0.04)',
-                            color: woundType === t.code ? '#ff9a9e' : 'rgba(255,255,255,0.5)',
-                            transition: 'all 0.15s',
-                        }}>{t.emoji} {t.label}</button>
+                        <button key={t.code} onClick={() => setWoundType(t.code)}
+                            className={`py-[0.45rem] px-[0.8rem] rounded-lg cursor-pointer text-[0.8rem] transition-all duration-150 ${woundType === t.code ? 'border-[1.5px] border-w-pink bg-w-pink/15 text-w-pink' : 'border border-white/10 bg-white/[0.04] text-white/50'}`}
+                        >{t.emoji} {t.label}</button>
                     ))}
                 </div>
 
-                {/* Body Location */}
-                <label style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', display: 'block', marginBottom: '0.3rem' }}>身體位置</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: bodyLocation === 'other' ? '0.5rem' : '1rem' }}>
+                <label className="text-white/50 text-[0.8rem] block mb-[0.3rem]">身體位置</label>
+                <div className={`flex flex-wrap gap-[0.4rem] ${bodyLocation === 'other' ? 'mb-2' : 'mb-4'}`}>
                     {BODY_LOCATIONS.map(l => (
-                        <button key={l.code} onClick={() => setBodyLocation(l.code)} style={{
-                            padding: '0.45rem 0.8rem', borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem',
-                            border: bodyLocation === l.code ? '1.5px solid #5d9cec' : '1px solid rgba(255,255,255,0.1)',
-                            background: bodyLocation === l.code ? 'rgba(93,156,236,0.15)' : 'rgba(255,255,255,0.04)',
-                            color: bodyLocation === l.code ? '#5d9cec' : 'rgba(255,255,255,0.5)',
-                            transition: 'all 0.15s',
-                        }}>{l.emoji} {l.label}</button>
+                        <button key={l.code} onClick={() => setBodyLocation(l.code)}
+                            className={`py-[0.45rem] px-[0.8rem] rounded-lg cursor-pointer text-[0.8rem] transition-all duration-150 ${bodyLocation === l.code ? 'border-[1.5px] border-w-blue bg-w-blue/15 text-w-blue' : 'border border-white/10 bg-white/[0.04] text-white/50'}`}
+                        >{l.emoji} {l.label}</button>
                     ))}
                 </div>
                 {bodyLocation === 'other' && (
-                    <input type="text" value={customLocation} onChange={e => setCustomLocation(e.target.value)} placeholder="請輸入傷口位置（例如：右手背）"
+                    <input
+                        type="text"
+                        value={customLocation}
+                        onChange={e => setCustomLocation(e.target.value)}
+                        placeholder="請輸入傷口位置（例如：右手背）"
                         autoFocus
-                        style={{
-                            width: '100%', padding: '0.8rem', fontSize: '0.95rem', color: '#fff',
-                            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-                            borderRadius: 10, outline: 'none', boxSizing: 'border-box', marginBottom: '1rem',
-                        }} />
+                        className="w-full p-[0.8rem] text-[0.95rem] text-white bg-white/[0.06] border border-white/[0.12] rounded-[10px] outline-none box-border mb-4"
+                    />
                 )}
 
-                {/* Date */}
-                <label style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', display: 'block', marginBottom: '0.3rem' }}>受傷日期</label>
-                <input type="date" value={dateOfInjury} onChange={e => setDateOfInjury(e.target.value)}
+                <label className="text-white/50 text-[0.8rem] block mb-[0.3rem]">受傷日期</label>
+                <input
+                    type="date"
+                    value={dateOfInjury}
+                    onChange={e => setDateOfInjury(e.target.value)}
                     max={new Date().toISOString().split('T')[0]}
-                    style={{
-                        width: '100%', padding: '0.8rem', fontSize: '0.95rem', color: '#fff',
-                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-                        borderRadius: 10, outline: 'none', boxSizing: 'border-box', colorScheme: 'dark',
-                        marginBottom: '1.5rem',
-                    }} />
+                    className="w-full p-[0.8rem] text-[0.95rem] text-white bg-white/[0.06] border border-white/[0.12] rounded-[10px] outline-none box-border [color-scheme:dark] mb-6"
+                />
 
-                <div style={{ display: 'flex', gap: '0.6rem' }}>
-                    <button onClick={onClose} style={{
-                        flex: 1, padding: '0.8rem', borderRadius: 12, cursor: 'pointer',
-                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-                        color: '#fff', fontSize: '0.9rem',
-                    }}>取消</button>
-                    <button onClick={handleSave} disabled={saving || !name.trim()} style={{
-                        flex: 1, padding: '0.8rem', borderRadius: 12, cursor: 'pointer',
-                        background: 'linear-gradient(135deg, #ff9a9e, #fda085)',
-                        border: 'none', color: '#fff', fontSize: '0.9rem', fontWeight: 700,
-                        opacity: saving || !name.trim() ? 0.5 : 1,
-                    }}>{saving ? '儲存中...' : '儲存修改'}</button>
+                <div className="flex gap-[0.6rem]">
+                    <button onClick={onClose} className="flex-1 py-[0.8rem] rounded-[12px] cursor-pointer bg-white/[0.06] border border-white/[0.12] text-white text-[0.9rem]">取消</button>
+                    <button
+                        onClick={handleSave}
+                        disabled={saving || !name.trim()}
+                        className={`flex-1 py-[0.8rem] rounded-[12px] cursor-pointer bg-w-gradient border-none text-white text-[0.9rem] font-bold transition-opacity duration-200 ${saving || !name.trim() ? 'opacity-50' : 'opacity-100'}`}
+                    >{saving ? '儲存中...' : '儲存修改'}</button>
                 </div>
             </div>
-            <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
         </div>
     );
 }
