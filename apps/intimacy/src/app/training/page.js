@@ -33,31 +33,33 @@ export default function KegelTrainingPage() {
     }, [isActive]);
 
     return (
-        <div className="page-container" style={{ paddingBottom: '100px', display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                <button onClick={() => router.back()} style={{ background: '#ffffff', border: '1px solid #F1F5F9', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', borderRadius: '12px', padding: '8px 12px', color: '#64748B', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
-                    <span style={{ fontSize: '16px' }}>←</span> 返回
+        <div className="page-container pb-24 flex flex-col min-h-screen pt-6">
+            <div className="flex justify-between items-center mb-8">
+                <button
+                    onClick={() => router.back()}
+                    className="bg-white border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] rounded-[12px] px-3 py-2 text-slate-500 cursor-pointer text-[13px] flex items-center gap-1 font-semibold"
+                >
+                    <span className="text-[16px]">←</span> 返回
                 </button>
-                <div style={{ color: '#9d4edd', fontSize: '12px', tracking: 'widest', textTransform: 'uppercase', fontWeight: '800' }}>
+                <div className="text-[#9d4edd] text-[12px] uppercase font-extrabold tracking-widest">
                     ● 每日訓練計畫
                 </div>
             </div>
 
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <h2 className="page-title" style={{ backgroundImage: 'linear-gradient(135deg, #c77dff 0%, #7b2cbf 100%)', marginBottom: '8px', fontSize: '26px' }}>
+            <div className="flex-1 flex flex-col items-center">
+                <h2 className="page-title mb-2 text-[26px]" style={{ backgroundImage: 'linear-gradient(135deg, #c77dff 0%, #7b2cbf 100%)' }}>
                     凱格爾訓練器
                 </h2>
-                <p className="page-subtitle" style={{ textAlign: 'center', marginBottom: '48px', maxWidth: '300px', color: '#475569', fontWeight: '500' }}>
+                <p className="page-subtitle text-center mb-12 max-w-[300px] text-slate-600 font-medium">
                     強化骨盆底肌群，提升核心控制力與雙方親密滿意度。請找個舒適的位置坐下。
                 </p>
 
                 {/* Animated Training Circle */}
-                <div style={{ position: 'relative', width: '280px', height: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '48px' }}>
+                <div className="relative w-[280px] h-[280px] flex items-center justify-center mb-12">
                     {/* Outer glow ring */}
                     <div
+                        className="absolute inset-0 rounded-full border-2 border-[rgba(157,78,221,0.4)]"
                         style={{
-                            position: 'absolute', inset: 0, borderRadius: '50%',
-                            border: '2px solid rgba(157, 78, 221, 0.4)',
                             transform: isContracting ? 'scale(0.8)' : 'scale(1.15)',
                             opacity: isContracting ? 1 : 0.2,
                             transition: 'transform 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s ease'
@@ -65,9 +67,8 @@ export default function KegelTrainingPage() {
                     />
                     {/* Inner active ring */}
                     <div
+                        className="absolute inset-6 rounded-full border-[4px] border-[rgba(157,78,221,0.6)]"
                         style={{
-                            position: 'absolute', inset: '24px', borderRadius: '50%',
-                            border: '4px solid rgba(157, 78, 221, 0.6)',
                             transform: isContracting ? 'scale(0.8)' : 'scale(1.05)',
                             opacity: isContracting ? 1 : 0.4,
                             transition: 'transform 1s cubic-bezier(0.4, 0, 0.2, 1) 0.1s, opacity 1s ease'
@@ -76,9 +77,8 @@ export default function KegelTrainingPage() {
 
                     {/* Center Core */}
                     <div
+                        className="z-10 w-[140px] h-[140px] rounded-full flex items-center justify-center"
                         style={{
-                            zIndex: 10, width: '140px', height: '140px', borderRadius: '50%',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
                             background: isContracting ? 'linear-gradient(135deg, #9d4edd, #5a189a)' : '#ffffff',
                             boxShadow: isContracting ? '0 0 40px rgba(157, 78, 221, 0.6)' : '0 8px 24px rgba(157, 78, 221, 0.1)',
                             transform: isContracting ? 'scale(0.9)' : 'scale(1)',
@@ -86,34 +86,29 @@ export default function KegelTrainingPage() {
                             transition: 'all 1s cubic-bezier(0.4, 0, 0.2, 1)'
                         }}
                     >
-                        <div style={{ textAlign: 'center' }}>
-                            <span style={{
-                                display: 'block', fontSize: '24px', fontWeight: '800', letterSpacing: '2px',
-                                color: isContracting ? '#ffffff' : '#9d4edd'
-                            }}>
+                        <div className="text-center">
+                            <span
+                                className="block text-[24px] font-extrabold tracking-[2px]"
+                                style={{ color: isContracting ? '#ffffff' : '#9d4edd' }}
+                            >
                                 {isActive ? (isContracting ? '用力收縮' : '放鬆休息') : '準備'}
                             </span>
                         </div>
                     </div>
                 </div>
 
-                <div style={{
-                    fontFamily: 'monospace', fontSize: '40px', fontWeight: '800',
-                    color: '#1E293B', marginBottom: '32px', letterSpacing: '4px'
-                }}>
+                <div className="font-mono text-[40px] font-extrabold text-slate-800 mb-8 tracking-[4px]">
                     {Math.floor(seconds / 60).toString().padStart(2, '0')}:{(seconds % 60).toString().padStart(2, '0')}
                 </div>
 
                 <button
                     onClick={() => setIsActive(!isActive)}
-                    className="btn"
+                    className="btn w-full py-[18px] text-[16px] font-extrabold rounded-[20px] cursor-pointer transition-all duration-300"
                     style={{
-                        width: '100%', padding: '18px', fontSize: '16px', fontWeight: '800', borderRadius: '20px',
                         background: isActive ? '#ffffff' : 'linear-gradient(135deg, #9d4edd, #7b2cbf)',
                         color: isActive ? '#ff6b6b' : '#ffffff',
                         border: isActive ? '2px solid #FFE4E6' : 'none',
                         boxShadow: isActive ? 'none' : '0 8px 20px rgba(157, 78, 221, 0.3)',
-                        transition: 'all 0.3s ease'
                     }}
                 >
                     {isActive ? '停止並紀錄' : '開始日常鍛鍊 (每日五分鐘)'}

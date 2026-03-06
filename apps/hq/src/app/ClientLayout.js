@@ -17,15 +17,8 @@ function RouteGuard({ children }) {
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <div style={{
-          width: 36, height: 36,
-          border: '3px solid rgba(255,255,255,0.1)',
-          borderTop: '3px solid rgba(255,255,255,0.6)',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-9 h-9 rounded-full border-[3px] border-white/10 border-t-white/60 animate-spin" />
       </div>
     );
   }

@@ -19,7 +19,6 @@ export default function BonesScanPage() {
     const canvasRef = useRef(null);
     const [isCameraActive, setIsCameraActive] = useState(false);
 
-    // Start Camera Stream
     const startCamera = async () => {
         setError(null);
 
@@ -53,7 +52,6 @@ export default function BonesScanPage() {
 
     const handleStreamSuccess = (stream) => {
         setIsCameraActive(true);
-        // Ensure DOM is updated before attaching stream
         setTimeout(() => {
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
@@ -61,7 +59,6 @@ export default function BonesScanPage() {
         }, 50);
     };
 
-    // Secondary guarantee to play video once metadata is loaded
     const handleLoadedMetadata = async () => {
         if (videoRef.current) {
             try {
@@ -72,10 +69,6 @@ export default function BonesScanPage() {
         }
     };
 
-    // Remove old onCanPlay as it might fire too late or inconsistently on iOS First Load
-    // const handleCanPlay = async () => ...
-
-    // Stop Camera Stream
     const stopCamera = () => {
         if (videoRef.current && videoRef.current.srcObject) {
             const tracks = videoRef.current.srcObject.getTracks();
@@ -85,20 +78,14 @@ export default function BonesScanPage() {
         setIsCameraActive(false);
     };
 
-    // Capture Image from Video
     const captureFromVideo = () => {
         if (!videoRef.current || !canvasRef.current) return;
-
         const video = videoRef.current;
         const canvas = canvasRef.current;
-
-        // Set canvas to match video actual dimensions
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
         const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
         setPreview(imageDataUrl);
         stopCamera();
@@ -107,7 +94,6 @@ export default function BonesScanPage() {
     const handleCapture = (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         setError(null);
         setResult(null);
         const reader = new FileReader();
@@ -122,31 +108,22 @@ export default function BonesScanPage() {
         setPreview(null);
         setError(null);
         setResult(null);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
-        startCamera(); // Restart camera on retake
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        startCamera();
     };
 
     const handleAnalyze = async () => {
         if (!preview) return;
         setAnalyzing(true);
         setError(null);
-
         try {
             const res = await apiFetch('/api/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ image: preview, mode: 'hallux_valgus' }),
             });
-
             const data = await res.json();
-
-            if (!res.ok) {
-                setError(data.error || '分析失敗，請重試');
-                return;
-            }
-
+            if (!res.ok) { setError(data.error || '分析失敗，請重試'); return; }
             setResult(data);
         } catch (err) {
             setError('系統連線發生錯誤');
@@ -159,28 +136,20 @@ export default function BonesScanPage() {
     const handleSaveAndView = async () => {
         if (!result || !preview) return;
         setSaving(true);
-
         try {
             const payload = {
                 image_data: preview,
                 ai_severity: result.ai_severity,
                 ai_summary: result.ai_summary,
             };
-
-            // If the Gemini model returned the extra coordinates from the new prompt, save them
             if (result.left_toe || result.right_toe) {
-                payload.ai_details = {
-                    left_toe: result.left_toe,
-                    right_toe: result.right_toe
-                };
+                payload.ai_details = { left_toe: result.left_toe, right_toe: result.right_toe };
             }
-
             const res = await apiFetch('/api/footcare/images', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-
             if (res.ok) {
                 const savedImage = await res.json();
                 router.push(`/result?id=${savedImage.id}`);
@@ -195,49 +164,29 @@ export default function BonesScanPage() {
     };
 
     return (
-        <div style={{ padding: '1.5rem', maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div className="p-6 max-w-[600px] mx-auto flex flex-col gap-8">
             <header>
-                <Link href="/bones" style={{ color: '#a8ff78', textDecoration: 'none', fontSize: '0.9rem', marginBottom: '1rem', display: 'inline-block' }}>
+                <Link href="/bones" className="text-[#a8ff78] no-underline text-[0.9rem] mb-4 inline-block">
                     ← 返回中心
                 </Link>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>📷 AI 拇趾外翻檢測</h2>
-                <p style={{ color: 'rgba(255,255,255,0.6)', margin: 0, fontSize: '0.9rem' }}>請脫掉襪子，將手機移至足部正上方垂直往下拍攝。</p>
+                <h2 className="text-[1.5rem] font-bold m-0 mb-2">📷 AI 拇趾外翻檢測</h2>
+                <p className="text-white/60 m-0 text-[0.9rem]">請脫掉襪子，將手機移至足部正上方垂直往下拍攝。</p>
             </header>
 
             {!preview ? (
-                <div style={{
-                    borderRadius: '16px',
-                    padding: '1.5rem 1rem',
-                    textAlign: 'center',
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.08)'
-                }}>
-                    <p style={{ color: '#fff', fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '0.5rem' }}>請拍攝雙腳正上方俯拍照</p>
-                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>確保光線明亮，請將雙腳對齊下方參考線</p>
+                <div className="rounded-[16px] p-6 px-4 text-center bg-white/[0.03] border border-white/[0.08]">
+                    <p className="text-white font-bold text-[1.1rem] mb-2">請拍攝雙腳正上方俯拍照</p>
+                    <p className="text-white/50 text-[0.85rem] mb-6">確保光線明亮，請將雙腳對齊下方參考線</p>
 
-                    {/* Custom WebRTC Camera Area */}
-                    <div style={{
-                        position: 'relative',
-                        width: '100%',
-                        height: '400px', // Taller for better camera view
-                        background: '#000',
-                        borderRadius: '16px',
-                        marginBottom: '1.5rem',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
-                    }}>
+                    {/* WebRTC Camera Area */}
+                    <div className="relative w-full h-[400px] bg-black rounded-[16px] mb-6 overflow-hidden flex flex-col items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
                         {!isCameraActive ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                                <div style={{ fontSize: '3rem', opacity: 0.5 }}>📷</div>
-                                <button onClick={startCamera} style={{
-                                    padding: '0.8rem 1.5rem', background: '#a8ff78', color: '#1a3630',
-                                    border: 'none', borderRadius: '24px', fontWeight: 'bold', cursor: 'pointer',
-                                    boxShadow: '0 4px 12px rgba(168, 255, 120, 0.3)'
-                                }}>
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="text-[3rem] opacity-50">📷</div>
+                                <button
+                                    onClick={startCamera}
+                                    className="py-3 px-6 bg-[#a8ff78] text-[#1a3630] border-none rounded-[24px] font-bold cursor-pointer shadow-[0_4px_12px_rgba(168,255,120,0.3)]"
+                                >
                                     啟動智能相機
                                 </button>
                             </div>
@@ -251,135 +200,93 @@ export default function BonesScanPage() {
                                     playsInline
                                     muted={true}
                                     onLoadedMetadata={handleLoadedMetadata}
-                                    style={{
-                                        position: 'absolute', inset: 0, width: '100%', height: '100%',
-                                        objectFit: 'cover', zIndex: 1,
-                                        transform: 'translateZ(0)',
-                                        WebkitTransform: 'translateZ(0)',
-                                        backgroundColor: '#000'
-                                    }}
+                                    className="absolute inset-0 w-full h-full object-cover z-[1] bg-black"
+                                    style={{ transform: 'translateZ(0)', WebkitTransform: 'translateZ(0)' }}
                                 />
 
-                                {/* Glowing Foot Guideline SVG Overlaying the Video */}
-                                <svg viewBox="0 0 200 240" style={{
-                                    position: 'absolute', inset: 0, width: '100%', height: '100%',
-                                    stroke: 'rgba(168, 255, 120, 0.9)', strokeWidth: '2', fill: 'none',
-                                    strokeDasharray: '4 4', zIndex: 5, pointerEvents: 'none',
-                                    filter: 'drop-shadow(0 0 4px rgba(168, 255, 120, 0.5))'
-                                }}>
-                                    {/* Left Foot Rough Outline */}
+                                {/* Glowing Foot Guideline SVG */}
+                                <svg
+                                    viewBox="0 0 200 240"
+                                    className="absolute inset-0 w-full h-full z-[5] pointer-events-none"
+                                    stroke="rgba(168, 255, 120, 0.9)" strokeWidth="2" fill="none"
+                                    strokeDasharray="4 4"
+                                    style={{ filter: 'drop-shadow(0 0 4px rgba(168, 255, 120, 0.5))' }}
+                                >
                                     <path d="M70,40 C50,40 40,80 40,110 C40,150 45,180 50,190 C55,200 65,205 75,200 C85,195 90,170 90,140 C90,100 85,40 70,40 Z" />
-                                    {/* Right Foot Rough Outline */}
                                     <path d="M130,40 C150,40 160,80 160,110 C160,150 155,180 150,190 C145,200 135,205 125,200 C115,195 110,170 110,140 C110,100 115,40 130,40 Z" />
-                                    {/* Alignment Markers */}
                                     <line x1="100" y1="20" x2="100" y2="220" stroke="rgba(255,255,255,0.4)" strokeDasharray="2 6" strokeWidth="1" />
                                     <line x1="40" y1="120" x2="160" y2="120" stroke="rgba(255,255,255,0.4)" strokeDasharray="2 6" strokeWidth="1" />
                                 </svg>
 
                                 {/* Shutter Button */}
-                                <div style={{
-                                    position: 'absolute', bottom: '20px', left: '0', right: '0',
-                                    display: 'flex', justifyContent: 'center', zIndex: 10
-                                }}>
-                                    <button onClick={captureFromVideo} style={{
-                                        width: '64px', height: '64px', borderRadius: '50%',
-                                        background: 'rgba(255,255,255,0.2)', border: '4px solid #fff',
-                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        backdropFilter: 'blur(4px)', boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                                    }}>
-                                        <div style={{ width: '48px', height: '48px', background: '#fff', borderRadius: '50%' }} />
+                                <div className="absolute bottom-5 left-0 right-0 flex justify-center z-10">
+                                    <button
+                                        onClick={captureFromVideo}
+                                        className="w-16 h-16 rounded-full bg-white/20 border-4 border-white cursor-pointer flex items-center justify-center backdrop-blur shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+                                    >
+                                        <div className="w-12 h-12 bg-white rounded-full" />
                                     </button>
                                 </div>
                             </>
                         )}
-                        {/* Hidden Canvas for extracting image */}
-                        <canvas ref={canvasRef} style={{ display: 'none' }} />
+                        <canvas ref={canvasRef} className="hidden" />
                     </div>
 
                     {error && (
-                        <div style={{ padding: '0.8rem', background: 'rgba(255, 99, 132, 0.1)', color: '#ff6384', borderRadius: '8px', border: '1px solid rgba(255, 99, 132, 0.3)', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+                        <div className="p-3 bg-[rgba(255,99,132,0.1)] text-[#ff6384] rounded-[8px] border border-[rgba(255,99,132,0.3)] mb-6 text-[0.85rem]">
                             {error}
                         </div>
                     )}
 
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                        {/* Native Camera Fallback */}
-                        <label style={{
-                            display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            padding: '0.8rem 1.5rem', background: 'rgba(168, 255, 120, 0.1)', color: '#a8ff78',
-                            border: '1px solid rgba(168, 255, 120, 0.3)', borderRadius: '24px', cursor: 'pointer',
-                            fontSize: '0.9rem'
-                        }} onClick={() => {
-                            const input = document.createElement('input');
-                            input.type = 'file';
-                            input.accept = 'image/*';
-                            input.capture = 'environment';
-                            input.onchange = handleCapture;
-                            input.click();
-                        }}>
-                            <span>📱</span>
-                            <span>一般相機拍照</span>
+                    <div className="flex justify-center gap-4 flex-wrap">
+                        <label
+                            className="flex items-center gap-2 py-3 px-6 bg-[rgba(168,255,120,0.1)] text-[#a8ff78] border border-[rgba(168,255,120,0.3)] rounded-[24px] cursor-pointer text-[0.9rem]"
+                            onClick={() => {
+                                const input = document.createElement('input');
+                                input.type = 'file'; input.accept = 'image/*'; input.capture = 'environment';
+                                input.onchange = handleCapture; input.click();
+                            }}
+                        >
+                            <span>📱</span><span>一般相機拍照</span>
                         </label>
-
-                        {/* Gallery Input Fallback */}
-                        <label style={{
-                            display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            padding: '0.8rem 1.5rem', background: 'rgba(255, 255, 255, 0.05)', color: '#fff',
-                            border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '24px', cursor: 'pointer',
-                            fontSize: '0.9rem'
-                        }} onClick={() => {
-                            const input = document.createElement('input');
-                            input.type = 'file';
-                            input.accept = 'image/*';
-                            input.onchange = handleCapture;
-                            input.click();
-                        }}>
-                            <span>🖼️</span>
-                            <span>從相簿選取</span>
+                        <label
+                            className="flex items-center gap-2 py-3 px-6 bg-white/5 text-white border border-white/10 rounded-[24px] cursor-pointer text-[0.9rem]"
+                            onClick={() => {
+                                const input = document.createElement('input');
+                                input.type = 'file'; input.accept = 'image/*';
+                                input.onchange = handleCapture; input.click();
+                            }}
+                        >
+                            <span>🖼️</span><span>從相簿選取</span>
                         </label>
                     </div>
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <div style={{
-                        borderRadius: '16px',
-                        overflow: 'hidden',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        background: '#000',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center'
-                    }}>
+                <div className="flex flex-col gap-6">
+                    <div className="rounded-[16px] overflow-hidden border border-white/10 bg-black flex justify-center items-center">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={preview} alt="Preview" style={{ width: '100%', maxHeight: '400px', objectFit: 'contain' }} />
+                        <img src={preview} alt="Preview" className="w-full max-h-[400px] object-contain" />
                     </div>
 
                     {error && (
-                        <div style={{ padding: '1rem', background: 'rgba(255, 99, 132, 0.1)', color: '#ff6384', borderRadius: '8px', border: '1px solid #ff6384' }}>
+                        <div className="p-4 bg-[rgba(255,99,132,0.1)] text-[#ff6384] rounded-[8px] border border-[#ff6384]">
                             {error}
                         </div>
                     )}
 
                     {!result && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div className="grid grid-cols-2 gap-4">
                             <button
                                 onClick={handleRetake}
                                 disabled={analyzing}
-                                style={{
-                                    padding: '1rem', background: 'rgba(255,255,255,0.1)', color: '#fff',
-                                    border: 'none', borderRadius: '12px', fontWeight: 'bold'
-                                }}
+                                className="p-4 bg-white/10 text-white border-none rounded-[12px] font-bold cursor-pointer"
                             >
                                 重拍
                             </button>
                             <button
                                 onClick={handleAnalyze}
                                 disabled={analyzing}
-                                style={{
-                                    padding: '1rem', background: '#a8ff78', color: '#1a3630',
-                                    border: 'none', borderRadius: '12px', fontWeight: 'bold',
-                                    display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem'
-                                }}
+                                className="p-4 bg-[#a8ff78] text-[#1a3630] border-none rounded-[12px] font-bold flex justify-center items-center gap-2 cursor-pointer"
                             >
                                 {analyzing ? 'AI 分析中...' : '開始分析 ✨'}
                             </button>
@@ -387,19 +294,13 @@ export default function BonesScanPage() {
                     )}
 
                     {result && (
-                        <div style={{
-                            background: 'linear-gradient(135deg, rgba(168, 255, 120, 0.15), rgba(6, 23, 0, 0.5))',
-                            border: '1px solid #a8ff78',
-                            borderRadius: '16px',
-                            padding: '1.5rem',
-                            animation: 'fadeIn 0.5s ease-out'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                <h3 style={{ margin: 0, color: '#a8ff78' }}>分析完成</h3>
-                                <span style={{
-                                    background: result.ai_severity === 'severe' || result.ai_severity === 'moderate' ? '#ff9a9e' : '#a8ff78',
-                                    color: '#1a3630', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold'
-                                }}>
+                        <div className="bg-gradient-to-br from-[rgba(168,255,120,0.15)] to-[rgba(6,23,0,0.5)] border border-[#a8ff78] rounded-[16px] p-6 animate-fade-in">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="m-0 text-[#a8ff78]">分析完成</h3>
+                                <span
+                                    className="py-1 px-3 rounded-[20px] text-[0.85rem] font-bold text-[#1a3630]"
+                                    style={{ background: result.ai_severity === 'severe' || result.ai_severity === 'moderate' ? '#ff9a9e' : '#a8ff78' }}
+                                >
                                     {result.ai_severity === 'normal' && '正常'}
                                     {result.ai_severity === 'mild' && '輕度外翻'}
                                     {result.ai_severity === 'moderate' && '中度外翻'}
@@ -407,27 +308,21 @@ export default function BonesScanPage() {
                                 </span>
                             </div>
 
-                            <p style={{ color: 'rgba(255,255,255,0.9)', lineHeight: 1.6, margin: '0 0 1.5rem 0', fontSize: '0.95rem' }}>
+                            <p className="text-white/90 leading-relaxed m-0 mb-6 text-[0.95rem]">
                                 {result.ai_summary}
                             </p>
 
                             <button
                                 onClick={handleSaveAndView}
                                 disabled={saving}
-                                style={{
-                                    width: '100%', padding: '1rem', background: '#a8ff78', color: '#1a3630',
-                                    border: 'none', borderRadius: '12px', fontWeight: 'bold'
-                                }}
+                                className="w-full p-4 bg-[#a8ff78] text-[#1a3630] border-none rounded-[12px] font-bold cursor-pointer"
                             >
                                 {saving ? '儲存中...' : '儲存紀錄並查看建議 ➔'}
                             </button>
                             <button
                                 onClick={handleRetake}
                                 disabled={saving}
-                                style={{
-                                    width: '100%', padding: '1rem', background: 'transparent', color: '#fff',
-                                    border: 'none', marginTop: '0.5rem'
-                                }}
+                                className="w-full p-4 bg-transparent text-white border-none mt-2 cursor-pointer"
                             >
                                 取消重新掃描
                             </button>
@@ -435,7 +330,6 @@ export default function BonesScanPage() {
                     )}
                 </div>
             )}
-            <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
         </div>
     );
 }

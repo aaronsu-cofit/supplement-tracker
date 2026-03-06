@@ -184,7 +184,7 @@ export default function SupplementsClientDashboard({ initialSupplements = [], in
         <div className="empty-state">
           <div className="empty-icon">💊</div>
           <p className="empty-title">{t('home.noSupplements')}</p>
-          <a href="/manage" className="btn btn-primary" style={{ display: 'inline-block', marginTop: 8 }}>
+          <a href="/manage" className="btn btn-primary inline-block mt-2">
             {t('home.addFirst')}
           </a>
         </div>
@@ -219,7 +219,7 @@ export default function SupplementsClientDashboard({ initialSupplements = [], in
                 <div className="stat-label">{t('home.streak')}</div>
               </div>
               <div className="stat-item">
-                <div className="stat-value" style={{ color: 'var(--accent-primary)' }}>
+                <div className="stat-value text-[var(--accent-primary)]">
                   {totalCount > 0 ? Math.round(progress * 100) : 0}%
                 </div>
                 <div className="stat-label">{t('home.todayProgress')}</div>
@@ -229,7 +229,7 @@ export default function SupplementsClientDashboard({ initialSupplements = [], in
 
           {/* AI Photo Check-in Button */}
           <div className="action-group">
-            <button className="btn-action primary" onClick={() => setCameraOpen(true)} style={{ flex: 1 }}>
+            <button className="btn-action primary" onClick={() => setCameraOpen(true)}>
               <IconCamera /> {t('ai.photoCheckin')}
             </button>
           </div>
@@ -293,14 +293,14 @@ export default function SupplementsClientDashboard({ initialSupplements = [], in
             </h2>
 
             {aiMatches.description && (
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+              <p className="text-[13px] text-[var(--text-secondary)] mb-4">
                 {aiMatches.description}
               </p>
             )}
 
             {aiMatches.matches.length > 0 ? (
               <>
-                <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                <p className="text-[14px] text-[var(--text-secondary)] mb-3">
                   {t('ai.matchConfirm')}
                 </p>
                 {aiMatches.matches.map((match) => (
@@ -321,7 +321,7 @@ export default function SupplementsClientDashboard({ initialSupplements = [], in
                 </div>
               </>
             ) : (
-              <button className="btn btn-ghost" onClick={() => setAiMatches(null)} style={{ width: '100%', marginTop: 12 }}>
+              <button className="btn btn-ghost w-full mt-3" onClick={() => setAiMatches(null)}>
                 {t('common.close')}
               </button>
             )}

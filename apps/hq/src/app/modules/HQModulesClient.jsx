@@ -89,7 +89,7 @@ export default function HQModulesClient() {
                     <tbody>
                         {modules.map(mod => (
                             <tr key={mod.id}>
-                                <td><span className="hq-badge" style={{ background: '#334155' }}>{mod.id}</span></td>
+                                <td><span className="hq-badge bg-[#334155]">{mod.id}</span></td>
                                 <td>
                                     <input
                                         type="text"
@@ -126,55 +126,16 @@ export default function HQModulesClient() {
                                         />
                                         <span className="hq-toggle-slider"></span>
                                     </label>
-                                    {savingId === mod.id && <span style={{ marginLeft: '10px', fontSize: '12px', color: 'var(--accent-primary)' }}>儲存中...</span>}
+                                    {savingId === mod.id && <span className="ml-[10px] text-[12px] text-[var(--accent-primary)]">儲存中...</span>}
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
-                <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#64748B' }}>
+                <p className="mt-4 text-[0.85rem] text-[#64748B]">
                     提示：修改名稱後，只要點擊旁邊的空白處（取消聚焦）就會自動儲存並生效於前台了。
                 </p>
             </div>
-
-            <style jsx>{`
-                .hq-toggle-switch {
-                    position: relative;
-                    display: inline-block;
-                    width: 44px;
-                    height: 24px;
-                }
-                .hq-toggle-switch input { display: none; }
-                .hq-toggle-slider {
-                    position: absolute;
-                    cursor: pointer;
-                    top: 0; left: 0; right: 0; bottom: 0;
-                    background-color: #CBD5E1;
-                    transition: .3s;
-                    border-radius: 24px;
-                }
-                .hq-toggle-slider:before {
-                    position: absolute;
-                    content: "";
-                    height: 18px;
-                    width: 18px;
-                    left: 3px;
-                    bottom: 3px;
-                    background-color: white;
-                    transition: .3s;
-                    border-radius: 50%;
-                }
-                .hq-toggle-switch input:checked + .hq-toggle-slider {
-                    background-color: var(--accent-primary, #7c5cfc);
-                }
-                .hq-toggle-switch input:checked + .hq-toggle-slider:before {
-                    transform: translateX(20px);
-                }
-                .hq-toggle-switch input:disabled + .hq-toggle-slider {
-                    opacity: 0.5;
-                    cursor: not-allowed;
-                }
-            `}</style>
         </div>
     );
 }

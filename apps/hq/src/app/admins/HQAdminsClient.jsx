@@ -92,7 +92,7 @@ export default function HQAdminsClient() {
                             <th>使用者 (User)</th>
                             <th>權限 (Role)</th>
                             <th>註冊時間 (Joined)</th>
-                            <th style={{ textAlign: 'right' }}>操作 (Actions)</th>
+                            <th className="text-right">操作 (Actions)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -126,7 +126,7 @@ export default function HQAdminsClient() {
                                     <td className="hq-table-date">
                                         {new Date(user.created_at).toLocaleDateString()}
                                     </td>
-                                    <td style={{ textAlign: 'right' }}>
+                                    <td className="text-right">
                                         <select
                                             value={user.role || 'user'}
                                             onChange={(e) => handleRoleChange(user.id, e.target.value)}

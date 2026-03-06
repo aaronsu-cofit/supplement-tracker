@@ -162,7 +162,7 @@ export default function SupplementsPage() {
                                 <span className="meta-tag">🔄 {freqLabels[sup.frequency]}</span>
                             </div>
                             {sup.notes && (
-                                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8 }}>
+                                <p className="text-[13px] text-[var(--text-muted)] mt-2">
                                     {sup.notes}
                                 </p>
                             )}
@@ -181,8 +181,8 @@ export default function SupplementsPage() {
 
             {/* AI Result Confirmation (shown before modal if AI result exists) */}
             {modalOpen && aiResult && (
-                <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 1100 }}>
-                    <div className="ai-result-card" style={{ minWidth: 280 }}>
+                <div className="fixed bottom-[100px] left-1/2 -translate-x-1/2 z-[1100]">
+                    <div className="ai-result-card min-w-[280px]">
                         <div className="ai-result-title">🤖 {t('ai.labelResult')}</div>
                         <div className="ai-result-field">
                             <span className="ai-result-label">{t('supplements.name')}</span>
