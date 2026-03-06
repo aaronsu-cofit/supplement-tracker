@@ -70,7 +70,7 @@ export default function CreateWoundPage() {
                         onChange={e => setName(e.target.value)}
                         placeholder="例如：左膝擦傷、手術傷口"
                         autoFocus
-                        className="w-full p-4 text-base text-white bg-white/[0.07] border border-white/15 rounded-xl outline-none box-border"
+                        className="w-full p-4 text-base text-white bg-white/[0.07] border border-white/15 rounded-xl transition-all duration-200 outline-none focus:border-w-pink/50 focus:bg-white/10 box-border"
                     />
                 </div>
             )}
@@ -88,9 +88,9 @@ export default function CreateWoundPage() {
                             <button
                                 key={t.code}
                                 onClick={() => setWoundType(t.code)}
-                                className={`p-4 rounded-[14px] cursor-pointer transition-all duration-200 text-center ${
+                                className={`p-4 rounded-[14px] cursor-pointer transition-all duration-200 text-center active:scale-[0.98] hover:bg-white/10 ${
                                     woundType === t.code
-                                        ? 'border-2 border-w-pink bg-w-pink/15'
+                                        ? 'border-2 border-w-pink bg-w-pink/15 hover:bg-w-pink/20'
                                         : 'border border-white/10 bg-white/[0.04]'
                                 }`}
                             >
@@ -116,9 +116,9 @@ export default function CreateWoundPage() {
                             <button
                                 key={l.code}
                                 onClick={() => setBodyLocation(l.code)}
-                                className={`px-5 py-[0.7rem] rounded-xl cursor-pointer transition-all duration-200 flex items-center gap-[0.4rem] ${
+                                className={`px-5 py-[0.7rem] rounded-xl cursor-pointer transition-all duration-200 flex items-center gap-[0.4rem] active:scale-[0.98] hover:bg-white/10 ${
                                     bodyLocation === l.code
-                                        ? 'border-2 border-w-blue bg-w-blue/15'
+                                        ? 'border-2 border-w-blue bg-w-blue/15 hover:bg-w-blue/20'
                                         : 'border border-white/10 bg-white/[0.04]'
                                 }`}
                             >
@@ -135,7 +135,7 @@ export default function CreateWoundPage() {
                                 onChange={e => setCustomLocation(e.target.value)}
                                 placeholder="請輸入傷口位置（例如：右手背、左腳踝）"
                                 autoFocus
-                                className="w-full p-4 text-base text-white bg-white/[0.07] border border-white/15 rounded-xl outline-none box-border"
+                                className="w-full p-4 text-base text-white bg-white/[0.07] border border-white/15 rounded-xl transition-all duration-200 outline-none focus:border-w-blue/50 focus:bg-white/10 box-border"
                             />
                         </div>
                     )}
@@ -155,7 +155,7 @@ export default function CreateWoundPage() {
                         value={dateOfInjury}
                         onChange={e => setDateOfInjury(e.target.value)}
                         max={new Date().toISOString().split('T')[0]}
-                        className="w-full p-4 text-base text-white bg-white/[0.07] border border-white/15 rounded-xl outline-none box-border [color-scheme:dark]"
+                        className="w-full p-4 text-base text-white bg-white/[0.07] border border-white/15 rounded-xl transition-all duration-200 outline-none focus:border-white/30 focus:bg-white/10 box-border [color-scheme:dark]"
                     />
                     <div className="mt-6 p-4 rounded-[14px] bg-white/[0.04] border border-white/[0.08]">
                         <div className="text-white/50 text-[0.8rem] mb-2">建檔摘要</div>
@@ -171,7 +171,7 @@ export default function CreateWoundPage() {
                 {step > 1 && (
                     <button
                         onClick={() => setStep(s => s - 1)}
-                        className="flex-1 py-[0.9rem] rounded-xl cursor-pointer bg-white/[0.08] border border-white/15 text-white text-[0.95rem] font-semibold"
+                        className="flex-1 py-[0.9rem] rounded-xl cursor-pointer bg-white/[0.08] border border-white/15 text-white text-[0.95rem] font-semibold transition-all duration-200 hover:bg-white/[0.12] active:scale-95"
                     >
                         上一步
                     </button>
@@ -179,8 +179,8 @@ export default function CreateWoundPage() {
                 <button
                     onClick={() => step < totalSteps ? setStep(s => s + 1) : handleSubmit()}
                     disabled={!canNext() || submitting}
-                    className={`flex-1 py-[0.9rem] rounded-xl cursor-pointer border-none text-white text-[0.95rem] font-bold transition-opacity duration-200 ${
-                        canNext() && !submitting ? 'bg-w-gradient' : 'bg-white/10 opacity-50'
+                    className={`flex-1 py-[0.9rem] rounded-xl cursor-pointer border-none text-white text-[0.95rem] font-bold transition-all duration-200 active:scale-95 disabled:hover:scale-100 disabled:cursor-not-allowed ${
+                        canNext() && !submitting ? 'bg-w-gradient hover:opacity-90 hover:shadow-[0_4px_15px_rgba(255,154,158,0.4)]' : 'bg-white/10 opacity-50'
                     }`}
                 >
                     {submitting ? '建立中...' : step < totalSteps ? '下一步' : '✓ 完成建檔'}

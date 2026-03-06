@@ -75,7 +75,7 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
                     <p className="text-white/50 text-[0.85rem] m-0 mb-8 max-w-[280px]">
                         建立傷口紀錄，讓 AI 幫你追蹤復原狀態
                     </p>
-                    <Link href="/create" className="py-[0.9rem] px-10 rounded-[14px] bg-w-gradient text-white font-bold text-[0.95rem] no-underline shadow-[0_4px_20px_rgba(255,154,158,0.35)]">
+                    <Link href="/create" className="py-[0.9rem] px-10 rounded-[14px] bg-w-gradient text-white font-bold text-[0.95rem] no-underline shadow-[0_4px_20px_rgba(255,154,158,0.35)] transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-[0_6px_25px_rgba(255,154,158,0.5)]">
                         ＋ 建立傷口紀錄
                     </Link>
                 </div>
@@ -108,7 +108,7 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
                         <span className={`text-white/40 text-[0.7rem] transition-transform duration-200 ${showSwitcher ? 'rotate-180' : 'rotate-0'}`}>▼</span>
                     </button>
 
-                    <button onClick={() => setShowEdit(true)} aria-label="編輯傷口資訊" className="bg-white/[0.06] border border-white/15 rounded-lg py-2 px-3 cursor-pointer text-white/75 text-[0.8rem] min-w-11 min-h-11 flex items-center justify-center">✏️</button>
+                    <button onClick={() => setShowEdit(true)} aria-label="編輯傷口資訊" className="bg-white/[0.06] border border-white/15 rounded-lg py-2 px-3 cursor-pointer text-white/75 text-[0.8rem] min-w-11 min-h-11 flex items-center justify-center transition-all hover:bg-white/[0.12] active:scale-95">✏️</button>
                 </header>
 
                 {showSwitcher && (
@@ -166,12 +166,12 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
 
                 {/* Action Grid */}
                 <div className="grid grid-cols-2 gap-[0.8rem] mb-6">
-                    <Link href={`/${currentWound.id}/scan`} className="bg-white/5 backdrop-blur-[16px] border border-white/[0.08] rounded-2xl px-4 py-6 text-center no-underline flex flex-col items-center justify-center">
+                    <Link href={`/${currentWound.id}/scan`} className="bg-white/5 backdrop-blur-[16px] border border-white/[0.08] rounded-2xl px-4 py-6 text-center no-underline flex flex-col items-center justify-center transition-all duration-200 hover:bg-white/10 hover:border-white/15 active:scale-[0.98]">
                         <div className="text-[2rem] mb-[0.4rem]">📸</div>
                         <div className="text-white text-[0.9rem] font-semibold">今日掃描</div>
                         <div className="text-white/60 text-[0.78rem] mt-[2px]">拍照 + AI 分析</div>
                     </Link>
-                    <Link href={`/${currentWound.id}/history`} className="bg-white/5 backdrop-blur-[16px] border border-white/[0.08] rounded-2xl px-4 py-6 text-center no-underline flex flex-col items-center justify-center">
+                    <Link href={`/${currentWound.id}/history`} className="bg-white/5 backdrop-blur-[16px] border border-white/[0.08] rounded-2xl px-4 py-6 text-center no-underline flex flex-col items-center justify-center transition-all duration-200 hover:bg-white/10 hover:border-white/15 active:scale-[0.98]">
                         <div className="text-[2rem] mb-[0.4rem]">📅</div>
                         <div className="text-white text-[0.9rem] font-semibold">照護歷程</div>
                         <div className="text-white/60 text-[0.78rem] mt-[2px]">Timeline 回顧</div>
@@ -210,7 +210,7 @@ function ArchiveButton({ woundId, onArchived }) {
     };
     return (
         <>
-            <button onClick={() => setConfirm(true)} className="w-full py-[0.7rem] rounded-[12px] bg-white/[0.03] border border-white/[0.08] text-white/50 text-[0.85rem] cursor-pointer min-h-11">
+            <button onClick={() => setConfirm(true)} className="w-full py-[0.7rem] rounded-[12px] bg-white/[0.03] border border-white/[0.08] text-white/50 text-[0.85rem] cursor-pointer min-h-11 transition-all duration-200 hover:bg-white/10 hover:text-white/70 active:scale-[0.98]">
                 🗃️ 傷口已癒合，歸檔此紀錄
             </button>
             {confirm && (
@@ -220,8 +220,8 @@ function ArchiveButton({ woundId, onArchived }) {
                         <h3 className="text-white m-0 mb-2">確認歸檔？</h3>
                         <p className="text-white/50 text-[0.85rem] m-0 mb-6">歸檔後不再顯示，歷史紀錄仍保留。</p>
                         <div className="flex gap-[0.6rem]">
-                            <button onClick={() => setConfirm(false)} className="flex-1 py-[0.7rem] rounded-[10px] cursor-pointer bg-white/[0.08] border border-white/15 text-white text-[0.9rem]">取消</button>
-                            <button onClick={handleArchive} className="flex-1 py-[0.7rem] rounded-[10px] cursor-pointer bg-w-gradient-red border-none text-white text-[0.9rem] font-semibold">確認歸檔</button>
+                            <button onClick={() => setConfirm(false)} className="flex-1 py-[0.7rem] rounded-[10px] cursor-pointer bg-white/[0.08] border border-white/15 text-white text-[0.9rem] transition-all hover:bg-white/[0.15] active:scale-95">取消</button>
+                            <button onClick={handleArchive} className="flex-1 py-[0.7rem] rounded-[10px] cursor-pointer bg-w-gradient-red border-none text-white text-[0.9rem] font-semibold transition-all hover:opacity-90 active:scale-95 shadow-[0_4px_12px_rgba(255,107,107,0.3)]">確認歸檔</button>
                         </div>
                     </div>
                 </div>
@@ -266,14 +266,14 @@ function EditWoundModal({ wound, onClose, onSaved }) {
                 <input
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    className="w-full p-[0.8rem] text-[0.95rem] text-white bg-white/[0.06] border border-white/[0.12] rounded-[10px] outline-none box-border mb-4"
+                    className="w-full p-[0.8rem] text-[0.95rem] text-white bg-white/[0.06] border border-white/[0.12] rounded-[10px] outline-none box-border mb-4 transition-all duration-200 focus:border-white/30 focus:bg-white/10"
                 />
 
                 <label className="text-white/50 text-[0.8rem] block mb-[0.3rem]">傷口類型</label>
                 <div className="flex flex-wrap gap-[0.4rem] mb-4">
                     {WOUND_TYPES.map(t => (
                         <button key={t.code} onClick={() => setWoundType(t.code)}
-                            className={`py-[0.45rem] px-[0.8rem] rounded-lg cursor-pointer text-[0.8rem] transition-all duration-150 ${woundType === t.code ? 'border-[1.5px] border-w-pink bg-w-pink/15 text-w-pink' : 'border border-white/10 bg-white/[0.04] text-white/50'}`}
+                            className={`py-[0.45rem] px-[0.8rem] rounded-lg cursor-pointer text-[0.8rem] transition-all duration-200 active:scale-95 ${woundType === t.code ? 'border-[1.5px] border-w-pink bg-w-pink/15 text-w-pink' : 'border border-white/10 bg-white/[0.04] text-white/50 hover:bg-white/10 hover:text-white/70'}`}
                         >{t.emoji} {t.label}</button>
                     ))}
                 </div>
@@ -282,7 +282,7 @@ function EditWoundModal({ wound, onClose, onSaved }) {
                 <div className={`flex flex-wrap gap-[0.4rem] ${bodyLocation === 'other' ? 'mb-2' : 'mb-4'}`}>
                     {BODY_LOCATIONS.map(l => (
                         <button key={l.code} onClick={() => setBodyLocation(l.code)}
-                            className={`py-[0.45rem] px-[0.8rem] rounded-lg cursor-pointer text-[0.8rem] transition-all duration-150 ${bodyLocation === l.code ? 'border-[1.5px] border-w-blue bg-w-blue/15 text-w-blue' : 'border border-white/10 bg-white/[0.04] text-white/50'}`}
+                            className={`py-[0.45rem] px-[0.8rem] rounded-lg cursor-pointer text-[0.8rem] transition-all duration-200 active:scale-95 ${bodyLocation === l.code ? 'border-[1.5px] border-w-blue bg-w-blue/15 text-w-blue' : 'border border-white/10 bg-white/[0.04] text-white/50 hover:bg-white/10 hover:text-white/70'}`}
                         >{l.emoji} {l.label}</button>
                     ))}
                 </div>
@@ -293,7 +293,7 @@ function EditWoundModal({ wound, onClose, onSaved }) {
                         onChange={e => setCustomLocation(e.target.value)}
                         placeholder="請輸入傷口位置（例如：右手背）"
                         autoFocus
-                        className="w-full p-[0.8rem] text-[0.95rem] text-white bg-white/[0.06] border border-white/[0.12] rounded-[10px] outline-none box-border mb-4"
+                        className="w-full p-[0.8rem] text-[0.95rem] text-white bg-white/[0.06] border border-white/[0.12] rounded-[10px] outline-none box-border mb-4 transition-all duration-200 focus:border-white/30 focus:bg-white/10"
                     />
                 )}
 
@@ -303,15 +303,15 @@ function EditWoundModal({ wound, onClose, onSaved }) {
                     value={dateOfInjury}
                     onChange={e => setDateOfInjury(e.target.value)}
                     max={new Date().toISOString().split('T')[0]}
-                    className="w-full p-[0.8rem] text-[0.95rem] text-white bg-white/[0.06] border border-white/[0.12] rounded-[10px] outline-none box-border [color-scheme:dark] mb-6"
+                    className="w-full p-[0.8rem] text-[0.95rem] text-white bg-white/[0.06] border border-white/[0.12] rounded-[10px] outline-none box-border [color-scheme:dark] mb-6 transition-all duration-200 focus:border-white/30 focus:bg-white/10"
                 />
 
                 <div className="flex gap-[0.6rem]">
-                    <button onClick={onClose} className="flex-1 py-[0.8rem] rounded-[12px] cursor-pointer bg-white/[0.06] border border-white/[0.12] text-white text-[0.9rem]">取消</button>
+                    <button onClick={onClose} className="flex-1 py-[0.8rem] rounded-[12px] cursor-pointer bg-white/[0.06] border border-white/[0.12] text-white text-[0.9rem] transition-all duration-200 hover:bg-white/[0.15] active:scale-95">取消</button>
                     <button
                         onClick={handleSave}
                         disabled={saving || !name.trim()}
-                        className={`flex-1 py-[0.8rem] rounded-[12px] cursor-pointer bg-w-gradient border-none text-white text-[0.9rem] font-bold transition-opacity duration-200 ${saving || !name.trim() ? 'opacity-50' : 'opacity-100'}`}
+                        className={`flex-1 py-[0.8rem] rounded-[12px] cursor-pointer border-none text-white text-[0.9rem] font-bold transition-all duration-200 active:scale-95 disabled:hover:scale-100 disabled:cursor-not-allowed ${saving || !name.trim() ? 'bg-white/10 opacity-50' : 'bg-w-gradient hover:opacity-90 hover:shadow-[0_4px_15px_rgba(255,154,158,0.4)]'}`}
                     >{saving ? '儲存中...' : '儲存修改'}</button>
                 </div>
             </div>

@@ -1,6 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* Tell Tailwind v4 where to scan for utility classes in this monorepo */
+@source "../**/*.{js,jsx,ts,tsx}";
+@source "../../../../packages/ui/src/**/*.{js,jsx,ts,tsx}";
+@source "../../../../packages/lib/src/**/*.{js,jsx,ts,tsx}";
+
 /* ── Wounds Design Tokens ─────────────────────────────────── */
 @theme {
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
