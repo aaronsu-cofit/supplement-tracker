@@ -39,7 +39,7 @@ function WoundsResultContent() {
             <div className="p-8 text-center">
                 <div className="text-[3rem] mb-4">🔍</div>
                 <h3 className="text-white">找不到紀錄</h3>
-                <button onClick={() => router.push('/wounds')} className="bg-w-gradient text-white py-[0.9rem] px-8 rounded-[50px] border-none font-bold text-[1rem] cursor-pointer shadow-[0_4px_20px_rgba(255,154,158,0.3)]">
+                <button onClick={() => router.push('/')} className="bg-w-gradient text-white py-[0.9rem] px-8 rounded-[50px] border-none font-bold text-[1rem] cursor-pointer shadow-[0_4px_20px_rgba(255,154,158,0.3)]">
                     返回首頁
                 </button>
             </div>
@@ -112,7 +112,7 @@ function WoundsResultContent() {
                 如有發燒、持續劇痛、大量異常滲出液等嚴重不適，請立即就醫。
             </p>
 
-            <button onClick={() => router.push('/wounds')} className="w-full bg-w-gradient text-white py-[0.9rem] px-8 rounded-[50px] border-none font-bold text-[1rem] cursor-pointer shadow-[0_4px_20px_rgba(255,154,158,0.3)]">
+            <button onClick={() => router.push('/')} className="w-full bg-w-gradient text-white py-[0.9rem] px-8 rounded-[50px] border-none font-bold text-[1rem] cursor-pointer shadow-[0_4px_20px_rgba(255,154,158,0.3)]">
                 完成並回到首頁
             </button>
         </div>

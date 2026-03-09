@@ -35,7 +35,7 @@ export default function CreateWoundPage() {
                 body: JSON.stringify({ name: name.trim(), wound_type: woundType, body_location: finalLocation, date_of_injury: dateOfInjury }),
             });
             const wound = await res.json();
-            router.push(`/wounds?new_id=${wound.id}`);
+            router.push(`/?new_id=${wound.id}`);
         } catch (err) {
             console.error('Create wound error:', err);
             setSubmitting(false);
@@ -44,8 +44,8 @@ export default function CreateWoundPage() {
 
     return (
         <>
-        <AppHeader backHref="/wounds" title="建立傷口紀錄" accent="linear-gradient(135deg, #ff9a9e, #fda085)" />
-        <div className="max-w-[480px] mx-auto px-4 pt-5 pb-8">
+        <AppHeader backHref="/" title="建立傷口紀錄" accent="linear-gradient(135deg, #ff9a9e, #fda085)" />
+        <div className="w-full max-w-2xl mx-auto px-5 sm:px-8 pt-5 pb-8">
             {/* Progress bar */}
             <div className="flex gap-1 mb-8">
                 {[1, 2, 3, 4].map(s => (
@@ -62,7 +62,7 @@ export default function CreateWoundPage() {
                     <div className="text-center mb-8">
                         <div className="text-[2.5rem] mb-2">📝</div>
                         <h2 className="text-white text-[1.2rem] m-0">為傷口命名</h2>
-                        <p className="text-white/50 text-[0.85rem] mt-1 mb-0">方便你辨識不同傷口</p>
+                        <p className="text-white/65 text-[0.9rem] mt-1 mb-0">方便你辨識不同傷口</p>
                     </div>
                     <input
                         type="text"
@@ -81,7 +81,7 @@ export default function CreateWoundPage() {
                     <div className="text-center mb-6">
                         <div className="text-[2.5rem] mb-2">🏷️</div>
                         <h2 className="text-white text-[1.2rem] m-0">傷口類型</h2>
-                        <p className="text-white/50 text-[0.85rem] mt-1 mb-0">AI 會根據類型提供更精準的照護建議</p>
+                        <p className="text-white/65 text-[0.9rem] mt-1 mb-0">AI 會根據類型提供更精準的照護建議</p>
                     </div>
                     <div className="grid grid-cols-2 gap-[0.6rem]">
                         {WOUND_TYPES.map(t => (
@@ -96,7 +96,7 @@ export default function CreateWoundPage() {
                             >
                                 <div className="text-[1.5rem] mb-[0.3rem]">{t.emoji}</div>
                                 <div className="text-white text-[0.85rem] font-semibold">{t.label}</div>
-                                <div className="text-white/40 text-[0.7rem] mt-[2px]">{t.careNote}</div>
+                                <div className="text-white/60 text-[0.75rem] mt-[2px]">{t.careNote}</div>
                             </button>
                         ))}
                     </div>
@@ -109,7 +109,7 @@ export default function CreateWoundPage() {
                     <div className="text-center mb-6">
                         <div className="text-[2.5rem] mb-2">📍</div>
                         <h2 className="text-white text-[1.2rem] m-0">傷口位置</h2>
-                        <p className="text-white/50 text-[0.85rem] mt-1 mb-0">幫助醫護快速辨認</p>
+                        <p className="text-white/65 text-[0.9rem] mt-1 mb-0">幫助醫護快速辨認</p>
                     </div>
                     <div className={`flex flex-wrap gap-2 justify-center ${bodyLocation === 'other' ? 'mb-4' : ''}`}>
                         {BODY_LOCATIONS.map(l => (
@@ -148,7 +148,7 @@ export default function CreateWoundPage() {
                     <div className="text-center mb-8">
                         <div className="text-[2.5rem] mb-2">📅</div>
                         <h2 className="text-white text-[1.2rem] m-0">受傷日期</h2>
-                        <p className="text-white/50 text-[0.85rem] mt-1 mb-0">用於計算照護天數</p>
+                        <p className="text-white/65 text-[0.9rem] mt-1 mb-0">用於計算照護天數</p>
                     </div>
                     <input
                         type="date"
@@ -158,8 +158,8 @@ export default function CreateWoundPage() {
                         className="w-full p-4 text-base text-white bg-white/[0.07] border border-white/15 rounded-xl transition-all duration-200 outline-none focus:border-white/30 focus:bg-white/10 box-border [color-scheme:dark]"
                     />
                     <div className="mt-6 p-4 rounded-[14px] bg-white/[0.04] border border-white/[0.08]">
-                        <div className="text-white/50 text-[0.8rem] mb-2">建檔摘要</div>
-                        <div className="text-white text-[0.9rem]">
+                        <div className="text-white/65 text-[0.85rem] mb-2">建檔摘要</div>
+                        <div className="text-white text-[0.95rem]">
                             <strong>{name}</strong> ・ {WOUND_TYPES.find(t => t.code === woundType)?.label} ・ {bodyLocation === 'other' ? customLocation.trim() : BODY_LOCATIONS.find(l => l.code === bodyLocation)?.label} ・ {dateOfInjury}
                         </div>
                     </div>

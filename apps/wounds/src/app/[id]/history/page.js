@@ -50,14 +50,14 @@ export default function WoundHistoryPage() {
     }
 
     return (
-        <div className="max-w-[480px] mx-auto px-4 pb-24">
+        <div className="w-full max-w-2xl mx-auto px-5 sm:px-8 pb-24">
             <Link href={`/${id}`} className="text-white/50 no-underline text-[0.85rem] inline-flex items-center gap-1 mb-4">
                 ← 返回傷口
             </Link>
             <h2 className="text-white text-[1.15rem] font-bold m-0 mb-[0.3rem]">📅 照護歷程</h2>
             {wound && (
-                <p className="text-white/40 text-[0.8rem] m-0 mb-5">
-                    {wound.name} ・ 受傷日期 {wound.date_of_injury}
+                <p className="text-white/60 text-[0.85rem] m-0 mb-5">
+                    {wound.name} ・ 受傷日期 {wound.date_of_injury?.split('T')[0]}
                 </p>
             )}
 
@@ -79,10 +79,10 @@ export default function WoundHistoryPage() {
                                 <div className="absolute -left-6 top-[18px] w-3 h-3 rounded-full bg-w-pink shadow-[0_0_8px_rgba(255,154,158,0.4)]" />
                                 <div className="bg-white/[0.04] backdrop-blur-[16px] border border-white/[0.08] rounded-[14px] p-4">
                                     <div className="flex justify-between items-center mb-2">
-                                        <span className="text-white/50 text-[0.78rem]">
+                                        <span className="text-white/65 text-[0.82rem]">
                                             {new Date(log.logged_at || log.date).toLocaleDateString('zh-TW')} {daysSince(log.date, wound?.date_of_injury)}
                                         </span>
-                                        <span className={`${STATUS_CLASSES[concern]} px-2 py-[2px] rounded-[6px] text-[0.7rem] font-semibold`}>
+                                        <span className={`${STATUS_CLASSES[concern]} px-2 py-[2px] rounded-[6px] text-[0.75rem] font-semibold`}>
                                             {log.ai_status_label || '—'}
                                         </span>
                                     </div>
@@ -90,18 +90,18 @@ export default function WoundHistoryPage() {
                                         <img src={log.image_data} alt="" className="w-full rounded-[10px] max-h-[160px] object-cover mb-2" />
                                     )}
                                     {log.ai_assessment_summary && (
-                                        <p className="text-white/65 text-[0.82rem] leading-relaxed m-0 mb-2 whitespace-pre-wrap">
+                                        <p className="text-white/80 text-[0.85rem] leading-relaxed m-0 mb-2 whitespace-pre-wrap">
                                             {log.ai_assessment_summary.length > 120
                                                 ? log.ai_assessment_summary.slice(0, 120) + '...'
                                                 : log.ai_assessment_summary}
                                         </p>
                                     )}
                                     <div className="flex gap-[0.6rem] flex-wrap">
-                                        <span className={`text-[0.75rem] ${getNrsMiniClass(log.nrs_pain_score)}`}>
+                                        <span className={`text-[0.8rem] ${getNrsMiniClass(log.nrs_pain_score)}`}>
                                             🌡️ NRS {log.nrs_pain_score}/10
                                         </span>
                                         {log.symptoms && (
-                                            <span className="text-[0.75rem] text-white/40">📝 {log.symptoms}</span>
+                                            <span className="text-[0.8rem] text-white/60">📝 {log.symptoms}</span>
                                         )}
                                     </div>
                                 </div>

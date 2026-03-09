@@ -53,7 +53,7 @@ export default function WoundDetailPage() {
     const phase = getPhase(days);
 
     return (
-        <div className="max-w-[480px] mx-auto px-4 pb-24">
+        <div className="w-full max-w-2xl mx-auto px-5 sm:px-8 pb-24">
             <Link href="/" className="text-white/50 no-underline text-[0.85rem] inline-flex items-center gap-1 mb-4">
                 ← 傷口列表
             </Link>
@@ -75,7 +75,7 @@ export default function WoundDetailPage() {
                             {loc && <span className="bg-w-blue/15 text-w-blue px-2 py-[2px] rounded-[6px] text-[0.75rem]">{loc.emoji} {loc.label}</span>}
                             <span className={`${PHASE_CLASSES[phase.key]} px-2 py-[2px] rounded-[6px] text-[0.75rem]`}>{phase.label}</span>
                         </div>
-                        <div className="text-white/40 text-[0.8rem]">受傷日期：{wound.date_of_injury}</div>
+                        <div className="text-white/60 text-[0.85rem]">受傷於 {wound.date_of_injury?.split('T')[0]}</div>
                     </div>
                     <div className="bg-w-gradient rounded-[14px] px-[0.9rem] py-[0.6rem] text-center shrink-0">
                         <div className="text-white text-[1.5rem] font-extrabold leading-none">{days}</div>
@@ -87,7 +87,7 @@ export default function WoundDetailPage() {
             {/* Care Tip */}
             <div className="bg-w-pink/[0.08] border border-w-pink/15 rounded-[14px] px-4 py-[0.8rem] mb-5 flex items-center gap-[0.6rem]">
                 <span className="text-[1.2rem]">💡</span>
-                <span className="text-white/70 text-[0.82rem]">{type.careNote}</span>
+                <span className="text-white/80 text-[0.85rem]">{type.careNote}</span>
             </div>
 
             {/* Action Grid */}
@@ -95,19 +95,19 @@ export default function WoundDetailPage() {
                 <Link href={`/${id}/scan`} className="bg-white/5 backdrop-blur-[16px] border border-white/[0.08] rounded-2xl px-4 py-6 text-center no-underline transition-transform duration-150 flex flex-col items-center justify-center">
                     <div className="text-[2rem] mb-[0.4rem]">📸</div>
                     <div className="text-white text-[0.9rem] font-semibold">今日掃描</div>
-                    <div className="text-white/40 text-[0.75rem] mt-[2px]">拍照 + AI 分析</div>
+                    <div className="text-white/65 text-[0.82rem] mt-[2px]">拍照 + AI 分析</div>
                 </Link>
                 <Link href={`/${id}/history`} className="bg-white/5 backdrop-blur-[16px] border border-white/[0.08] rounded-2xl px-4 py-6 text-center no-underline transition-transform duration-150 flex flex-col items-center justify-center">
                     <div className="text-[2rem] mb-[0.4rem]">📅</div>
                     <div className="text-white text-[0.9rem] font-semibold">照護歷程</div>
-                    <div className="text-white/40 text-[0.75rem] mt-[2px]">Timeline 回顧</div>
+                    <div className="text-white/65 text-[0.82rem] mt-[2px]">Timeline 回顧</div>
                 </Link>
             </div>
 
             {/* Archive button */}
             <button
                 onClick={() => setShowArchiveConfirm(true)}
-                className="w-full py-[0.8rem] rounded-xl bg-white/[0.03] border border-white/10 text-white/40 text-[0.85rem] cursor-pointer"
+                className="w-full py-[0.8rem] rounded-xl bg-white/[0.03] border border-white/10 text-white/60 text-[0.85rem] cursor-pointer"
             >
                 🗃️ 傷口已癒合，歸檔此紀錄
             </button>

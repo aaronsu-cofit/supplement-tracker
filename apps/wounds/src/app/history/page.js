@@ -41,7 +41,7 @@ export default function WoundHistoryPage() {
                 <div className="text-[3.5rem] mb-4 drop-shadow-[0_0_15px_rgba(255,154,158,0.2)]">📭</div>
                 <h3 className="text-white m-0 mb-2">尚無歷史紀錄</h3>
                 <p className="text-white/40 text-[0.9rem] mb-6">您還沒有建立過傷口拍攝紀錄喔！</p>
-                <button onClick={() => router.push('/wounds')} className="bg-w-gradient text-white py-[0.85rem] px-8 rounded-[50px] border-none font-bold text-[0.95rem] cursor-pointer shadow-[0_4px_20px_rgba(255,154,158,0.3)]">
+                <button onClick={() => router.push('/')} className="bg-w-gradient text-white py-[0.85rem] px-8 rounded-[50px] border-none font-bold text-[0.95rem] cursor-pointer shadow-[0_4px_20px_rgba(255,154,158,0.3)]">
                     返回首頁
                 </button>
             </div>
@@ -55,7 +55,7 @@ export default function WoundHistoryPage() {
             {/* Header */}
             <div className="flex items-center mb-4 gap-[0.8rem]">
                 <button
-                    onClick={() => router.push('/wounds')}
+                    onClick={() => router.push('/')}
                     className="bg-white/[0.04] border border-white/[0.08] rounded-[10px] w-9 h-9 text-[1.1rem] text-white/60 cursor-pointer flex items-center justify-center"
                 >←</button>
                 <h2 className="m-0 text-[1.1rem] text-white font-bold">復原歷程與時間軸</h2>

@@ -20,22 +20,32 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
     const [currentWound, setCurrentWound] = useState(null);
     const [showSwitcher, setShowSwitcher] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
+    const [dataLoading, setDataLoading] = useState(true);
     const switcherRef = useRef(null);
-    const initialized = useRef(false);
 
     useEffect(() => {
-        if (initialized.current) return;
-        if (!Array.isArray(initialWounds) || initialWounds.length === 0) return;
-        initialized.current = true;
-        setWounds(initialWounds);
-        const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-        const newId = urlParams?.get('new_id');
-        if (newId) {
-            const target = initialWounds.find(w => String(w.id) === String(newId));
-            if (target) { setCurrentWound(target); return; }
-        }
-        setCurrentWound(initialWounds[0]);
-    }, [initialWounds]);
+        const fetchWounds = async () => {
+            try {
+                const res = await apiFetch('/api/wounds');
+                if (res.ok) {
+                    const data = await res.json();
+                    setWounds(data);
+                    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+                    const newId = urlParams?.get('new_id');
+                    if (newId) {
+                        const target = data.find(w => String(w.id) === String(newId));
+                        if (target) { setCurrentWound(target); return; }
+                    }
+                    setCurrentWound(data[0] || null);
+                }
+            } catch (error) {
+                console.error('Failed to fetch wounds', error);
+            } finally {
+                setDataLoading(false);
+            }
+        };
+        fetchWounds();
+    }, []);
 
     useEffect(() => {
         const handler = (e) => {
@@ -89,7 +99,7 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
     const phase = getPhase(days);
 
     return (
-        <div className="max-w-[480px] mx-auto">
+        <div className="w-full max-w-2xl mx-auto">
             {/* Header with Wound Switcher */}
             <div ref={switcherRef} className="sticky top-0 z-20">
                 <header className="bg-w-header backdrop-blur-[20px] px-3 h-14 border-b border-white/[0.06] flex items-center justify-between gap-1">
@@ -105,7 +115,7 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
                         <span className="text-w-gradient text-[1.05rem] font-bold">
                             {currentWound.name || '未命名傷口'}
                         </span>
-                        <span className={`text-white/40 text-[0.7rem] transition-transform duration-200 ${showSwitcher ? 'rotate-180' : 'rotate-0'}`}>▼</span>
+                        <span className={`text-white/50 text-[0.75rem] transition-transform duration-200 ${showSwitcher ? 'rotate-180' : 'rotate-0'}`}>▼</span>
                     </button>
 
                     <button onClick={() => setShowEdit(true)} aria-label="編輯傷口資訊" className="bg-white/[0.06] border border-white/15 rounded-lg py-2 px-3 cursor-pointer text-white/75 text-[0.8rem] min-w-11 min-h-11 flex items-center justify-center transition-all hover:bg-white/[0.12] active:scale-95">✏️</button>
@@ -122,12 +132,12 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
                                     <div className="flex-1 text-left">
                                         <div className={`text-[0.9rem] text-white ${isActive ? 'font-semibold' : 'font-normal'}`}>{w.name}</div>
                                     </div>
-                                    <span className="text-white/30 text-[0.75rem]">第{daysSince(w.date_of_injury)}天</span>
+                                    <span className="text-white/55 text-[0.8rem]">第{daysSince(w.date_of_injury)}天</span>
                                     {isActive && <span className="text-w-pink text-[0.8rem]">✓</span>}
                                 </button>
                             );
                         })}
-                        <Link href="/create" onClick={() => setShowSwitcher(false)} className="flex items-center justify-center gap-[0.4rem] py-[0.6rem] mt-[0.3rem] rounded-[10px] bg-white/[0.03] border border-dashed border-white/12 text-white/40 text-[0.85rem] no-underline">
+                        <Link href="/create" onClick={() => setShowSwitcher(false)} className="flex items-center justify-center gap-[0.4rem] py-[0.6rem] mt-[0.3rem] rounded-[10px] bg-white/[0.03] border border-dashed border-white/20 text-white/60 text-[0.85rem] no-underline">
                             ＋ 新增傷口
                         </Link>
                     </div>
@@ -135,25 +145,31 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
             </div>
 
             {/* Dashboard Content */}
-            <div className="px-[1.2rem] pt-4 pb-8">
+            <div className="px-5 sm:px-8 pt-4 pb-8">
                 {/* Wound Info Card */}
-                <div className="bg-white/5 backdrop-blur-[20px] border border-white/[0.08] rounded-[20px] p-[1.3rem] mb-4 relative overflow-hidden">
+                <div className="bg-white/5 backdrop-blur-[20px] border border-white/[0.08] rounded-[20px] p-5 mb-4 relative overflow-hidden">
                     <div
-                        className="absolute -top-[30px] -right-[30px] w-[120px] h-[120px] rounded-full"
-                        style={{ background: `radial-gradient(circle, ${phase.color}22 0%, transparent 70%)` }}
+                        className="absolute inset-0"
+                        style={{ background: `radial-gradient(ellipse at top right, ${phase.color}22 0%, transparent 65%)` }}
                     />
-                    <div className="flex justify-between items-start relative">
-                        <div>
-                            <div className="flex gap-[0.4rem] flex-wrap mb-[0.6rem]">
-                                <span className="bg-w-pink/15 text-w-pink px-2 py-[2px] rounded-[6px] text-[0.75rem]">{type.label}</span>
-                                {loc && <span className="bg-w-blue/15 text-w-blue px-2 py-[2px] rounded-[6px] text-[0.75rem]">{loc.emoji} {loc.label}</span>}
-                                <span className={`${PHASE_CLASSES[phase.key]} px-2 py-[2px] rounded-[6px] text-[0.75rem]`}>{phase.label}</span>
-                            </div>
-                            <div className="text-white/65 text-[0.85rem]">受傷日期：{currentWound.date_of_injury}</div>
+                    <div className="relative flex flex-col gap-4">
+                        {/* Tags */}
+                        <div className="flex gap-[0.4rem] flex-wrap">
+                            <span className="bg-w-pink/15 text-w-pink px-[0.6rem] py-1 rounded-[8px] text-[0.75rem]">{type.label}</span>
+                            {loc && <span className="bg-w-blue/15 text-w-blue px-[0.6rem] py-1 rounded-[8px] text-[0.75rem]">{loc.emoji} {loc.label}</span>}
+                            <span className={`${PHASE_CLASSES[phase.key]} px-[0.6rem] py-1 rounded-[8px] text-[0.75rem]`}>{phase.label}</span>
                         </div>
-                        <div className="bg-w-gradient rounded-[14px] px-[0.8rem] py-[0.5rem] text-center shrink-0">
-                            <div className="text-white text-[1.4rem] font-extrabold leading-none">{days}</div>
-                            <div className="text-white/85 text-[0.75rem] mt-[2px]">天</div>
+
+                        {/* Hero stat */}
+                        <div className="flex items-end gap-[0.3rem]">
+                            <span className="text-white text-[3.2rem] font-black leading-none tracking-tight">{days}</span>
+                            <span className="text-white/80 text-[1.1rem] mb-[6px]">天</span>
+                            <span className="text-white/55 text-[0.85rem] mb-[8px] ml-1">照護中</span>
+                        </div>
+
+                        {/* Divider + date */}
+                        <div className="border-t border-white/[0.07] pt-1">
+                            <span className="text-white/60 text-[0.82rem]">受傷於 {currentWound.date_of_injury?.split('T')[0]}</span>
                         </div>
                     </div>
                 </div>
@@ -161,7 +177,7 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
                 {/* Care Tip */}
                 <div className="bg-w-pink/[0.08] border border-w-pink/15 rounded-[14px] px-4 py-[0.7rem] mb-4 flex items-center gap-[0.6rem]">
                     <span className="text-[1.1rem]">💡</span>
-                    <span className="text-white/65 text-[0.8rem]">{type.careNote}</span>
+                    <span className="text-white/80 text-[0.85rem]">{type.careNote}</span>
                 </div>
 
                 {/* Action Grid */}
@@ -169,12 +185,12 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
                     <Link href={`/${currentWound.id}/scan`} className="bg-white/5 backdrop-blur-[16px] border border-white/[0.08] rounded-2xl px-4 py-6 text-center no-underline flex flex-col items-center justify-center transition-all duration-200 hover:bg-white/10 hover:border-white/15 active:scale-[0.98]">
                         <div className="text-[2rem] mb-[0.4rem]">📸</div>
                         <div className="text-white text-[0.9rem] font-semibold">今日掃描</div>
-                        <div className="text-white/60 text-[0.78rem] mt-[2px]">拍照 + AI 分析</div>
+                        <div className="text-white/70 text-[0.82rem] mt-[2px]">拍照 + AI 分析</div>
                     </Link>
                     <Link href={`/${currentWound.id}/history`} className="bg-white/5 backdrop-blur-[16px] border border-white/[0.08] rounded-2xl px-4 py-6 text-center no-underline flex flex-col items-center justify-center transition-all duration-200 hover:bg-white/10 hover:border-white/15 active:scale-[0.98]">
                         <div className="text-[2rem] mb-[0.4rem]">📅</div>
                         <div className="text-white text-[0.9rem] font-semibold">照護歷程</div>
-                        <div className="text-white/60 text-[0.78rem] mt-[2px]">Timeline 回顧</div>
+                        <div className="text-white/70 text-[0.82rem] mt-[2px]">Timeline 回顧</div>
                     </Link>
                 </div>
 
@@ -206,6 +222,7 @@ function ArchiveButton({ woundId, onArchived }) {
     const [confirm, setConfirm] = useState(false);
     const handleArchive = async () => {
         await apiFetch(`/api/wounds/${woundId}`, { method: 'DELETE' });
+        setConfirm(false);
         onArchived();
     };
     return (
@@ -262,14 +279,14 @@ function EditWoundModal({ wound, onClose, onSaved }) {
                 <div className="w-10 h-1 bg-white/20 rounded mx-auto mb-4" />
                 <h3 className="text-white text-[1.1rem] font-bold m-0 mb-[1.2rem] text-center">編輯傷口資訊</h3>
 
-                <label className="text-white/50 text-[0.8rem] block mb-[0.3rem]">傷口名稱</label>
+                <label className="text-white/65 text-[0.85rem] block mb-[0.3rem]">傷口名稱</label>
                 <input
                     value={name}
                     onChange={e => setName(e.target.value)}
                     className="w-full p-[0.8rem] text-[0.95rem] text-white bg-white/[0.06] border border-white/[0.12] rounded-[10px] outline-none box-border mb-4 transition-all duration-200 focus:border-white/30 focus:bg-white/10"
                 />
 
-                <label className="text-white/50 text-[0.8rem] block mb-[0.3rem]">傷口類型</label>
+                <label className="text-white/65 text-[0.85rem] block mb-[0.3rem]">傷口類型</label>
                 <div className="flex flex-wrap gap-[0.4rem] mb-4">
                     {WOUND_TYPES.map(t => (
                         <button key={t.code} onClick={() => setWoundType(t.code)}
@@ -278,7 +295,7 @@ function EditWoundModal({ wound, onClose, onSaved }) {
                     ))}
                 </div>
 
-                <label className="text-white/50 text-[0.8rem] block mb-[0.3rem]">身體位置</label>
+                <label className="text-white/65 text-[0.85rem] block mb-[0.3rem]">身體位置</label>
                 <div className={`flex flex-wrap gap-[0.4rem] ${bodyLocation === 'other' ? 'mb-2' : 'mb-4'}`}>
                     {BODY_LOCATIONS.map(l => (
                         <button key={l.code} onClick={() => setBodyLocation(l.code)}
@@ -297,7 +314,7 @@ function EditWoundModal({ wound, onClose, onSaved }) {
                     />
                 )}
 
-                <label className="text-white/50 text-[0.8rem] block mb-[0.3rem]">受傷日期</label>
+                <label className="text-white/65 text-[0.85rem] block mb-[0.3rem]">受傷日期</label>
                 <input
                     type="date"
                     value={dateOfInjury}

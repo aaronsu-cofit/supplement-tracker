@@ -135,7 +135,7 @@ P (Plan - 計畫):
         <div className="p-6 font-sans bg-gray-50 min-h-screen">
             <header className="flex justify-between items-center mb-8 border-b-2 border-gray-200 pb-4">
                 <h1 className="text-[1.5rem] text-[#2c3e50] m-0">🏥 遠距傷口追蹤中心 (Demo)</h1>
-                <Link href="/wounds" className="text-[#3498db] no-underline font-bold">返回病患端</Link>
+                <Link href="/" className="text-[#3498db] no-underline font-bold">返回病患端</Link>
             </header>
 
             <div className="grid grid-cols-[1fr_2fr] gap-8">
