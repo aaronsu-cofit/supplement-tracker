@@ -10,18 +10,26 @@
 
 ```bash
 pnpm install
-cp backend/.env.example backend/.env   # 填入環境變數
-pnpm dev                                # 啟動所有服務
+cp backend/.env.example backend/.env   # 填入環境變數（見 docs/how-to/deploy.md）
+pnpm dev                                # 啟動所有服務（backend + all apps）
 ```
 
-詳細說明請見 [ARCHITECTURE.md](./ARCHITECTURE.md)。
+只啟動特定模組（推薦）：
+
+```bash
+pnpm dev:hq        # 後台 + backend
+pnpm dev:wounds    # 傷口追蹤 + portal + backend
+pnpm dev:bones     # 骨科 + portal + backend
+```
+
+詳細說明請見 [ARCHITECTURE.md](./ARCHITECTURE.md) 及 [部署指南](./docs/how-to/deploy.md)。
 
 ---
 
 ## 服務一覽
 
 | App | 說明 | Port |
-|-----|------|------|
+|---|---|---|
 | `apps/portal` | 病患入口（模組導航） | 3000 |
 | `apps/wounds` | 傷口智慧追蹤 | 3001 |
 | `apps/supplements` | 保健品 / 藥物管理 | 3002 |
@@ -36,7 +44,7 @@ pnpm dev                                # 啟動所有服務
 
 - **Frontend**: Next.js 16 · pnpm Workspaces · Turborepo · Vercel
 - **Backend**: Hono.js · Node 20 · GCP Cloud Run · Docker
-- **Database**: Neon PostgreSQL
+- **Database**: GCP Cloud SQL (PostgreSQL) · Prisma ORM
 - **AI**: Google Gemini（圖像分析）
 - **通訊**: LINE LIFF · LINE Bot SDK
 - **Packages**: `@vitera/lib`（共用邏輯）· `@vitera/ui`（共用元件）
