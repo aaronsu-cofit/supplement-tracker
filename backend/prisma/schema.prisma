@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+model User {
+  id            String   @id @db.VarChar(64)
+  email         String?  @unique @db.VarChar(200)
+  password_hash String?  @db.VarChar(200)
+  display_name  String?  @db.VarChar(200)
+  picture_url   String?
+  auth_provider String   @db.VarChar(20)
+  role          String   @default("user") @db.VarChar(20)
+  created_at    DateTime @default(now())
+
+  supplements          Supplement[]
+  check_ins            CheckIn[]
+  wounds               Wound[]
+  wound_logs           WoundLog[]
+  foot_assessments     FootAssessment[]
+  foot_images          FootImage[]
+  intimacy_assessments IntimacyAssessment[]
+
+  @@map("users")
+}
+
+model Supplement {
+  id          Int      @id @default(autoincrement())
+  user_id     String   @db.VarChar(64)
+  name        String   @db.VarChar(200)
+  dosage      String?  @db.VarChar(100)
+  frequency   String   @default("daily") @db.VarChar(50)
+  time_of_day String   @default("morning") @db.VarChar(20)
+  notes       String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  user      User      @relation(fields: [user_id], references: [id])
+  check_ins CheckIn[]
+
+  @@index([user_id], name: "idx_supplements_user")
+  @@map("supplements")
+}
+
+model CheckIn {
+  id            Int      @id @default(autoincrement())
+  user_id       String   @db.VarChar(64)
+  supplement_id Int
+  checked_at    DateTime @default(now())
+  date          DateTime @default(now()) @db.Date
+
+  user       User       @relation(fields: [user_id], references: [id])
+  supplement Supplement @relation(fields: [supplement_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, date], name: "idx_checkins_user_date")
+  @@map("check_ins")
+}
+
+model Wound {
+  id             Int       @id @default(autoincrement())
+  user_id        String    @db.VarChar(64)
+  name           String?   @db.VarChar(200)
+  location       String?   @db.VarChar(200)
+  date_of_injury DateTime? @db.Date
+  display_name   String?   @db.VarChar(200)
+  picture_url    String?
+  wound_type     String?   @db.VarChar(50)
+  body_location  String?   @db.VarChar(100)
+  status         String    @default("active") @db.VarChar(20)
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  user       User       @relation(fields: [user_id], references: [id])
+  wound_logs WoundLog[]
+
+  @@index([user_id], name: "idx_wounds_user")
+  @@map("wounds")
+}
+
+model WoundLog {
+  id                    Int      @id @default(autoincrement())
+  wound_id              Int
+  user_id               String   @db.VarChar(64)
+  image_data            String?
+  nrs_pain_score        Int      @default(0)
+  symptoms              String?
+  ai_assessment_summary String?
+  ai_status_label       String?  @db.VarChar(100)
+  logged_at             DateTime @default(now())
+  date                  DateTime @default(now()) @db.Date
+
+  wound Wound @relation(fields: [wound_id], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, date], name: "idx_wound_logs_user_date")
+  @@map("wound_logs")
+}
+
+model FootAssessment {
+  id             Int      @id @default(autoincrement())
+  user_id        String   @db.VarChar(64)
+  pain_locations String?
+  nrs_pain_score Int      @default(0)
+  steps_count    Int      @default(0)
+  standing_hours Float    @default(0)
+  date           DateTime @default(now()) @db.Date
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, date], name: "idx_foot_assessments_user_date")
+  @@map("foot_assessments")
+}
+
+model FootImage {
+  id          Int      @id @default(autoincrement())
+  user_id     String   @db.VarChar(64)
+  image_data  String?
+  ai_severity String?  @db.VarChar(50)
+  ai_summary  String?
+  ai_details  Json?
+  logged_at   DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id], name: "idx_foot_images_user")
+  @@map("foot_images")
+}
+
+model IntimacyAssessment {
+  id              Int      @id @default(autoincrement())
+  user_id         String   @db.VarChar(64)
+  gender          String?  @db.VarChar(20)
+  primary_concern String?  @db.VarChar(200)
+  assessment_data Json?
+  ai_summary      String?
+  created_at      DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id], name: "idx_intimacy_assessments_user")
+  @@map("intimacy_assessments")
+}
+
+model Module {
+  id           String   @id @db.VarChar(50)
+  name_zh      String?  @db.VarChar(100)
+  name_en      String?  @db.VarChar(100)
+  description  String?
+  is_active    Boolean  @default(true)
+  sort_order   Int      @default(0)
+  external_url String?
+  icon_type    String?  @db.VarChar(50)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@map("modules")
+}

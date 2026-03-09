@@ -7,7 +7,10 @@ RUN npm install -g pnpm
 # Copy package files
 COPY package.json ./
 
-# Install dependencies
+# Copy prisma schema BEFORE install so postinstall can run prisma generate
+COPY prisma ./prisma
+
+# Install dependencies (postinstall runs `prisma generate`)
 RUN pnpm install --frozen-lockfile
 
 # Copy source
@@ -20,4 +23,5 @@ EXPOSE 8080
 ENV NODE_ENV=production
 ENV PORT=8080
 
-CMD ["node", "src/index.js"]
+# Run DB migrations then start the server
+CMD ["sh", "-c", "npx prisma migrate deploy && node src/index.js"]

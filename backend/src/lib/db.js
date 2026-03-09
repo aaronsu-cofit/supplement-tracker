@@ -1,85 +1,14 @@
-import { neon } from '@neondatabase/serverless';
-import pg from 'pg';
+import { PrismaClient } from '@prisma/client';
 
-// ============================================
-// In-memory fallback for local dev (no DB)
-// ============================================
-let memoryStore = globalThis.__memoryStore;
+let _prisma;
 
-if (!memoryStore) {
-  memoryStore = {
-    supplements: [], checkIns: [], wounds: [], woundLogs: [],
-    footAssessments: [], footImages: [], users: [], intimacyAssessments: [],
-    nextSupId: 1, nextCiId: 1, nextWoundId: 1, nextWoundLogId: 1,
-    nextFootAssessId: 1, nextFootImageId: 1, nextIntimacyAssessId: 1,
-  };
-  globalThis.__memoryStore = memoryStore;
+function db() {
+  if (!_prisma) _prisma = new PrismaClient();
+  return _prisma;
 }
 
-function isLocalMode() {
-  return !process.env.POSTGRES_URL;
-}
-
-function isLocalPostgres() {
-  const url = process.env.POSTGRES_URL || '';
-  return url.includes('localhost') || url.includes('127.0.0.1');
-}
-
-function todayStr() {
-  return new Date().toISOString().split('T')[0];
-}
-
-// Adapter: wraps pg.Pool to match the neon tagged template literal API
-function createPgSql(connectionString) {
-  const pool = new pg.Pool({ connectionString });
-  return function sql(strings, ...values) {
-    let text = '';
-    values.forEach((val, i) => { text += strings[i] + `$${i + 1}`; });
-    text += strings[strings.length - 1];
-    return pool.query(text, values).then(r => r.rows);
-  };
-}
-
-let sql;
-function getDb() {
-  if (!sql) {
-    sql = isLocalPostgres()
-      ? createPgSql(process.env.POSTGRES_URL)
-      : neon(process.env.POSTGRES_URL);
-  }
-  return sql;
-}
-
-// ============================================
-// initializeDatabase
-// ============================================
 export async function initializeDatabase() {
-  if (isLocalMode()) return { success: true, mode: 'memory' };
-  const sql = getDb();
-  await sql`CREATE TABLE IF NOT EXISTS supplements (id SERIAL PRIMARY KEY, user_id VARCHAR(64) NOT NULL, name VARCHAR(200) NOT NULL, dosage VARCHAR(100), frequency VARCHAR(50) DEFAULT 'daily', time_of_day VARCHAR(20) DEFAULT 'morning', notes TEXT, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`;
-  await sql`CREATE TABLE IF NOT EXISTS check_ins (id SERIAL PRIMARY KEY, user_id VARCHAR(64) NOT NULL, supplement_id INTEGER REFERENCES supplements(id) ON DELETE CASCADE, checked_at TIMESTAMP DEFAULT NOW(), date DATE DEFAULT CURRENT_DATE)`;
-  await sql`CREATE TABLE IF NOT EXISTS wounds (id SERIAL PRIMARY KEY, user_id VARCHAR(64) NOT NULL, name VARCHAR(200), location VARCHAR(200), date_of_injury DATE, display_name VARCHAR(200), picture_url TEXT, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`;
-  await sql`CREATE TABLE IF NOT EXISTS wound_logs (id SERIAL PRIMARY KEY, wound_id INTEGER REFERENCES wounds(id) ON DELETE CASCADE, user_id VARCHAR(64) NOT NULL, image_data TEXT, nrs_pain_score INTEGER DEFAULT 0, symptoms TEXT, ai_assessment_summary TEXT, ai_status_label VARCHAR(100), logged_at TIMESTAMP DEFAULT NOW(), date DATE DEFAULT CURRENT_DATE)`;
-  await sql`CREATE TABLE IF NOT EXISTS users (id VARCHAR(64) PRIMARY KEY, email VARCHAR(200) UNIQUE, password_hash VARCHAR(200), display_name VARCHAR(200), picture_url TEXT, auth_provider VARCHAR(20) NOT NULL, role VARCHAR(20) DEFAULT 'user', created_at TIMESTAMP DEFAULT NOW())`;
-  await sql`CREATE TABLE IF NOT EXISTS foot_assessments (id SERIAL PRIMARY KEY, user_id VARCHAR(64) NOT NULL, pain_locations TEXT, nrs_pain_score INTEGER DEFAULT 0, steps_count INTEGER DEFAULT 0, standing_hours FLOAT DEFAULT 0, date DATE DEFAULT CURRENT_DATE)`;
-  await sql`CREATE TABLE IF NOT EXISTS foot_images (id SERIAL PRIMARY KEY, user_id VARCHAR(64) NOT NULL, image_data TEXT, ai_severity VARCHAR(50), ai_summary TEXT, ai_details JSONB, logged_at TIMESTAMP DEFAULT NOW())`;
-  await sql`CREATE TABLE IF NOT EXISTS intimacy_assessments (id SERIAL PRIMARY KEY, user_id VARCHAR(64) NOT NULL, gender VARCHAR(20), primary_concern VARCHAR(200), assessment_data JSONB, ai_summary TEXT, created_at TIMESTAMP DEFAULT NOW())`;
-  await sql`CREATE TABLE IF NOT EXISTS modules (id VARCHAR(50) PRIMARY KEY, name_zh VARCHAR(100), name_en VARCHAR(100), description TEXT, is_active BOOLEAN DEFAULT true, sort_order INTEGER DEFAULT 0, external_url TEXT, icon_type VARCHAR(50), created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_supplements_user ON supplements(user_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_checkins_user_date ON check_ins(user_id, date)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_wounds_user ON wounds(user_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_wound_logs_user_date ON wound_logs(user_id, date)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_foot_assessments_user_date ON foot_assessments(user_id, date)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_foot_images_user ON foot_images(user_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS idx_intimacy_assessments_user ON intimacy_assessments(user_id)`;
-  // Migrations
-  try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS display_name VARCHAR(200)`; } catch {}
-  try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS picture_url TEXT`; } catch {}
-  try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS wound_type VARCHAR(50)`; } catch {}
-  try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS body_location VARCHAR(100)`; } catch {}
-  try { await sql`ALTER TABLE wounds ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'`; } catch {}
-  try { await sql`ALTER TABLE foot_images ADD COLUMN IF NOT EXISTS ai_details JSONB`; } catch {}
-  try { await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'user'`; } catch {}
+  await db().$connect();
   return { success: true, mode: 'postgres' };
 }
 
@@ -87,38 +16,42 @@ export async function initializeDatabase() {
 // Supplements CRUD
 // ============================================
 export async function getSupplements(userId) {
-  if (isLocalMode()) return memoryStore.supplements.filter(s => s.user_id === userId);
-  return await getDb()`SELECT * FROM supplements WHERE user_id = ${userId} ORDER BY time_of_day, name`;
+  return db().supplement.findMany({
+    where: { user_id: userId },
+    orderBy: [{ time_of_day: 'asc' }, { name: 'asc' }],
+  });
 }
 
 export async function createSupplement(userId, data) {
-  if (isLocalMode()) {
-    const sup = { id: memoryStore.nextSupId++, user_id: userId, name: data.name, dosage: data.dosage || null, frequency: data.frequency || 'daily', time_of_day: data.time_of_day || 'morning', notes: data.notes || null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-    memoryStore.supplements.push(sup);
-    return sup;
-  }
-  const rows = await getDb()`INSERT INTO supplements (user_id, name, dosage, frequency, time_of_day, notes) VALUES (${userId}, ${data.name}, ${data.dosage || null}, ${data.frequency || 'daily'}, ${data.time_of_day || 'morning'}, ${data.notes || null}) RETURNING *`;
-  return rows[0];
+  return db().supplement.create({
+    data: {
+      user_id: userId,
+      name: data.name,
+      dosage: data.dosage || null,
+      frequency: data.frequency || 'daily',
+      time_of_day: data.time_of_day || 'morning',
+      notes: data.notes || null,
+    },
+  });
 }
 
 export async function updateSupplement(userId, id, data) {
-  if (isLocalMode()) {
-    const idx = memoryStore.supplements.findIndex(s => s.id === id && s.user_id === userId);
-    if (idx === -1) return null;
-    memoryStore.supplements[idx] = { ...memoryStore.supplements[idx], name: data.name, dosage: data.dosage || null, frequency: data.frequency || 'daily', time_of_day: data.time_of_day || 'morning', notes: data.notes || null, updated_at: new Date().toISOString() };
-    return memoryStore.supplements[idx];
-  }
-  const rows = await getDb()`UPDATE supplements SET name = ${data.name}, dosage = ${data.dosage || null}, frequency = ${data.frequency || 'daily'}, time_of_day = ${data.time_of_day || 'morning'}, notes = ${data.notes || null}, updated_at = NOW() WHERE id = ${id} AND user_id = ${userId} RETURNING *`;
-  return rows[0];
+  const existing = await db().supplement.findFirst({ where: { id, user_id: userId } });
+  if (!existing) return null;
+  return db().supplement.update({
+    where: { id },
+    data: {
+      name: data.name,
+      dosage: data.dosage || null,
+      frequency: data.frequency || 'daily',
+      time_of_day: data.time_of_day || 'morning',
+      notes: data.notes || null,
+    },
+  });
 }
 
 export async function deleteSupplement(userId, id) {
-  if (isLocalMode()) {
-    memoryStore.checkIns = memoryStore.checkIns.filter(ci => ci.supplement_id !== id);
-    memoryStore.supplements = memoryStore.supplements.filter(s => !(s.id === id && s.user_id === userId));
-    return { success: true };
-  }
-  await getDb()`DELETE FROM supplements WHERE id = ${id} AND user_id = ${userId}`;
+  await db().supplement.deleteMany({ where: { id, user_id: userId } });
   return { success: true };
 }
 
@@ -126,63 +59,72 @@ export async function deleteSupplement(userId, id) {
 // Check-ins
 // ============================================
 export async function getCheckIns(userId, date) {
-  if (isLocalMode()) {
-    const today = date || todayStr();
-    return memoryStore.checkIns.filter(ci => ci.user_id === userId && ci.date === today).map(ci => {
-      const sup = memoryStore.supplements.find(s => s.id === ci.supplement_id);
-      return { ...ci, supplement_name: sup?.name || 'Unknown', dosage: sup?.dosage, time_of_day: sup?.time_of_day };
-    });
-  }
-  return await getDb()`SELECT ci.*, s.name as supplement_name, s.dosage, s.time_of_day FROM check_ins ci JOIN supplements s ON ci.supplement_id = s.id WHERE ci.user_id = ${userId} AND ci.date = ${date} ORDER BY ci.checked_at`;
+  const rows = await db().$queryRaw`
+    SELECT ci.*, s.name as supplement_name, s.dosage, s.time_of_day
+    FROM check_ins ci
+    JOIN supplements s ON ci.supplement_id = s.id
+    WHERE ci.user_id = ${userId}
+      AND ci.date = ${date}::date
+    ORDER BY ci.checked_at
+  `;
+  return rows;
 }
 
 export async function getCheckInHistory(userId, startDate, endDate) {
-  if (isLocalMode()) {
-    const grouped = {};
-    memoryStore.checkIns.filter(ci => ci.user_id === userId && ci.date >= startDate && ci.date <= endDate).forEach(ci => {
-      if (!grouped[ci.date]) grouped[ci.date] = new Set();
-      grouped[ci.date].add(ci.supplement_id);
-    });
-    return Object.entries(grouped).map(([date, supSet]) => ({ date, check_count: supSet.size, supplements_taken: supSet.size })).sort((a, b) => b.date.localeCompare(a.date));
-  }
-  return await getDb()`SELECT ci.date, COUNT(ci.id) as check_count, COUNT(DISTINCT ci.supplement_id) as supplements_taken FROM check_ins ci WHERE ci.user_id = ${userId} AND ci.date >= ${startDate} AND ci.date <= ${endDate} GROUP BY ci.date ORDER BY ci.date DESC`;
+  const rows = await db().$queryRaw`
+    SELECT
+      ci.date::text,
+      COUNT(ci.id)::int      AS check_count,
+      COUNT(DISTINCT ci.supplement_id)::int AS supplements_taken
+    FROM check_ins ci
+    WHERE ci.user_id = ${userId}
+      AND ci.date >= ${startDate}::date
+      AND ci.date <= ${endDate}::date
+    GROUP BY ci.date
+    ORDER BY ci.date DESC
+  `;
+  return rows;
 }
 
 export async function createCheckIn(userId, supplementId) {
-  if (isLocalMode()) {
-    const today = todayStr();
-    if (memoryStore.checkIns.find(ci => ci.user_id === userId && ci.supplement_id === supplementId && ci.date === today)) return { already_checked: true };
-    const ci = { id: memoryStore.nextCiId++, user_id: userId, supplement_id: supplementId, checked_at: new Date().toISOString(), date: today };
-    memoryStore.checkIns.push(ci);
-    return ci;
-  }
-  const existing = await getDb()`SELECT id FROM check_ins WHERE user_id = ${userId} AND supplement_id = ${supplementId} AND date = CURRENT_DATE`;
+  const existing = await db().$queryRaw`
+    SELECT id FROM check_ins
+    WHERE user_id = ${userId}
+      AND supplement_id = ${supplementId}
+      AND date = CURRENT_DATE
+  `;
   if (existing.length > 0) return { already_checked: true };
-  const rows = await getDb()`INSERT INTO check_ins (user_id, supplement_id) VALUES (${userId}, ${supplementId}) RETURNING *`;
-  return rows[0];
+  return db().checkIn.create({
+    data: { user_id: userId, supplement_id: supplementId },
+  });
 }
 
 export async function removeCheckIn(userId, supplementId, date) {
-  if (isLocalMode()) {
-    memoryStore.checkIns = memoryStore.checkIns.filter(ci => !(ci.user_id === userId && ci.supplement_id === supplementId && ci.date === date));
-    return { success: true };
-  }
-  await getDb()`DELETE FROM check_ins WHERE user_id = ${userId} AND supplement_id = ${supplementId} AND date = ${date}`;
+  await db().$executeRaw`
+    DELETE FROM check_ins
+    WHERE user_id = ${userId}
+      AND supplement_id = ${supplementId}
+      AND date = ${date}::date
+  `;
   return { success: true };
 }
 
 export async function getStreak(userId) {
-  if (isLocalMode()) {
-    const dates = [...new Set(memoryStore.checkIns.filter(ci => ci.user_id === userId).map(ci => ci.date))].sort().reverse();
-    if (dates.length === 0) return 0;
-    let streak = 1;
-    for (let i = 1; i < dates.length; i++) {
-      const diff = (new Date(dates[i - 1] + 'T00:00:00') - new Date(dates[i] + 'T00:00:00')) / 86400000;
-      if (diff === 1) streak++; else break;
-    }
-    return streak;
-  }
-  const rows = await getDb()`WITH dates AS (SELECT DISTINCT date FROM check_ins WHERE user_id = ${userId} ORDER BY date DESC), numbered AS (SELECT date, date - (ROW_NUMBER() OVER (ORDER BY date DESC))::int * INTERVAL '1 day' AS grp FROM dates) SELECT COUNT(*) as streak FROM numbered WHERE grp = (SELECT grp FROM numbered ORDER BY date DESC LIMIT 1)`;
+  const rows = await db().$queryRaw`
+    WITH dates AS (
+      SELECT DISTINCT date FROM check_ins
+      WHERE user_id = ${userId}
+      ORDER BY date DESC
+    ),
+    numbered AS (
+      SELECT date,
+             date - (ROW_NUMBER() OVER (ORDER BY date DESC))::int * INTERVAL '1 day' AS grp
+      FROM dates
+    )
+    SELECT COUNT(*)::int AS streak
+    FROM numbered
+    WHERE grp = (SELECT grp FROM numbered ORDER BY date DESC LIMIT 1)
+  `;
   return rows[0]?.streak || 0;
 }
 
@@ -190,200 +132,249 @@ export async function getStreak(userId) {
 // Wounds CRUD
 // ============================================
 export async function getWounds(userId) {
-  if (isLocalMode()) return memoryStore.wounds.filter(w => w.user_id === userId && (w.status === 'active' || !w.status));
-  return await getDb()`SELECT * FROM wounds WHERE user_id = ${userId} AND (status = 'active' OR status IS NULL) ORDER BY created_at DESC`;
+  return db().wound.findMany({
+    where: {
+      user_id: userId,
+      OR: [{ status: 'active' }, { status: null }],
+    },
+    orderBy: { created_at: 'desc' },
+  });
 }
 
 export async function getWoundById(userId, woundId) {
-  if (isLocalMode()) return memoryStore.wounds.find(w => Number(w.id) === Number(woundId) && String(w.user_id) === String(userId)) || null;
-  const rows = await getDb()`SELECT * FROM wounds WHERE id = ${woundId} AND user_id = ${userId}`;
-  return rows[0] || null;
-}
-
-export async function archiveWound(userId, woundId) {
-  if (isLocalMode()) {
-    const w = memoryStore.wounds.find(w => w.id === woundId && w.user_id === userId);
-    if (w) w.status = 'archived';
-    return w;
-  }
-  const rows = await getDb()`UPDATE wounds SET status = 'archived' WHERE id = ${woundId} AND user_id = ${userId} RETURNING *`;
-  return rows[0];
-}
-
-export async function getAllWoundsAdmin() {
-  if (isLocalMode()) return memoryStore.wounds.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  return await getDb()`SELECT * FROM wounds ORDER BY created_at DESC LIMIT 50`;
-}
-
-export async function updateWound(woundId, userId, updates) {
-  if (isLocalMode()) {
-    const w = memoryStore.wounds.find(w => w.id === woundId && w.user_id === userId);
-    if (w) Object.assign(w, updates);
-    return w;
-  }
-  const rows = await getDb()`UPDATE wounds SET name = COALESCE(${updates.name || null}, name), wound_type = COALESCE(${updates.wound_type || null}, wound_type), body_location = COALESCE(${updates.body_location || null}, body_location), date_of_injury = COALESCE(${updates.date_of_injury ? updates.date_of_injury : null}, date_of_injury) WHERE id = ${woundId} AND user_id = ${userId} RETURNING *`;
-  return rows[0];
+  return db().wound.findFirst({
+    where: { id: Number(woundId), user_id: String(userId) },
+  });
 }
 
 export async function createWound(userId, data) {
-  if (isLocalMode()) {
-    const w = { id: memoryStore.nextWoundId++, user_id: userId, name: data.name || '未命名傷口', location: data.location || null, date_of_injury: data.date_of_injury || todayStr(), display_name: data.display_name || null, picture_url: data.picture_url || null, wound_type: data.wound_type || null, body_location: data.body_location || null, status: 'active', created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-    memoryStore.wounds.push(w);
-    return w;
-  }
-  const rows = await getDb()`INSERT INTO wounds (user_id, name, location, date_of_injury, display_name, picture_url, wound_type, body_location, status) VALUES (${userId}, ${data.name || '未命名傷口'}, ${data.location || null}, ${data.date_of_injury || todayStr()}, ${data.display_name || null}, ${data.picture_url || null}, ${data.wound_type || null}, ${data.body_location || null}, 'active') RETURNING *`;
-  return rows[0];
+  return db().wound.create({
+    data: {
+      user_id: userId,
+      name: data.name || '未命名傷口',
+      location: data.location || null,
+      date_of_injury: data.date_of_injury ? new Date(data.date_of_injury) : new Date(),
+      display_name: data.display_name || null,
+      picture_url: data.picture_url || null,
+      wound_type: data.wound_type || null,
+      body_location: data.body_location || null,
+      status: 'active',
+    },
+  });
+}
+
+export async function updateWound(woundId, userId, updates) {
+  const existing = await db().wound.findFirst({ where: { id: woundId, user_id: userId } });
+  if (!existing) return null;
+  return db().wound.update({
+    where: { id: woundId },
+    data: {
+      ...(updates.name != null && { name: updates.name }),
+      ...(updates.wound_type != null && { wound_type: updates.wound_type }),
+      ...(updates.body_location != null && { body_location: updates.body_location }),
+      ...(updates.date_of_injury != null && { date_of_injury: new Date(updates.date_of_injury) }),
+    },
+  });
+}
+
+export async function archiveWound(userId, woundId) {
+  const existing = await db().wound.findFirst({ where: { id: woundId, user_id: userId } });
+  if (!existing) return null;
+  return db().wound.update({
+    where: { id: woundId },
+    data: { status: 'archived' },
+  });
+}
+
+export async function getAllWoundsAdmin() {
+  return db().wound.findMany({
+    orderBy: { created_at: 'desc' },
+    take: 50,
+  });
 }
 
 // ============================================
 // Wound Logs
 // ============================================
 export async function getWoundLogs(userId, woundId) {
-  if (isLocalMode()) return memoryStore.woundLogs.filter(lg => lg.user_id === userId && lg.wound_id === woundId).sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
-  return await getDb()`SELECT * FROM wound_logs WHERE user_id = ${userId} AND wound_id = ${woundId} ORDER BY logged_at DESC`;
+  return db().woundLog.findMany({
+    where: { user_id: userId, wound_id: woundId },
+    orderBy: { logged_at: 'desc' },
+  });
 }
 
 export async function getWoundLogsAdmin(woundId) {
-  if (isLocalMode()) return memoryStore.woundLogs.filter(lg => lg.wound_id === woundId).sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
-  return await getDb()`SELECT * FROM wound_logs WHERE wound_id = ${woundId} ORDER BY logged_at DESC`;
+  return db().woundLog.findMany({
+    where: { wound_id: woundId },
+    orderBy: { logged_at: 'desc' },
+  });
 }
 
 export async function createWoundLog(userId, woundId, data) {
-  if (isLocalMode()) {
-    const lg = { id: memoryStore.nextWoundLogId++, user_id: userId, wound_id: woundId, image_data: data.image_data || null, nrs_pain_score: data.nrs_pain_score || 0, symptoms: data.symptoms || null, ai_assessment_summary: data.ai_assessment_summary || null, ai_status_label: data.ai_status_label || null, date: todayStr(), logged_at: new Date().toISOString() };
-    memoryStore.woundLogs.push(lg);
-    return lg;
-  }
-  const rows = await getDb()`INSERT INTO wound_logs (user_id, wound_id, image_data, nrs_pain_score, symptoms, ai_assessment_summary, ai_status_label) VALUES (${userId}, ${woundId}, ${data.image_data || null}, ${data.nrs_pain_score || 0}, ${data.symptoms || null}, ${data.ai_assessment_summary || null}, ${data.ai_status_label || null}) RETURNING *`;
-  return rows[0];
+  return db().woundLog.create({
+    data: {
+      user_id: userId,
+      wound_id: woundId,
+      image_data: data.image_data || null,
+      nrs_pain_score: data.nrs_pain_score || 0,
+      symptoms: data.symptoms || null,
+      ai_assessment_summary: data.ai_assessment_summary || null,
+      ai_status_label: data.ai_status_label || null,
+    },
+  });
 }
 
 // ============================================
 // User Auth
 // ============================================
 export async function findUserByEmail(email) {
-  if (isLocalMode()) return (memoryStore.users || []).find(u => u.email === email) || null;
-  const rows = await getDb()`SELECT * FROM users WHERE email = ${email}`;
-  return rows[0] || null;
+  return db().user.findUnique({ where: { email } });
 }
 
 export async function createEmailUser(id, email, passwordHash, displayName) {
-  if (isLocalMode()) {
-    if (!memoryStore.users) memoryStore.users = [];
-    const user = { id, email, password_hash: passwordHash, display_name: displayName, picture_url: null, auth_provider: 'email', role: 'user', created_at: new Date().toISOString() };
-    memoryStore.users.push(user);
-    return user;
-  }
-  const rows = await getDb()`INSERT INTO users (id, email, password_hash, display_name, auth_provider) VALUES (${id}, ${email}, ${passwordHash}, ${displayName}, 'email') RETURNING *`;
-  return rows[0];
+  return db().user.create({
+    data: {
+      id,
+      email,
+      password_hash: passwordHash,
+      display_name: displayName,
+      auth_provider: 'email',
+    },
+  });
 }
 
 export async function findOrCreateLineUser(lineUserId, displayName, pictureUrl) {
-  if (isLocalMode()) {
-    if (!memoryStore.users) memoryStore.users = [];
-    let user = memoryStore.users.find(u => u.id === lineUserId);
-    if (!user) {
-      user = { id: lineUserId, email: null, password_hash: null, display_name: displayName, picture_url: pictureUrl, auth_provider: 'line', role: 'user', created_at: new Date().toISOString() };
-      memoryStore.users.push(user);
-    }
-    return user;
-  }
-  const existing = await getDb()`SELECT * FROM users WHERE id = ${lineUserId}`;
-  if (existing.length > 0) {
-    await getDb()`UPDATE users SET display_name = ${displayName}, picture_url = ${pictureUrl} WHERE id = ${lineUserId}`;
-    return { ...existing[0], display_name: displayName, picture_url: pictureUrl };
-  }
-  const rows = await getDb()`INSERT INTO users (id, display_name, picture_url, auth_provider) VALUES (${lineUserId}, ${displayName}, ${pictureUrl}, 'line') RETURNING *`;
-  return rows[0];
+  return db().user.upsert({
+    where: { id: lineUserId },
+    update: { display_name: displayName, picture_url: pictureUrl },
+    create: {
+      id: lineUserId,
+      display_name: displayName,
+      picture_url: pictureUrl,
+      auth_provider: 'line',
+    },
+  });
 }
 
 export async function findUserById(userId) {
-  if (isLocalMode()) return (memoryStore.users || []).find(u => u.id === userId) || null;
-  const rows = await getDb()`SELECT * FROM users WHERE id = ${userId}`;
-  return rows[0] || null;
+  return db().user.findUnique({ where: { id: userId } });
 }
 
 export async function getAllUsers() {
-  if (isLocalMode()) return memoryStore.users || [];
-  return await getDb()`SELECT id, email, display_name, picture_url, auth_provider, role, created_at FROM users ORDER BY created_at DESC`;
+  return db().user.findMany({
+    select: {
+      id: true,
+      email: true,
+      display_name: true,
+      picture_url: true,
+      auth_provider: true,
+      role: true,
+      created_at: true,
+    },
+    orderBy: { created_at: 'desc' },
+  });
 }
 
 export async function updateUserRole(userId, newRole) {
-  if (isLocalMode()) {
-    const user = (memoryStore.users || []).find(u => u.id === userId);
-    if (user) { user.role = newRole; return user; }
+  try {
+    return await db().user.update({
+      where: { id: userId },
+      data: { role: newRole },
+    });
+  } catch {
     return null;
   }
-  const rows = await getDb()`UPDATE users SET role = ${newRole} WHERE id = ${userId} RETURNING *`;
-  return rows[0];
 }
 
 // ============================================
 // Foot Care / Bones
 // ============================================
 export async function getFootAssessments(userId) {
-  if (isLocalMode()) return memoryStore.footAssessments.filter(a => a.user_id === userId).sort((a, b) => new Date(b.date) - new Date(a.date));
-  return await getDb()`SELECT * FROM foot_assessments WHERE user_id = ${userId} ORDER BY date DESC`;
+  return db().footAssessment.findMany({
+    where: { user_id: userId },
+    orderBy: { date: 'desc' },
+  });
 }
 
 export async function createFootAssessment(userId, data) {
-  if (isLocalMode()) {
-    const assessment = { id: memoryStore.nextFootAssessId++, user_id: userId, pain_locations: data.pain_locations || null, nrs_pain_score: data.nrs_pain_score || 0, steps_count: data.steps_count || 0, standing_hours: data.standing_hours || 0, date: data.date || todayStr() };
-    memoryStore.footAssessments.push(assessment);
-    return assessment;
-  }
-  const rows = await getDb()`INSERT INTO foot_assessments (user_id, pain_locations, nrs_pain_score, steps_count, standing_hours, date) VALUES (${userId}, ${data.pain_locations || null}, ${data.nrs_pain_score || 0}, ${data.steps_count || 0}, ${data.standing_hours || 0}, ${data.date || todayStr()}) RETURNING *`;
-  return rows[0];
+  return db().footAssessment.create({
+    data: {
+      user_id: userId,
+      pain_locations: data.pain_locations || null,
+      nrs_pain_score: data.nrs_pain_score || 0,
+      steps_count: data.steps_count || 0,
+      standing_hours: data.standing_hours || 0,
+      ...(data.date && { date: new Date(data.date) }),
+    },
+  });
 }
 
 export async function getFootImages(userId) {
-  if (isLocalMode()) return memoryStore.footImages.filter(img => img.user_id === userId).sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
-  return await getDb()`SELECT * FROM foot_images WHERE user_id = ${userId} ORDER BY logged_at DESC`;
+  return db().footImage.findMany({
+    where: { user_id: userId },
+    orderBy: { logged_at: 'desc' },
+  });
 }
 
 export async function createFootImage(userId, data) {
-  if (isLocalMode()) {
-    const img = { id: memoryStore.nextFootImageId++, user_id: userId, image_data: data.image_data || null, ai_severity: data.ai_severity || null, ai_summary: data.ai_summary || null, ai_details: data.ai_details || null, logged_at: new Date().toISOString() };
-    memoryStore.footImages.push(img);
-    return img;
-  }
-  const rows = await getDb()`INSERT INTO foot_images (user_id, image_data, ai_severity, ai_summary, ai_details) VALUES (${userId}, ${data.image_data || null}, ${data.ai_severity || null}, ${data.ai_summary || null}, ${data.ai_details ? JSON.stringify(data.ai_details) : null}) RETURNING *`;
-  return rows[0];
+  return db().footImage.create({
+    data: {
+      user_id: userId,
+      image_data: data.image_data || null,
+      ai_severity: data.ai_severity || null,
+      ai_summary: data.ai_summary || null,
+      ai_details: data.ai_details || null,
+    },
+  });
 }
 
 // ============================================
 // Intimacy
 // ============================================
 export async function getIntimacyAssessments(userId) {
-  if (isLocalMode()) return memoryStore.intimacyAssessments.filter(a => a.user_id === userId).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  return await getDb()`SELECT * FROM intimacy_assessments WHERE user_id = ${userId} ORDER BY created_at DESC`;
+  return db().intimacyAssessment.findMany({
+    where: { user_id: userId },
+    orderBy: { created_at: 'desc' },
+  });
 }
 
 export async function createIntimacyAssessment(userId, data) {
-  if (isLocalMode()) {
-    const assessment = { id: memoryStore.nextIntimacyAssessId++, user_id: userId, gender: data.gender || null, primary_concern: data.primary_concern || null, assessment_data: data.assessment_data || null, ai_summary: data.ai_summary || null, created_at: new Date().toISOString() };
-    memoryStore.intimacyAssessments.push(assessment);
-    return assessment;
-  }
-  const rows = await getDb()`INSERT INTO intimacy_assessments (user_id, gender, primary_concern, assessment_data, ai_summary) VALUES (${userId}, ${data.gender || null}, ${data.primary_concern || null}, ${data.assessment_data ? JSON.stringify(data.assessment_data) : null}, ${data.ai_summary || null}) RETURNING *`;
-  return rows[0];
+  return db().intimacyAssessment.create({
+    data: {
+      user_id: userId,
+      gender: data.gender || null,
+      primary_concern: data.primary_concern || null,
+      assessment_data: data.assessment_data || null,
+      ai_summary: data.ai_summary || null,
+    },
+  });
 }
 
 // ============================================
 // Modules
 // ============================================
 export async function getActiveModules() {
-  if (isLocalMode()) return [];
-  return await getDb()`SELECT * FROM modules WHERE is_active = true ORDER BY sort_order ASC`;
+  return db().module.findMany({
+    where: { is_active: true },
+    orderBy: { sort_order: 'asc' },
+  });
 }
 
 export async function getAllModules() {
-  if (isLocalMode()) return [];
-  return await getDb()`SELECT * FROM modules ORDER BY sort_order ASC`;
+  return db().module.findMany({
+    orderBy: { sort_order: 'asc' },
+  });
 }
 
 export async function updateModule(id, updates) {
-  if (isLocalMode()) return null;
-  const rows = await getDb()`UPDATE modules SET name_zh = COALESCE(${updates.name_zh || null}, name_zh), name_en = COALESCE(${updates.name_en || null}, name_en), is_active = COALESCE(${updates.is_active !== undefined ? updates.is_active : null}, is_active), sort_order = COALESCE(${updates.sort_order !== undefined ? updates.sort_order : null}, sort_order), external_url = COALESCE(${updates.external_url || null}, external_url), updated_at = NOW() WHERE id = ${id} RETURNING *`;
-  return rows[0];
+  return db().module.update({
+    where: { id },
+    data: {
+      ...(updates.name_zh != null && { name_zh: updates.name_zh }),
+      ...(updates.name_en != null && { name_en: updates.name_en }),
+      ...(updates.is_active !== undefined && { is_active: updates.is_active }),
+      ...(updates.sort_order !== undefined && { sort_order: updates.sort_order }),
+      ...(updates.external_url != null && { external_url: updates.external_url }),
+    },
+  });
 }

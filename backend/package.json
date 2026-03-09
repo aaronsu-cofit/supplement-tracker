@@ -6,17 +6,24 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "build": "echo 'No build step needed'"
+    "build": "prisma generate",
+    "postinstall": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@hono/node-server": "^1.13.7",
     "@line/bot-sdk": "^10.6.0",
-    "@neondatabase/serverless": "^1.0.2",
+    "@prisma/client": "^5.22.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.3.1",
     "hono": "^4.7.4",
-    "jose": "^6.1.3",
-    "pg": "^8.13.3"
+    "jose": "^6.1.3"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0"
   }
 }
