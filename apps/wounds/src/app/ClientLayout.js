@@ -1,9 +1,14 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { LanguageProvider, LiffProvider, AuthProvider, useAuth } from '@vitera/lib';
+import { useEffect } from "react";
+import {
+  LanguageProvider,
+  LiffProvider,
+  AuthProvider,
+  useAuth,
+} from "@vitera/lib";
 
-const LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL || 'http://localhost:3000/login';
+const LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL;
 
 function RouteGuard({ children }) {
   const { isAuthenticated, isLoading } = useAuth();
