@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 let _prisma;
 
@@ -9,7 +9,7 @@ function db() {
 
 export async function initializeDatabase() {
   await db().$connect();
-  return { success: true, mode: 'postgres' };
+  return { success: true, mode: "postgres" };
 }
 
 // ============================================
@@ -18,7 +18,7 @@ export async function initializeDatabase() {
 export async function getSupplements(userId) {
   return db().supplement.findMany({
     where: { user_id: userId },
-    orderBy: [{ time_of_day: 'asc' }, { name: 'asc' }],
+    orderBy: [{ time_of_day: "asc" }, { name: "asc" }],
   });
 }
 
@@ -28,23 +28,25 @@ export async function createSupplement(userId, data) {
       user_id: userId,
       name: data.name,
       dosage: data.dosage || null,
-      frequency: data.frequency || 'daily',
-      time_of_day: data.time_of_day || 'morning',
+      frequency: data.frequency || "daily",
+      time_of_day: data.time_of_day || "morning",
       notes: data.notes || null,
     },
   });
 }
 
 export async function updateSupplement(userId, id, data) {
-  const existing = await db().supplement.findFirst({ where: { id, user_id: userId } });
+  const existing = await db().supplement.findFirst({
+    where: { id, user_id: userId },
+  });
   if (!existing) return null;
   return db().supplement.update({
     where: { id },
     data: {
       name: data.name,
       dosage: data.dosage || null,
-      frequency: data.frequency || 'daily',
-      time_of_day: data.time_of_day || 'morning',
+      frequency: data.frequency || "daily",
+      time_of_day: data.time_of_day || "morning",
       notes: data.notes || null,
     },
   });
@@ -135,9 +137,9 @@ export async function getWounds(userId) {
   return db().wound.findMany({
     where: {
       user_id: userId,
-      OR: [{ status: 'active' }, { status: null }],
+      status: "active",
     },
-    orderBy: { created_at: 'desc' },
+    orderBy: { created_at: "desc" },
   });
 }
 
@@ -151,44 +153,54 @@ export async function createWound(userId, data) {
   return db().wound.create({
     data: {
       user_id: userId,
-      name: data.name || '未命名傷口',
+      name: data.name || "未命名傷口",
       location: data.location || null,
-      date_of_injury: data.date_of_injury ? new Date(data.date_of_injury) : new Date(),
+      date_of_injury: data.date_of_injury
+        ? new Date(data.date_of_injury)
+        : new Date(),
       display_name: data.display_name || null,
       picture_url: data.picture_url || null,
       wound_type: data.wound_type || null,
       body_location: data.body_location || null,
-      status: 'active',
+      status: "active",
     },
   });
 }
 
 export async function updateWound(woundId, userId, updates) {
-  const existing = await db().wound.findFirst({ where: { id: woundId, user_id: userId } });
+  const existing = await db().wound.findFirst({
+    where: { id: woundId, user_id: userId },
+  });
   if (!existing) return null;
   return db().wound.update({
     where: { id: woundId },
     data: {
       ...(updates.name != null && { name: updates.name }),
       ...(updates.wound_type != null && { wound_type: updates.wound_type }),
-      ...(updates.body_location != null && { body_location: updates.body_location }),
-      ...(updates.date_of_injury != null && { date_of_injury: new Date(updates.date_of_injury) }),
+      ...(updates.body_location != null && {
+        body_location: updates.body_location,
+      }),
+      ...(updates.date_of_injury != null && {
+        date_of_injury: new Date(updates.date_of_injury),
+      }),
     },
   });
 }
 
 export async function archiveWound(userId, woundId) {
-  const existing = await db().wound.findFirst({ where: { id: woundId, user_id: userId } });
+  const existing = await db().wound.findFirst({
+    where: { id: woundId, user_id: userId },
+  });
   if (!existing) return null;
   return db().wound.update({
     where: { id: woundId },
-    data: { status: 'archived' },
+    data: { status: "archived" },
   });
 }
 
 export async function getAllWoundsAdmin() {
   return db().wound.findMany({
-    orderBy: { created_at: 'desc' },
+    orderBy: { created_at: "desc" },
     take: 50,
   });
 }
@@ -199,14 +211,14 @@ export async function getAllWoundsAdmin() {
 export async function getWoundLogs(userId, woundId) {
   return db().woundLog.findMany({
     where: { user_id: userId, wound_id: woundId },
-    orderBy: { logged_at: 'desc' },
+    orderBy: { logged_at: "desc" },
   });
 }
 
 export async function getWoundLogsAdmin(woundId) {
   return db().woundLog.findMany({
     where: { wound_id: woundId },
-    orderBy: { logged_at: 'desc' },
+    orderBy: { logged_at: "desc" },
   });
 }
 
@@ -238,12 +250,16 @@ export async function createEmailUser(id, email, passwordHash, displayName) {
       email,
       password_hash: passwordHash,
       display_name: displayName,
-      auth_provider: 'email',
+      auth_provider: "email",
     },
   });
 }
 
-export async function findOrCreateLineUser(lineUserId, displayName, pictureUrl) {
+export async function findOrCreateLineUser(
+  lineUserId,
+  displayName,
+  pictureUrl,
+) {
   return db().user.upsert({
     where: { id: lineUserId },
     update: { display_name: displayName, picture_url: pictureUrl },
@@ -251,7 +267,7 @@ export async function findOrCreateLineUser(lineUserId, displayName, pictureUrl) 
       id: lineUserId,
       display_name: displayName,
       picture_url: pictureUrl,
-      auth_provider: 'line',
+      auth_provider: "line",
     },
   });
 }
@@ -271,7 +287,7 @@ export async function getAllUsers() {
       role: true,
       created_at: true,
     },
-    orderBy: { created_at: 'desc' },
+    orderBy: { created_at: "desc" },
   });
 }
 
@@ -292,7 +308,7 @@ export async function updateUserRole(userId, newRole) {
 export async function getFootAssessments(userId) {
   return db().footAssessment.findMany({
     where: { user_id: userId },
-    orderBy: { date: 'desc' },
+    orderBy: { date: "desc" },
   });
 }
 
@@ -312,7 +328,7 @@ export async function createFootAssessment(userId, data) {
 export async function getFootImages(userId) {
   return db().footImage.findMany({
     where: { user_id: userId },
-    orderBy: { logged_at: 'desc' },
+    orderBy: { logged_at: "desc" },
   });
 }
 
@@ -334,7 +350,7 @@ export async function createFootImage(userId, data) {
 export async function getIntimacyAssessments(userId) {
   return db().intimacyAssessment.findMany({
     where: { user_id: userId },
-    orderBy: { created_at: 'desc' },
+    orderBy: { created_at: "desc" },
   });
 }
 
@@ -356,13 +372,13 @@ export async function createIntimacyAssessment(userId, data) {
 export async function getActiveModules() {
   return db().module.findMany({
     where: { is_active: true },
-    orderBy: { sort_order: 'asc' },
+    orderBy: { sort_order: "asc" },
   });
 }
 
 export async function getAllModules() {
   return db().module.findMany({
-    orderBy: { sort_order: 'asc' },
+    orderBy: { sort_order: "asc" },
   });
 }
 
@@ -373,8 +389,12 @@ export async function updateModule(id, updates) {
       ...(updates.name_zh != null && { name_zh: updates.name_zh }),
       ...(updates.name_en != null && { name_en: updates.name_en }),
       ...(updates.is_active !== undefined && { is_active: updates.is_active }),
-      ...(updates.sort_order !== undefined && { sort_order: updates.sort_order }),
-      ...(updates.external_url != null && { external_url: updates.external_url }),
+      ...(updates.sort_order !== undefined && {
+        sort_order: updates.sort_order,
+      }),
+      ...(updates.external_url != null && {
+        external_url: updates.external_url,
+      }),
     },
   });
 }
