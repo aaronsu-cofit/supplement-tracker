@@ -19,14 +19,14 @@ const auth = new Hono();
 
 const isProd = process.env.NODE_ENV === "production";
 
-/** Shared cookie options — sameSite: Lax + domain in prod, None in dev */
+/** Shared cookie options — sameSite: None in prod for cross-site (Vercel ↔ GCP), Lax in dev */
 function cookieOptions() {
   if (isProd) {
     return {
       httpOnly: true,
       secure: true,
-      sameSite: "Lax",
-      domain: process.env.COOKIE_DOMAIN || undefined, // e.g. '.vitera.com'
+      sameSite: "None", // Required for cross-site cookie (frontend on vercel.app, API on GCP)
+      domain: process.env.COOKIE_DOMAIN || undefined,
       maxAge: 60 * 60 * 24 * 365,
       path: "/",
     };
