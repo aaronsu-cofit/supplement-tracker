@@ -8,7 +8,8 @@ import {
   useAuth,
 } from "@vitera/lib";
 
-const LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL;
+const LOGIN_URL =
+  process.env.NEXT_PUBLIC_LOGIN_URL || "http://localhost:3000/login";
 
 function RouteGuard({ children }) {
   const { isAuthenticated, isLoading } = useAuth();
