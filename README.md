@@ -10,19 +10,26 @@
 
 ```bash
 pnpm install
-cp backend/.env.example backend/.env   # 填入環境變數（見 docs/how-to/deploy.md）
-pnpm dev                                # 啟動所有服務（backend + all apps）
+
+# 設定後端環境變數
+cp backend/.env.example backend/.env
+
+# 設定前端本機環境變數（互動式，一次設定全部 app）
+./scripts/setup-local-env.sh
+
+# 啟動
+pnpm dev
 ```
 
 只啟動特定模組（推薦）：
 
 ```bash
-pnpm dev:hq        # 後台 + backend
-pnpm dev:wounds    # 傷口追蹤 + portal + backend
-pnpm dev:bones     # 骨科 + portal + backend
+pnpm dev:hq        # hq + backend
+pnpm dev:wounds    # wounds + portal + backend
+pnpm dev:bones     # bones + portal + backend
 ```
 
-詳細說明請見 [ARCHITECTURE.md](./ARCHITECTURE.md) 及 [部署指南](./docs/how-to/deploy.md)。
+詳細說明請見 [ARCHITECTURE.md](./ARCHITECTURE.md)。
 
 ---
 
@@ -30,7 +37,7 @@ pnpm dev:bones     # 骨科 + portal + backend
 
 | App | 說明 | Port |
 |---|---|---|
-| `apps/portal` | 病患入口（模組導航） | 3000 |
+| `apps/portal` | 病患入口（模組導航、登入） | 3000 |
 | `apps/wounds` | 傷口智慧追蹤 | 3001 |
 | `apps/supplements` | 保健品 / 藥物管理 | 3002 |
 | `apps/bones` | 骨骼關節照護（AI 拇趾外翻檢測） | 3003 |
@@ -42,7 +49,7 @@ pnpm dev:bones     # 骨科 + portal + backend
 
 ## 技術棧
 
-- **Frontend**: Next.js 16 · pnpm Workspaces · Turborepo · Vercel
+- **Frontend**: Next.js 16 · React 19 · Tailwind CSS v4 · pnpm Workspaces · Turborepo · GCP Cloud Run · Docker
 - **Backend**: Hono.js · Node 20 · GCP Cloud Run · Docker
 - **Database**: GCP Cloud SQL (PostgreSQL) · Prisma ORM
 - **AI**: Google Gemini（圖像分析）

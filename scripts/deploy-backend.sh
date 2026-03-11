@@ -1,6 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# deploy-backend.sh — 部署後端到 GCP Cloud Run
+#
+# 使用 gcloud builds submit 在雲端 build Docker image 並推上 GCR，
+# 再部署到 Cloud Run。只有一個環境（production），staging backend
+# 如有需要請複製此 script 並調整 SERVICE_NAME。
+#
+# 前置需求：
+#   - gcloud CLI 已安裝並登入（gcloud auth login）
+#   - 已設定 GCP_PROJECT 環境變數，或直接修改下方預設值
+#
+# 使用方式：
+#   GCP_PROJECT=my-project ./scripts/deploy-backend.sh
+#   ./scripts/deploy-backend.sh   # 若已 export GCP_PROJECT
+#
+# 部署後需手動在 Cloud Run 設定以下 secrets：
+#   POSTGRES_URL, JWT_SECRET, GEMINI_API_KEY, LINE_CHANNEL_ACCESS_TOKEN
+# ═══════════════════════════════════════════════════════════════════════════════
+
 # ─── Config ───────────────────────────────────────────────────────────────────
 GCP_PROJECT="${GCP_PROJECT:-your-gcp-project-id}"
 GCP_REGION="${GCP_REGION:-asia-east1}"
@@ -52,5 +71,5 @@ SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" \
   --format "value(status.url)")
 echo "📡 Service URL: $SERVICE_URL"
 echo ""
-echo "⚠️  Don't forget to update ALLOWED_ORIGINS in Cloud Run env vars to include your Vercel app URLs."
+echo "⚠️  Don't forget to update ALLOWED_ORIGINS in Cloud Run env vars to include your frontend URLs."
 echo "⚠️  Also set: POSTGRES_URL, JWT_SECRET, GEMINI_API_KEY, LINE_CHANNEL_ACCESS_TOKEN"

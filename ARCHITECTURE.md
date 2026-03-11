@@ -1,61 +1,63 @@
-# Vitera Monorepo — 架構說明 & 啟動指南
+# Vitera Monorepo — 架構說明
 
 ## 目錄結構
 
 ```
 vitera/
-├── apps/                    # 前端 Next.js Apps（各自獨立部署到 Vercel）
-│   ├── portal/              # 入口頁（模組選擇、登入）           port 3000
-│   ├── wounds/              # 傷口照護                          port 3001
-│   ├── supplements/         # 保健品管理                        port 3002
-│   ├── bones/               # 骨骼關節照護（拇趾外翻 AI 檢測）   port 3003
-│   ├── intimacy/            # 親密健康                          port 3004
-│   └── hq/                  # 後台管理（模組、管理員）           port 3005
+├── apps/                        # 前端 Next.js Apps（各自部署到 GCP Cloud Run）
+│   ├── portal/                  # 入口頁（模組選擇、登入）           port 3000
+│   │   └── Dockerfile
+│   ├── wounds/                  # 傷口照護                          port 3001
+│   │   └── Dockerfile
+│   ├── supplements/             # 保健品管理                        port 3002
+│   │   └── Dockerfile
+│   ├── bones/                   # 骨骼關節照護（拇趾外翻 AI 檢測）   port 3003
+│   │   └── Dockerfile
+│   ├── intimacy/                # 親密健康                          port 3004
+│   │   └── Dockerfile
+│   └── hq/                      # 後台管理（模組、管理員）           port 3005
+│       └── Dockerfile
 │
-├── backend/                 # Hono.js API Server（部署到 GCP Cloud Run）
+├── backend/                     # Hono.js API Server（GCP Cloud Run）
 │   ├── src/
-│   │   ├── index.js         # 入口、CORS、路由掛載
+│   │   ├── index.js             # 入口、CORS、路由掛載
 │   │   ├── lib/
-│   │   │   ├── db.js        # 資料庫 CRUD（Neon PostgreSQL）
-│   │   │   ├── auth.js      # JWT sign/verify, bcrypt
-│   │   │   └── ai.js        # Gemini API 呼叫封裝
+│   │   │   ├── db.js            # Prisma CRUD
+│   │   │   ├── auth.js          # JWT sign/verify, bcrypt
+│   │   │   └── ai.js            # Gemini API 封裝
 │   │   ├── middleware/
-│   │   │   └── authMiddleware.js   # Bearer token / cookie 雙重驗證
-│   │   └── routes/
-│   │       ├── auth.js      # /api/auth/*
-│   │       ├── supplements.js
-│   │       ├── checkins.js
-│   │       ├── wounds.js
-│   │       ├── bones.js     # /api/footcare/*
-│   │       ├── intimacy.js
-│   │       ├── hq.js
-│   │       ├── analyze.js   # AI 圖像分析
-│   │       ├── notify.js    # LINE 推播
-│   │       └── modules.js   # 公開模組清單
+│   │   │   └── authMiddleware.js
+│   │   └── routes/              # auth, supplements, wounds, bones, intimacy, hq, ...
+│   ├── prisma/schema.prisma
 │   ├── Dockerfile
 │   └── .env.example
 │
 ├── packages/
-│   ├── lib/                 # @vitera/lib — 共用邏輯
+│   ├── lib/                     # @vitera/lib — 共用邏輯
 │   │   └── src/
-│   │       ├── api.js            # apiFetch, setAuthToken, clearAuthToken
-│   │       ├── auth/AuthProvider.js
-│   │       ├── liff/LiffProvider.js
+│   │       ├── AppLayout.jsx         # 標準 Layout（providers + auth guard）
+│   │       ├── api.js                # apiFetch（帶 credentials）
+│   │       ├── auth/
+│   │       │   ├── AuthProvider.js   # useAuth, cookie-based session
+│   │       │   └── AuthGuard.js      # 未登入時導向 login
+│   │       ├── liff/LiffProvider.js  # LINE LIFF 初始化
 │   │       ├── i18n/LanguageContext.js
 │   │       ├── modules/ModuleProvider.js
 │   │       └── wounds-constants.js
-│   └── ui/                  # @vitera/ui — 共用 React 元件
+│   └── ui/                      # @vitera/ui — 共用 React 元件
 │       └── src/
 │           ├── AppHeader.jsx
 │           ├── CameraCapture.jsx
 │           └── icons.js
 │
 ├── scripts/
-│   ├── deploy-backend.sh       # GCP Cloud Run 部署
-│   ├── deploy-frontend.sh      # Vercel 部署（單一 app 或全部）
-│   └── setup-vercel-projects.sh  # 首次 Vercel 專案初始化
+│   ├── setup-local-env.sh       # 本機開發環境初始化（建立各 app 的 .env.local）
+│   ├── deploy-backend.sh        # 後端部署到 GCP Cloud Run
+│   └── deploy-frontend-cloudrun.sh  # 前端部署到 GCP Cloud Run（staging / production）
 │
-├── package.json             # monorepo root（pnpm workspaces）
+├── .env.local.example           # 本機 .env.local 範本
+├── .env.cloudrun.example        # Cloud Run 部署環境變數範本
+├── package.json                 # monorepo root（pnpm workspaces）
 ├── pnpm-workspace.yaml
 └── turbo.json
 ```
@@ -70,56 +72,59 @@ vitera/
 LINE App / Browser
       │
       ▼
- Vercel (Frontend)          GCP Cloud Run (Backend)
- ┌─────────────────┐        ┌──────────────────────┐
- │  apps/portal    │        │   Hono.js API         │
- │  apps/wounds    │──────▶ │   /api/*              │
- │  apps/supplements│        │                      │
- │  apps/bones     │        │   Neon PostgreSQL ◀──┤
- │  apps/intimacy  │        │   Gemini AI       ◀──┤
- │  apps/hq        │        │   LINE Bot SDK    ◀──┤
- └─────────────────┘        └──────────────────────┘
+GCP Cloud Run (Frontend)        GCP Cloud Run (Backend)
+┌──────────────────────┐        ┌──────────────────────┐
+│  apps/portal         │        │   Hono.js API         │
+│  apps/wounds         │──────▶ │   /api/*              │
+│  apps/supplements    │        │                       │
+│  apps/bones          │        │   Cloud SQL (PG) ◀───┤
+│  apps/intimacy       │        │   Gemini AI      ◀───┤
+│  apps/hq             │        │   LINE Bot SDK   ◀───┤
+└──────────────────────┘        └──────────────────────┘
 ```
 
-- **每個 `apps/*` 對應一個獨立 Vercel Project**，在 Vercel 設定 `Root Directory` 為 `apps/<name>`
-- **Backend 統一部署一個 Cloud Run 服務**，所有 Apps 共用同一個 API endpoint
-- 前端透過環境變數 `NEXT_PUBLIC_API_URL` 指向後端
+- **每個 `apps/*` 是獨立的 Cloud Run 服務**，Docker build context 為 monorepo 根目錄
+- **Backend 統一一個 Cloud Run 服務**，所有 app 共用同一個 API endpoint
+- 前端透過 `NEXT_PUBLIC_API_URL` 指向後端，**在 build 時 bake 進 JS bundle**
 
 ### 認證機制
 
-1. 登入成功後，後端回傳 JWT `token`
-2. 前端用 `setAuthToken(token)` 存入 `localStorage`（key: `vitera_auth_token`）
-3. 後續所有 API 呼叫透過 `apiFetch()` 自動附加 `Authorization: Bearer <token>` header
-4. 後端 `authMiddleware` 優先讀取 Bearer token，fallback 到 cookie（向後相容）
-5. LINE 用戶：LIFF 初始化後自動呼叫 `/api/auth/me` (POST) 完成靜默登入
+1. 登入後，後端回傳 `Set-Cookie: auth_token`（httpOnly）
+2. 所有 API 呼叫透過 `apiFetch()` 自動帶上 cookie（`credentials: 'include'`）
+3. 後端 `authMiddleware` 讀取 cookie 驗證 JWT
+4. LINE 用戶：LIFF 初始化後呼叫 `/api/auth/me (POST)` 完成靜默登入
 
 ### 共用套件
 
-| 套件 | 用途 |
-|------|------|
-| `@vitera/lib` | `apiFetch`, `AuthProvider`, `LiffProvider`, `ModuleProvider`, `LanguageProvider`, wounds 常數 |
-| `@vitera/ui` | `AppHeader`, `CameraCapture`, icon 元件 |
+| 套件 | 主要匯出 |
+|------|---------|
+| `@vitera/lib` | `AppLayout`, `AuthProvider`, `AuthGuard`, `LiffProvider`, `apiFetch`, `LanguageProvider`, `ModuleProvider` |
+| `@vitera/ui` | `AppHeader`, `CameraCapture`, icons |
 
-所有 Apps 的 `next.config.mjs` 必須加上：
+所有 App 的 `next.config.mjs` 已設定：
 ```js
-const nextConfig = { transpilePackages: ['@vitera/ui', '@vitera/lib'] };
+const nextConfig = {
+  output: 'standalone',
+  outputFileTracingRoot: path.join(__dirname, '../../'),
+  transpilePackages: ['@vitera/ui', '@vitera/lib'],
+};
 ```
 
 ---
 
-## 本地開發啟動
+## 本地開發
 
 ### 前置需求
 
-```bash
+```
 node >= 20
 pnpm >= 9
+Docker（若需要測試 production build）
 ```
 
 ### 1. 安裝依賴
 
 ```bash
-# 在 monorepo 根目錄執行，會同時安裝所有 workspace 的依賴
 pnpm install
 ```
 
@@ -128,48 +133,30 @@ pnpm install
 **後端：**
 ```bash
 cp backend/.env.example backend/.env
-# 填入以下變數：
-# POSTGRES_URL=       ← Neon PostgreSQL 連線字串
-# JWT_SECRET=         ← 任意隨機字串（生產環境請用 256-bit 以上）
-# GEMINI_API_KEY=     ← Google AI Studio 取得
-# LINE_CHANNEL_ACCESS_TOKEN=  ← LINE Developers 取得
+# 填入：POSTGRES_URL, JWT_SECRET, GEMINI_API_KEY, LINE_CHANNEL_ACCESS_TOKEN
 ```
 
-**前端（每個 App 各別設定，或統一設定後複製）：**
+**前端（一次設定全部 app）：**
 ```bash
-# 在每個 apps/* 目錄建立 .env.local
-echo "NEXT_PUBLIC_API_URL=http://localhost:3000" > apps/portal/.env.local
-echo "NEXT_PUBLIC_API_URL=http://localhost:3001" > apps/wounds/.env.local
-echo "NEXT_PUBLIC_API_URL=http://localhost:3002" > apps/bones/.env.local
-echo "NEXT_PUBLIC_API_URL=http://localhost:3003" > apps/intimacy/.env.local
-echo "NEXT_PUBLIC_API_URL=http://localhost:3004" > apps/supplements/.env.local
-echo "NEXT_PUBLIC_API_URL=http://localhost:3005" > apps/hq/.env.local
+./scripts/setup-local-env.sh
+# 會詢問各 app 的 LIFF ID，不需要可直接 Enter 略過
 ```
 
-若有 LINE LIFF 整合，另外設定（各 App 的 LIFF ID 不同）：
+或手動複製：
 ```bash
-echo "NEXT_PUBLIC_LIFF_ID=your-liff-id" >> apps/portal/.env.local
+cp .env.local.example apps/wounds/.env.local
+# 視需要修改各 app 的 NEXT_PUBLIC_LIFF_ID
 ```
 
-### 3. 啟動所有服務
+### 3. 啟動
 
-**全部同時啟動（推薦）：**
 ```bash
-pnpm dev
-# Turborepo 會並行啟動 backend + 所有 apps
-```
-
-**單獨啟動：**
-```bash
-# 只啟動後端
-cd backend && pnpm dev
-
-# 只啟動特定前端
-cd apps/wounds && pnpm dev
-
-# 或使用 turbo filter
-pnpm turbo dev --filter=@vitera/wounds
-pnpm turbo dev --filter=@vitera/backend
+pnpm dev                 # 全部（backend + 所有 app）
+pnpm dev:wounds          # wounds + portal + backend
+pnpm dev:bones           # bones + portal + backend
+pnpm dev:supplements     # supplements + portal + backend
+pnpm dev:intimacy        # intimacy + portal + backend
+pnpm dev:hq              # hq + backend
 ```
 
 啟動後各服務位址：
@@ -188,74 +175,83 @@ pnpm turbo dev --filter=@vitera/backend
 
 ---
 
-## 生產部署
+## 部署
 
-### 後端 → GCP Cloud Run
+### 環境說明
+
+| 環境 | Service 命名 | 設定檔 |
+|------|-------------|-------|
+| local | — | `apps/*/.env.local` |
+| staging | `vitera-<app>-staging` | `.env.cloudrun.staging` |
+| production | `vitera-<app>` | `.env.cloudrun.production` |
+
+### 初次設定
 
 ```bash
-# 設定 GCP 專案 ID
-export GCP_PROJECT=your-project-id
+# 複製範本，填入各環境的真實值
+cp .env.cloudrun.example .env.cloudrun.staging
+cp .env.cloudrun.example .env.cloudrun.production
+```
 
-# 部署（會自動 build Docker image 並上傳）
+### 後端部署
+
+```bash
+export GCP_PROJECT=your-project-id
 ./scripts/deploy-backend.sh
 
-# 部署完成後，設定 Cloud Run 環境變數（在 GCP Console 或 CLI）：
+# 部署後在 GCP Console 設定 secrets：
 # POSTGRES_URL, JWT_SECRET, GEMINI_API_KEY, LINE_CHANNEL_ACCESS_TOKEN
-# ALLOWED_ORIGINS=https://your-portal.vercel.app,https://your-wounds.vercel.app,...
+# ALLOWED_ORIGINS=<所有前端 URL，逗號分隔>
 ```
 
-> Dockerfile 說明：Node 20 Alpine，直接 `node src/index.js` 啟動，無 build step。
+### 前端部署
 
-### 前端 → Vercel
-
-**首次設定（只需執行一次）：**
 ```bash
-# 會互動式地為每個 App 建立/連結 Vercel 專案，並設定環境變數
-export NEXT_PUBLIC_API_URL=https://your-backend.run.app
-./scripts/setup-vercel-projects.sh
+# 單一 app
+./scripts/deploy-frontend-cloudrun.sh portal --env staging
+./scripts/deploy-frontend-cloudrun.sh wounds --env production
+
+# 全部
+./scripts/deploy-frontend-cloudrun.sh all --env staging
+./scripts/deploy-frontend-cloudrun.sh all --env production
+
+# 強制重新 build（不用 cache）
+./scripts/deploy-frontend-cloudrun.sh all --env production --no-cache
 ```
-
-**後續部署：**
-```bash
-# 部署單一 App（預覽環境）
-./scripts/deploy-frontend.sh portal
-
-# 部署單一 App（生產環境）
-./scripts/deploy-frontend.sh wounds --prod
-
-# 部署所有 App（生產環境）
-./scripts/deploy-frontend.sh all --prod
-```
-
-**Vercel 專案設定注意事項：**
-- `Root Directory` 設為 `apps/<name>`（例如 `apps/wounds`）
-- Framework Preset: `Next.js`
-- Build Command: `cd ../.. && pnpm turbo build --filter=<package-name>` 或讓 Vercel 自動偵測
 
 ---
 
-## 新增服務流程
+## 新增 App 流程
 
-1. 複製現有 App 目錄作為範本：
+1. **複製現有 app：**
    ```bash
-   cp -r apps/bones apps/newservice
+   cp -r apps/bones apps/newapp
    ```
 
-2. 修改 `apps/newservice/package.json`：
-   - `name`: `@vitera/newservice`
+2. **修改 `apps/newapp/package.json`：**
+   - `name`: `@vitera/newapp`
    - `scripts.dev`: `next dev -p <新 port>`
 
-3. 修改 `apps/newservice/src/app/layout.js`：更新 `metadata.title`
+3. **`ClientLayout.js` 只需 3 行：**
+   ```jsx
+   'use client';
+   import { AppLayout } from '@vitera/lib';
+   export default function ClientLayout({ children }) {
+     return <AppLayout>{children}</AppLayout>;
+   }
+   ```
 
-4. 修改 `apps/newservice/src/app/page.js`：實作新功能
+4. **`apps/newapp/Dockerfile`：**
+   複製任一現有 Dockerfile，把 app 名稱全部換掉即可。
 
-5. 在後端 `backend/src/routes/` 新增路由檔案，並在 `backend/src/index.js` 掛載
+5. **加入 turbo.json 的 dev filter（若需要）**
 
-6. 建立 `.env.local` 設定 `NEXT_PUBLIC_API_URL`
+6. **在 `.env.cloudrun.staging` / `.env.cloudrun.production` 加上：**
+   ```
+   LIFF_ID_NEWAPP=your-liff-id
+   ```
 
-7. 在 Vercel 建立新專案，`Root Directory` 指向 `apps/newservice`
-
-**不需要修改任何現有 App，也不需要動 backend 主要邏輯。**
+7. **在 `scripts/deploy-frontend-cloudrun.sh` 的 `APPS` 陣列加上 `newapp`**
 
 ---
 
@@ -277,13 +273,14 @@ export NEXT_PUBLIC_API_URL=https://your-backend.run.app
 
 ---
 
-## 已知注意事項
+## 注意事項
 
-### 根目錄 `src/` 是舊版遺留代碼
-`/src/app/` 是遷移前的原始 Next.js API routes，目前無作用。新架構的 API 全在 `/backend/src/routes/`。日後可移除此目錄。
+### NEXT_PUBLIC_* 變數在 build 時 bake 進 bundle
+修改 `NEXT_PUBLIC_*` 環境變數後，**必須重新 build 並部署**，不能在 Cloud Run Console 直接修改後生效。
 
 ### 資料庫 Dev Fallback
-`backend/src/lib/db.js` 在 `POSTGRES_URL` 未設定時會使用 in-memory store，方便本地開發無需資料庫。**生產環境務必設定 `POSTGRES_URL`。**
+`backend/src/lib/db.js` 在 `POSTGRES_URL` 未設定時會使用 in-memory store，方便本地無需資料庫。**生產環境務必設定 `POSTGRES_URL`。**
 
 ### LIFF 整合
-各 App 可設定自己的 `NEXT_PUBLIC_LIFF_ID`。若未設定，`LiffProvider` 會以 browser 模式運作（不初始化 LIFF SDK），適合一般瀏覽器開發測試。
+各 App 設定自己的 `NEXT_PUBLIC_LIFF_ID`（對應 LINE LIFF channel）。
+若未設定，`LiffProvider` 以 browser 模式運作（不初始化 LIFF SDK），適合一般瀏覽器開發測試。
