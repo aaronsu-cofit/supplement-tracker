@@ -1,25 +1,34 @@
 FROM node:20-alpine AS base
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm and openssl (required by Prisma on alpine)
+RUN npm install -g pnpm && apk add --no-cache openssl
 
-# Copy package files
-COPY package.json ./
+# ---- Install deps (cached layer) ----
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY backend/package.json ./backend/
+COPY backend/prisma ./backend/prisma
+RUN pnpm install --frozen-lockfile --filter @vitera/backend
 
-# Copy prisma schema BEFORE install so postinstall can run prisma generate
-COPY prisma ./prisma
+# Explicitly run prisma generate to ensure client is fully built at image build time
+RUN cd backend && npx prisma generate --schema=prisma/schema.prisma
 
-# Install dependencies (postinstall runs `prisma generate`)
-RUN pnpm install --frozen-lockfile
+# ---- Runner ----
+FROM base AS runner
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/backend/node_modules ./backend/node_modules
+COPY backend/src ./backend/src
+COPY backend/prisma ./backend/prisma
+COPY --from=deps /app/backend/package.json ./backend/
 
-# Copy source
-COPY src ./src
+# Ensure node user (uid 1000) owns the app directory
+RUN chown -R node:node /app
+USER node
 
-# Expose port
+WORKDIR /app/backend
+
 EXPOSE 8080
-
-# Start
 ENV NODE_ENV=production
 ENV PORT=8080
 
