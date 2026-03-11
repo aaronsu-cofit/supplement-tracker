@@ -70,3 +70,5 @@ Thumbs.db
 !.yarn/versions
 
 .claude/skills/
+# Cloud Run deploy env
+.env.cloudrun
