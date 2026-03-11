@@ -1,11 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { LanguageProvider, LiffProvider, AuthProvider, useAuth } from '@vitera/lib';
-
-const LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL || 'http://localhost:3000/login';
+import { AppLayout } from '@vitera/lib';
 
 const NAV_LINKS = [
   { href: '/', label: '總覽 Overview' },
@@ -14,23 +11,7 @@ const NAV_LINKS = [
 ];
 
 function AppShell({ children }) {
-  const { isAuthenticated, isLoading } = useAuth();
   const pathname = usePathname();
-
-  useEffect(() => {
-    if (isLoading) return;
-    if (isAuthenticated) return;
-    const redirect = encodeURIComponent(window.location.href);
-    window.location.href = `${LOGIN_URL}?redirect=${redirect}`;
-  }, [isAuthenticated, isLoading]);
-
-  if (isLoading || !isAuthenticated) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0A0A0A]">
-        <span className="hq-spinner" />
-      </div>
-    );
-  }
 
   return (
     <div className="hq-layout">
@@ -68,12 +49,8 @@ function AppShell({ children }) {
 
 export default function ClientLayout({ children }) {
   return (
-    <LiffProvider>
-      <AuthProvider>
-        <LanguageProvider>
-          <AppShell>{children}</AppShell>
-        </LanguageProvider>
-      </AuthProvider>
-    </LiffProvider>
+    <AppLayout>
+      <AppShell>{children}</AppShell>
+    </AppLayout>
   );
 }

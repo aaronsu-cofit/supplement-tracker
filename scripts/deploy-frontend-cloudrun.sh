@@ -17,11 +17,8 @@ set -euo pipefail
 #   GCP_PROJECT
 #   NEXT_PUBLIC_LOGIN_URL
 #   NEXT_PUBLIC_PORTAL_URL
-#   NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS
-#   NEXT_PUBLIC_LIFF_ID_WOUNDS
-#   NEXT_PUBLIC_LIFF_ID_BONES
-#   NEXT_PUBLIC_LIFF_ID_SUPPLEMENTS
-#   NEXT_PUBLIC_LIFF_ID_INTIMACY
+#   NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS  (portal only)
+#   LIFF_ID_WOUNDS / LIFF_ID_SUPPLEMENTS / LIFF_ID_BONES / LIFF_ID_INTIMACY
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APPS=("portal" "wounds" "supplements" "bones" "intimacy" "hq")
@@ -73,12 +70,26 @@ fi
 # ─── Ensure docker is authenticated to GCR ────────────────────────────────────
 gcloud auth configure-docker --quiet
 
+# ─── Per-app LIFF ID lookup ───────────────────────────────────────────────────
+get_liff_id() {
+  case "$1" in
+    wounds)      echo "${LIFF_ID_WOUNDS:-}" ;;
+    supplements) echo "${LIFF_ID_SUPPLEMENTS:-}" ;;
+    bones)       echo "${LIFF_ID_BONES:-}" ;;
+    intimacy)    echo "${LIFF_ID_INTIMACY:-}" ;;
+    hq)          echo "${LIFF_ID_HQ:-}" ;;
+    portal)      echo "" ;;
+  esac
+}
+
 # ─── Deploy function ──────────────────────────────────────────────────────────
 deploy_app() {
   local app="$1"
   local service_name="vitera-${app}"
   local image="gcr.io/${GCP_PROJECT}/${service_name}"
   local dockerfile="$REPO_ROOT/apps/${app}/Dockerfile"
+  local liff_id
+  liff_id="$(get_liff_id "$app")"
 
   if [[ ! -f "$dockerfile" ]]; then
     echo "❌ Dockerfile not found: $dockerfile"
@@ -97,13 +108,10 @@ deploy_app() {
   echo "📦 Building Docker image..."
   docker build $NO_CACHE \
     -f "$dockerfile" \
+    --build-arg NEXT_PUBLIC_LIFF_ID="$liff_id" \
     --build-arg NEXT_PUBLIC_LOGIN_URL="${NEXT_PUBLIC_LOGIN_URL:-}" \
     --build-arg NEXT_PUBLIC_PORTAL_URL="${NEXT_PUBLIC_PORTAL_URL:-}" \
     --build-arg NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS="${NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS:-}" \
-    --build-arg NEXT_PUBLIC_LIFF_ID_WOUNDS="${NEXT_PUBLIC_LIFF_ID_WOUNDS:-}" \
-    --build-arg NEXT_PUBLIC_LIFF_ID_BONES="${NEXT_PUBLIC_LIFF_ID_BONES:-}" \
-    --build-arg NEXT_PUBLIC_LIFF_ID_SUPPLEMENTS="${NEXT_PUBLIC_LIFF_ID_SUPPLEMENTS:-}" \
-    --build-arg NEXT_PUBLIC_LIFF_ID_INTIMACY="${NEXT_PUBLIC_LIFF_ID_INTIMACY:-}" \
     -t "$image" \
     "$REPO_ROOT"
 
@@ -154,7 +162,6 @@ if [[ "$APP" == "all" ]]; then
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo "✅ All apps deployed!"
 else
-  # Validate app name
   valid=false
   for a in "${APPS[@]}"; do
     [[ "$a" == "$APP" ]] && valid=true && break

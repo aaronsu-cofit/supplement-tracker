@@ -31,26 +31,8 @@ export default function LiffProvider({ children, liffId: propLiffId }) {
 
     const initLiff = async () => {
       try {
-        // Use prop liffId (per-app) or fall back to env vars
-        const allIds = {
-          wounds: process.env.NEXT_PUBLIC_LIFF_ID_WOUNDS,
-          bones: process.env.NEXT_PUBLIC_LIFF_ID_BONES,
-          supplements: process.env.NEXT_PUBLIC_LIFF_ID_SUPPLEMENTS,
-          intimacy: process.env.NEXT_PUBLIC_LIFF_ID_INTIMACY,
-        };
-
-        let liffId = propLiffId || null;
-
-        if (!liffId) {
-          if (pathname.startsWith('/wounds') && allIds.wounds) liffId = allIds.wounds;
-          else if (pathname.startsWith('/bones') && allIds.bones) liffId = allIds.bones;
-          else if (pathname.startsWith('/supplements') && allIds.supplements) liffId = allIds.supplements;
-          else if (pathname.startsWith('/intimacy') && allIds.intimacy) liffId = allIds.intimacy;
-        }
-
-        if (!liffId) {
-          liffId = allIds.supplements || allIds.wounds || allIds.bones || allIds.intimacy || process.env.NEXT_PUBLIC_LIFF_ID;
-        }
+        // Use prop liffId or NEXT_PUBLIC_LIFF_ID env var (one per app)
+        const liffId = propLiffId || process.env.NEXT_PUBLIC_LIFF_ID || null;
 
         if (!liffId) {
           console.log('No LIFF ID found, skipping LIFF initialization.');
