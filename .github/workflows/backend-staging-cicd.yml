@@ -1,0 +1,196 @@
+# .github/workflows/backend-staging-cicd.yml
+
+name: Staging Backend CI/CD
+
+on:
+  push:
+    branches: [staging]
+    paths:
+      - 'backend/**'
+      - 'packages/**'
+      - '.github/workflows/backend-staging-cicd.yml'
+  workflow_dispatch:
+
+env:
+  # Docker Image
+  IMAGE: asia-east1-docker.pkg.dev/cofit-stg/cofit-vitera-staging-docker/backend
+  PROJECT_ID: cofit-stg
+
+  # K8s Manifests Repository
+  K8S_REPO: Cofit/cofit-k8s-applications
+  K8S_BRANCH: main
+  KUSTOMIZE_FILE: apps/vitera/vitera-backend/overlays/staging/kustomization.yaml
+
+jobs:
+  build-and-gitops-update:
+    runs-on: ubuntu-latest
+
+    steps:
+    # ==================== Step 1: Checkout 源碼 ====================
+    - name: Checkout source code
+      uses: actions/checkout@v4
+
+    - name: Generate short SHA
+      id: vars
+      run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+    # ==================== Step 2: Setup Node.js 環境 ====================
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9.15.0
+
+    - name: Get pnpm store directory
+      shell: bash
+      run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+    - name: Setup pnpm cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+
+    # ==================== Step 3: 安裝依賴 ====================
+    - name: Install dependencies
+      run: |
+        echo "📦 Installing dependencies..."
+        pnpm install --frozen-lockfile
+        echo "✅ Dependencies installed successfully"
+
+    # ==================== Step 4: 認證 GCP ====================
+    - name: Authenticate to GCP
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_STAGING_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    # ==================== Step 5: Setup Cloud SQL Proxy ====================
+    - name: Setup and start Cloud SQL Proxy
+      run: |
+        echo "📥 Downloading Cloud SQL Proxy..."
+        wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
+        chmod +x cloud_sql_proxy
+
+        echo "🔌 Starting Cloud SQL Proxy in background..."
+        ./cloud_sql_proxy -instances=${{ secrets.STAGING_CLOUDSQL_NAME }}=tcp:5432 &
+
+        echo "⏳ Waiting for Cloud SQL Proxy to be ready..."
+        sleep 5
+
+        echo "✅ Cloud SQL Proxy started successfully"
+
+    # ==================== Step 6: 生成 Prisma Client ====================
+    - name: Generate Prisma Client
+      env:
+        POSTGRES_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      run: |
+        echo "⚙️ Generating Prisma Client..."
+        pnpm --filter=@vitera/backend exec prisma generate
+        echo "✅ Prisma Client generated successfully"
+
+    # ==================== Step 7: 執行 Database Migration ====================
+    - name: Run Database Migration
+      env:
+        POSTGRES_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      run: |
+        echo "🔄 Running database migrations..."
+        pnpm --filter=@vitera/backend exec prisma migrate deploy
+        echo "✅ Migration completed successfully"
+
+    # ==================== Step 8: 建置並推送 Docker Image ====================
+    - name: Build and push Docker image
+      run: |
+        gcloud auth configure-docker asia-east1-docker.pkg.dev
+
+        SHORT_SHA="${{ steps.vars.outputs.SHORT_SHA }}"
+
+        echo "Building with tags:"
+        echo "  - ${{ env.IMAGE }}:$SHORT_SHA"
+        echo "  - ${{ env.IMAGE }}:staging-latest"
+
+        docker buildx build --platform linux/amd64 \
+          -f backend/Dockerfile \
+          -t ${{ env.IMAGE }}:$SHORT_SHA \
+          -t ${{ env.IMAGE }}:staging-latest \
+          --push .
+
+        echo "✅ Image pushed successfully"
+        echo "📦 Image: ${{ env.IMAGE }}:$SHORT_SHA"
+
+    # ==================== Step 9: Checkout K8s Manifests Repo ====================
+    - name: Checkout K8s manifests repository
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ env.K8S_REPO }}
+        ref: ${{ env.K8S_BRANCH }}
+        token: ${{ secrets.GITOPS_TOKEN }}
+        path: k8s-manifests
+
+    # ==================== Step 10: 安裝 yq ====================
+    - name: Install yq
+      run: |
+        sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        sudo chmod +x /usr/local/bin/yq
+
+    # ==================== Step 11: 更新 Kustomize Image Tag ====================
+    - name: Update Kustomize image tag
+      run: |
+        cd k8s-manifests
+
+        SHORT_SHA="${{ steps.vars.outputs.SHORT_SHA }}"
+
+        echo "📝 Updating image tag in kustomization.yaml..."
+        echo "File: ${{ env.KUSTOMIZE_FILE }}"
+        echo "New tag: $SHORT_SHA"
+
+        yq eval ".images[0].newTag = \"$SHORT_SHA\"" -i "${{ env.KUSTOMIZE_FILE }}"
+
+        echo ""
+        echo "✅ Updated kustomization.yaml:"
+        cat "${{ env.KUSTOMIZE_FILE }}"
+
+    # ==================== Step 12: Commit 並推送到 K8s Repo ====================
+    - name: Commit and push to trigger ArgoCD
+      run: |
+        cd k8s-manifests
+
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        SHORT_SHA="${{ steps.vars.outputs.SHORT_SHA }}"
+
+        git add "${{ env.KUSTOMIZE_FILE }}"
+
+        # 檢查是否有變更
+        if git diff --staged --quiet; then
+          echo "⚠️ No changes to commit (image tag already up-to-date)"
+          exit 0
+        fi
+
+        git commit -m "chore(vitera-backend): update staging image to $SHORT_SHA
+
+        - Update staging image tag: $SHORT_SHA
+        - Source commit: ${{ github.sha }}
+        - Triggered by: ${{ github.actor }}
+        - Workflow: ${{ github.workflow }}"
+
+        git push origin ${{ env.K8S_BRANCH }}
+
+        echo ""
+        echo "✅ Changes pushed to K8s manifests repository"
+        echo "🔄 ArgoCD will detect and deploy in ~3 minutes"
+        echo ""
+        echo "=== Deployment Summary ==="
+        echo "Image: ${{ env.IMAGE }}:$SHORT_SHA"
+        echo "Kustomization: ${{ env.KUSTOMIZE_FILE }}"
+        echo "Target cluster: staging-cluster"
+        echo "Target namespace: vitera"

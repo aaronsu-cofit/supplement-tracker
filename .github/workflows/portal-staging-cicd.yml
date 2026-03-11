@@ -1,0 +1,145 @@
+# .github/workflows/portal-staging-cicd.yml
+
+name: Staging Portal CI/CD
+
+on:
+  push:
+    branches: [staging]
+    paths:
+      - 'apps/portal/**'
+      - 'packages/**'
+      - '.github/workflows/portal-staging-cicd.yml'
+  workflow_dispatch:
+
+env:
+  # Docker Image
+  IMAGE: asia-east1-docker.pkg.dev/cofit-stg/cofit-vitera-staging-docker/portal
+  PROJECT_ID: cofit-stg
+
+  # K8s Manifests Repository
+  K8S_REPO: Cofit/cofit-k8s-applications
+  K8S_BRANCH: main
+  KUSTOMIZE_FILE: apps/vitera/vitera-portal/overlays/staging/kustomization.yaml
+
+  # Build Args
+  NEXT_PUBLIC_API_URL: https://vitera-api-staging.cofit.me
+  NEXT_PUBLIC_LOGIN_URL: https://vitera-portal-staging.cofit.me/login
+  NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS: https://vitera-wounds-staging.cofit.me,https://vitera-bones-staging.cofit.me,https://vitera-supplements-staging.cofit.me,https://vitera-intimacy-staging.cofit.me,https://vitera-hq-staging.cofit.me
+
+concurrency:
+  group: vitera-staging-gitops
+  cancel-in-progress: false
+
+jobs:
+  build-and-gitops-update:
+    runs-on: ubuntu-latest
+
+    steps:
+    # ==================== Step 1: Checkout 源碼 ====================
+    - name: Checkout source code
+      uses: actions/checkout@v4
+
+    - name: Generate short SHA
+      id: vars
+      run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+    # ==================== Step 2: 認證 GCP ====================
+    - name: Authenticate to GCP
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_STAGING_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    # ==================== Step 3: 建置並推送 Docker Image ====================
+    - name: Build and push Docker image
+      run: |
+        gcloud auth configure-docker asia-east1-docker.pkg.dev
+
+        SHORT_SHA="${{ steps.vars.outputs.SHORT_SHA }}"
+
+        echo "Building with tags:"
+        echo "  - ${{ env.IMAGE }}:$SHORT_SHA"
+        echo "  - ${{ env.IMAGE }}:staging-latest"
+
+        docker buildx build --platform linux/amd64 \
+          -f apps/portal/Dockerfile \
+          --build-arg NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }} \
+          --build-arg NEXT_PUBLIC_LOGIN_URL=${{ env.NEXT_PUBLIC_LOGIN_URL }} \
+          --build-arg NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS=${{ env.NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS }} \
+          -t ${{ env.IMAGE }}:$SHORT_SHA \
+          -t ${{ env.IMAGE }}:staging-latest \
+          --push .
+
+        echo "✅ Image pushed successfully"
+        echo "📦 Image: ${{ env.IMAGE }}:$SHORT_SHA"
+
+    # ==================== Step 4: Checkout K8s Manifests Repo ====================
+    - name: Checkout K8s manifests repository
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ env.K8S_REPO }}
+        ref: ${{ env.K8S_BRANCH }}
+        token: ${{ secrets.GITOPS_TOKEN }}
+        path: k8s-manifests
+
+    # ==================== Step 5: 安裝 yq ====================
+    - name: Install yq
+      run: |
+        sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        sudo chmod +x /usr/local/bin/yq
+
+    # ==================== Step 6: 更新 Kustomize Image Tag ====================
+    - name: Update Kustomize image tag
+      run: |
+        cd k8s-manifests
+
+        SHORT_SHA="${{ steps.vars.outputs.SHORT_SHA }}"
+
+        echo "📝 Updating image tag in kustomization.yaml..."
+        echo "File: ${{ env.KUSTOMIZE_FILE }}"
+        echo "New tag: $SHORT_SHA"
+
+        yq eval ".images[0].newTag = \"$SHORT_SHA\"" -i "${{ env.KUSTOMIZE_FILE }}"
+
+        echo ""
+        echo "✅ Updated kustomization.yaml:"
+        cat "${{ env.KUSTOMIZE_FILE }}"
+
+    # ==================== Step 7: Commit 並推送到 K8s Repo ====================
+    - name: Commit and push to trigger ArgoCD
+      run: |
+        cd k8s-manifests
+
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        SHORT_SHA="${{ steps.vars.outputs.SHORT_SHA }}"
+
+        git add "${{ env.KUSTOMIZE_FILE }}"
+
+        # 檢查是否有變更
+        if git diff --staged --quiet; then
+          echo "⚠️ No changes to commit (image tag already up-to-date)"
+          exit 0
+        fi
+
+        git commit -m "chore(vitera-portal): update staging image to $SHORT_SHA
+
+        - Update staging image tag: $SHORT_SHA
+        - Source commit: ${{ github.sha }}
+        - Triggered by: ${{ github.actor }}
+        - Workflow: ${{ github.workflow }}"
+
+        git push origin ${{ env.K8S_BRANCH }}
+
+        echo ""
+        echo "✅ Changes pushed to K8s manifests repository"
+        echo "🔄 ArgoCD will detect and deploy in ~3 minutes"
+        echo ""
+        echo "=== Deployment Summary ==="
+        echo "Image: ${{ env.IMAGE }}:$SHORT_SHA"
+        echo "Kustomization: ${{ env.KUSTOMIZE_FILE }}"
+        echo "Target cluster: staging-cluster"
+        echo "Target namespace: vitera"

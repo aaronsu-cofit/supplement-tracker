@@ -18,9 +18,11 @@ FROM deps AS builder
 WORKDIR /app
 
 ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_LOGIN_URL
 ARG NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS
 
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_LOGIN_URL=$NEXT_PUBLIC_LOGIN_URL
 ENV NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS=$NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS
 
 COPY apps/portal ./apps/portal
@@ -34,6 +36,8 @@ RUN pnpm build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+
 ENV NODE_ENV=production
 ENV PORT=8080
 EXPOSE 8080
@@ -41,5 +45,8 @@ EXPOSE 8080
 COPY --from=builder /app/apps/portal/.next/standalone ./
 COPY --from=builder /app/apps/portal/.next/static ./apps/portal/.next/static
 COPY --from=builder /app/apps/portal/public ./apps/portal/public
+
+RUN chown -R nextjs:nodejs /app
+USER nextjs
 
 CMD ["node", "apps/portal/server.js"]

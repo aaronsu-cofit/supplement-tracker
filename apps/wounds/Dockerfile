@@ -18,12 +18,12 @@ FROM deps AS builder
 WORKDIR /app
 
 ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_LIFF_ID
 ARG NEXT_PUBLIC_LOGIN_URL
+ARG NEXT_PUBLIC_LIFF_ID_WOUNDS
 
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_LIFF_ID=$NEXT_PUBLIC_LIFF_ID
 ENV NEXT_PUBLIC_LOGIN_URL=$NEXT_PUBLIC_LOGIN_URL
+ENV NEXT_PUBLIC_LIFF_ID_WOUNDS=$NEXT_PUBLIC_LIFF_ID_WOUNDS
 
 COPY apps/wounds ./apps/wounds
 COPY packages/lib ./packages/lib
@@ -36,12 +36,16 @@ RUN pnpm build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+
 ENV NODE_ENV=production
 ENV PORT=8080
 EXPOSE 8080
 
 COPY --from=builder /app/apps/wounds/.next/standalone ./
 COPY --from=builder /app/apps/wounds/.next/static ./apps/wounds/.next/static
-COPY --from=builder /app/apps/wounds/public ./apps/wounds/public
+
+RUN chown -R nextjs:nodejs /app
+USER nextjs
 
 CMD ["node", "apps/wounds/server.js"]

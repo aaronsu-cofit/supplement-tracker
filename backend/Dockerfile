@@ -1,27 +1,35 @@
 FROM node:20-alpine AS base
 WORKDIR /app
+RUN npm install -g pnpm && apk add --no-cache openssl
 
-# Install pnpm
-RUN npm install -g pnpm
+# ---- Install deps ----
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY backend/package.json ./backend/
+COPY backend/prisma ./backend/prisma
+RUN pnpm install --frozen-lockfile --filter @vitera/backend
 
-# Copy package files
-COPY package.json ./
+# ---- Build (prisma generate) ----
+FROM deps AS builder
+ENV POSTGRES_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+RUN cd backend && npx prisma generate --schema=prisma/schema.prisma
 
-# Copy prisma schema BEFORE install so postinstall can run prisma generate
-COPY prisma ./prisma
+# ---- Runner ----
+FROM node:20-alpine AS runner
+WORKDIR /app
+RUN apk add --no-cache openssl
 
-# Install dependencies (postinstall runs `prisma generate`)
-RUN pnpm install --frozen-lockfile
+COPY --from=builder --chown=node:node /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/backend/node_modules ./backend/node_modules
+COPY --chown=node:node backend/src ./backend/src
+COPY --from=builder --chown=node:node /app/backend/prisma ./backend/prisma
+COPY --chown=node:node backend/package.json ./backend/
 
-# Copy source
-COPY src ./src
+USER node
+WORKDIR /app/backend
 
-# Expose port
 EXPOSE 8080
-
-# Start
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Run DB migrations then start the server
-CMD ["sh", "-c", "npx prisma migrate deploy && node src/index.js"]
+CMD ["node", "src/index.js"]
