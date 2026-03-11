@@ -6,44 +6,66 @@ set -euo pipefail
 # Build context is always the monorepo root (required for workspace packages).
 #
 # Usage:
-#   ./scripts/deploy-frontend-cloudrun.sh <app|all> [--no-cache]
+#   ./scripts/deploy-frontend-cloudrun.sh <app|all> --env <staging|production> [--no-cache]
 #
 # Examples:
-#   ./scripts/deploy-frontend-cloudrun.sh portal
-#   ./scripts/deploy-frontend-cloudrun.sh all
-#   ./scripts/deploy-frontend-cloudrun.sh wounds --no-cache
+#   ./scripts/deploy-frontend-cloudrun.sh portal --env staging
+#   ./scripts/deploy-frontend-cloudrun.sh all --env production
+#   ./scripts/deploy-frontend-cloudrun.sh wounds --env staging --no-cache
 #
-# Required env vars (set in shell or .env.cloudrun at repo root):
-#   GCP_PROJECT
-#   NEXT_PUBLIC_LOGIN_URL
-#   NEXT_PUBLIC_PORTAL_URL
-#   NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS  (portal only)
-#   LIFF_ID_WOUNDS / LIFF_ID_SUPPLEMENTS / LIFF_ID_BONES / LIFF_ID_INTIMACY
+# Env vars are loaded from .env.cloudrun.<env> at the repo root.
+# Copy .env.cloudrun.example to get started:
+#   cp .env.cloudrun.example .env.cloudrun.staging
+#   cp .env.cloudrun.example .env.cloudrun.production
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APPS=("portal" "wounds" "supplements" "bones" "intimacy" "hq")
 
 # ─── Parse args ───────────────────────────────────────────────────────────────
 APP="${1:-}"
+ENV=""
 NO_CACHE=""
-if [[ "${2:-}" == "--no-cache" ]]; then
-  NO_CACHE="--no-cache"
-fi
+
+shift || true
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --env)       ENV="$2"; shift 2 ;;
+    --no-cache)  NO_CACHE="--no-cache"; shift ;;
+    *) echo "Unknown option: $1"; exit 1 ;;
+  esac
+done
 
 if [[ -z "$APP" ]]; then
-  echo "Usage: $0 <app|all> [--no-cache]"
+  echo "Usage: $0 <app|all> --env <staging|production> [--no-cache]"
   echo "Apps: ${APPS[*]}"
   exit 1
 fi
 
-# ─── Load .env.cloudrun if present ────────────────────────────────────────────
-if [[ -f "$REPO_ROOT/.env.cloudrun" ]]; then
-  echo "📄 Loading $REPO_ROOT/.env.cloudrun"
-  set -o allexport
-  # shellcheck disable=SC1090
-  source "$REPO_ROOT/.env.cloudrun"
-  set +o allexport
+if [[ -z "$ENV" ]]; then
+  echo "❌ --env is required. Use --env staging or --env production"
+  exit 1
 fi
+
+if [[ "$ENV" != "staging" && "$ENV" != "production" ]]; then
+  echo "❌ --env must be 'staging' or 'production', got: $ENV"
+  exit 1
+fi
+
+# ─── Load env file ────────────────────────────────────────────────────────────
+ENV_FILE="$REPO_ROOT/.env.cloudrun.${ENV}"
+
+if [[ ! -f "$ENV_FILE" ]]; then
+  echo "❌ Env file not found: $ENV_FILE"
+  echo "   Create it from the template:"
+  echo "   cp .env.cloudrun.example .env.cloudrun.${ENV}"
+  exit 1
+fi
+
+echo "📄 Loading $ENV_FILE"
+set -o allexport
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+set +o allexport
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 GCP_PROJECT="${GCP_PROJECT:-}"
@@ -51,9 +73,7 @@ GCP_REGION="${GCP_REGION:-asia-east1}"
 
 # ─── Validate ─────────────────────────────────────────────────────────────────
 if [[ -z "$GCP_PROJECT" ]]; then
-  echo "❌ GCP_PROJECT is not set."
-  echo "   Set it in your shell: export GCP_PROJECT=your-project-id"
-  echo "   Or create $REPO_ROOT/.env.cloudrun with GCP_PROJECT=..."
+  echo "❌ GCP_PROJECT is not set in $ENV_FILE"
   exit 1
 fi
 
@@ -67,7 +87,6 @@ if ! command -v gcloud &>/dev/null; then
   exit 1
 fi
 
-# ─── Ensure docker is authenticated to GCR ────────────────────────────────────
 gcloud auth configure-docker --quiet
 
 # ─── Per-app LIFF ID lookup ───────────────────────────────────────────────────
@@ -85,7 +104,14 @@ get_liff_id() {
 # ─── Deploy function ──────────────────────────────────────────────────────────
 deploy_app() {
   local app="$1"
-  local service_name="vitera-${app}"
+  # staging: vitera-portal-staging, production: vitera-portal
+  local service_name
+  if [[ "$ENV" == "staging" ]]; then
+    service_name="vitera-${app}-staging"
+  else
+    service_name="vitera-${app}"
+  fi
+
   local image="gcr.io/${GCP_PROJECT}/${service_name}"
   local dockerfile="$REPO_ROOT/apps/${app}/Dockerfile"
   local liff_id
@@ -98,16 +124,16 @@ deploy_app() {
 
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "🚀 Deploying: $app"
+  echo "🚀 Deploying: $app ($ENV)"
   echo "   Image   : $image"
   echo "   Service : $service_name"
   echo "   Region  : $GCP_REGION"
   echo ""
 
-  # ── Build ──
   echo "📦 Building Docker image..."
   docker build $NO_CACHE \
     -f "$dockerfile" \
+    --build-arg NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-}" \
     --build-arg NEXT_PUBLIC_LIFF_ID="$liff_id" \
     --build-arg NEXT_PUBLIC_LOGIN_URL="${NEXT_PUBLIC_LOGIN_URL:-}" \
     --build-arg NEXT_PUBLIC_PORTAL_URL="${NEXT_PUBLIC_PORTAL_URL:-}" \
@@ -115,12 +141,10 @@ deploy_app() {
     -t "$image" \
     "$REPO_ROOT"
 
-  # ── Push ──
   echo ""
   echo "⬆️  Pushing image to GCR..."
   docker push "$image"
 
-  # ── Deploy ──
   echo ""
   echo "🚢 Deploying to Cloud Run..."
   gcloud run deploy "$service_name" \
@@ -135,7 +159,6 @@ deploy_app() {
     --max-instances 10 \
     --project "$GCP_PROJECT"
 
-  # ── Print URL ──
   local url
   url=$(gcloud run services describe "$service_name" \
     --platform managed \
@@ -144,13 +167,14 @@ deploy_app() {
     --format "value(status.url)")
 
   echo ""
-  echo "✅ $app deployed → $url"
+  echo "✅ $app ($ENV) deployed → $url"
 }
 
 # ─── Run ──────────────────────────────────────────────────────────────────────
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║  Vitera Frontend → Cloud Run                                 ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
+echo "   Env     : $ENV"
 echo "   Project : $GCP_PROJECT"
 echo "   Region  : $GCP_REGION"
 
@@ -160,7 +184,7 @@ if [[ "$APP" == "all" ]]; then
   done
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "✅ All apps deployed!"
+  echo "✅ All apps deployed to $ENV!"
 else
   valid=false
   for a in "${APPS[@]}"; do

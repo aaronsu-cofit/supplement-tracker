@@ -70,5 +70,11 @@ Thumbs.db
 !.yarn/versions
 
 .claude/skills/
-# Cloud Run deploy env
+
+# ========================
+# Cloud Run deploy envs
+# ========================
+# Keep .example files; ignore real secrets
+.env.cloudrun.staging
+.env.cloudrun.production
 .env.cloudrun
