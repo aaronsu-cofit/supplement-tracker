@@ -29,7 +29,7 @@ pnpm dev:wounds    # wounds + portal + backend
 pnpm dev:bones     # bones + portal + backend
 ```
 
-詳細說明請見 [ARCHITECTURE.md](./ARCHITECTURE.md)。
+詳細說明請見 [ARCHITECTURE.md](./ARCHITECTURE.md) 與 [新人快速上手教學](./docs/tutorials/01-local-setup.md)。
 
 ---
 
@@ -44,6 +44,38 @@ pnpm dev:bones     # bones + portal + backend
 | `apps/intimacy` | 親密健康評估 | 3004 |
 | `apps/hq` | 後台管理（模組、管理員） | 3005 |
 | `backend` | Hono.js API（GCP Cloud Run） | 8080 |
+
+---
+
+## Git 工作流程
+
+```
+main            ← 正式環境（Production），穩定後才 merge
+└── staging     ← 測試環境（Staging），CI/CD 自動部署，日常主要在這裡整合
+    ├── aaron_develop
+    ├── bob_develop
+    └── yourname_develop   ← 每位開發者自己的 branch
+```
+
+**開發流程：**
+
+1. 第一次加入時，從 `staging` 建立自己的 branch：
+   ```bash
+   git checkout staging && git pull origin staging
+   git checkout -b yourname_develop
+   ```
+
+2. 每次開工前同步 `staging`：
+   ```bash
+   git checkout staging && git pull origin staging
+   git checkout yourname_develop && git merge staging
+   ```
+
+3. 開發完成後推 branch，在 GitHub 開 PR，base 選 **`staging`**（不是 `main`）。
+
+4. PR merge 進 `staging` 後，CI/CD 自動部署到測試環境。
+
+> 不要直接 push 到 `main` 或 `staging`，一律透過 PR。
 
 ---
 
