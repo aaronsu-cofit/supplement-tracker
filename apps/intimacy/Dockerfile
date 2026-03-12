@@ -18,11 +18,11 @@ FROM deps AS builder
 WORKDIR /app
 
 ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_LIFF_ID
+ARG NEXT_PUBLIC_LIFF_ID_INTIMACY
 ARG NEXT_PUBLIC_LOGIN_URL
 
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_LIFF_ID=$NEXT_PUBLIC_LIFF_ID
+ENV NEXT_PUBLIC_LIFF_ID_INTIMACY=$NEXT_PUBLIC_LIFF_ID_INTIMACY
 ENV NEXT_PUBLIC_LOGIN_URL=$NEXT_PUBLIC_LOGIN_URL
 
 COPY apps/intimacy ./apps/intimacy
@@ -42,6 +42,5 @@ EXPOSE 8080
 
 COPY --from=builder /app/apps/intimacy/.next/standalone ./
 COPY --from=builder /app/apps/intimacy/.next/static ./apps/intimacy/.next/static
-COPY --from=builder /app/apps/intimacy/public ./apps/intimacy/public
 
 CMD ["node", "apps/intimacy/server.js"]
