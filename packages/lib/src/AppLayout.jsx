@@ -20,7 +20,7 @@ const DEFAULT_LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL || 'http://localhost
  * @param {string}   [loginUrl]    Override NEXT_PUBLIC_LOGIN_URL redirect target.
  * @param {string[]} [publicPaths] Path prefixes that skip the auth guard.
  */
-export default function AppLayout({ children, liffId, loginUrl, publicPaths }) {
+export default function AppLayout({ children, liffId, loginUrl, publicPaths, lineOnly }) {
   return (
     <LiffProvider liffId={liffId}>
       <AuthProvider>
@@ -28,6 +28,7 @@ export default function AppLayout({ children, liffId, loginUrl, publicPaths }) {
           <AuthGuard
             loginUrl={loginUrl || DEFAULT_LOGIN_URL}
             publicPaths={publicPaths}
+            lineOnly={lineOnly}
           >
             {children}
           </AuthGuard>

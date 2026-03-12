@@ -49,7 +49,7 @@ function AppShell({ children }) {
 
 export default function ClientLayout({ children }) {
   return (
-    <AppLayout>
+    <AppLayout lineOnly>
       <AppShell>{children}</AppShell>
     </AppLayout>
   );
