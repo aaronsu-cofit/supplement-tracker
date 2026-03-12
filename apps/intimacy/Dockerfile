@@ -42,6 +42,5 @@ EXPOSE 8080
 
 COPY --from=builder /app/apps/intimacy/.next/standalone ./
 COPY --from=builder /app/apps/intimacy/.next/static ./apps/intimacy/.next/static
-COPY --from=builder /app/apps/intimacy/public ./apps/intimacy/public
 
 CMD ["node", "apps/intimacy/server.js"]

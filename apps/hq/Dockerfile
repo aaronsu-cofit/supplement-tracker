@@ -42,6 +42,5 @@ EXPOSE 8080
 
 COPY --from=builder /app/apps/hq/.next/standalone ./
 COPY --from=builder /app/apps/hq/.next/static ./apps/hq/.next/static
-COPY --from=builder /app/apps/hq/public ./apps/hq/public
 
 CMD ["node", "apps/hq/server.js"]
