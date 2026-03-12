@@ -24,7 +24,7 @@ env:
   # Build Args
   NEXT_PUBLIC_API_URL: https://vitera-api-staging.cofit.me
   NEXT_PUBLIC_LOGIN_URL: https://vitera-portal-staging.cofit.me/login
-  NEXT_PUBLIC_LIFF_ID_INTIMACY: ''
+  NEXT_PUBLIC_LIFF_ID_INTIMACY: '2009369966-W1nfvsJr'
 
 concurrency:
   group: vitera-staging-gitops
@@ -67,7 +67,7 @@ jobs:
           -f apps/intimacy/Dockerfile \
           --build-arg NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }} \
           --build-arg NEXT_PUBLIC_LOGIN_URL=${{ env.NEXT_PUBLIC_LOGIN_URL }} \
-          --build-arg NEXT_PUBLIC_LIFF_ID_INTIMACY=${{ env.NEXT_PUBLIC_LIFF_ID_INTIMACY }} \
+          --build-arg NEXT_PUBLIC_LIFF_ID=${{ env.NEXT_PUBLIC_LIFF_ID_INTIMACY }} \
           -t ${{ env.IMAGE }}:$SHORT_SHA \
           -t ${{ env.IMAGE }}:staging-latest \
           --push .

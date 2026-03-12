@@ -24,7 +24,7 @@ env:
   # Build Args
   NEXT_PUBLIC_API_URL: https://vitera-api-staging.cofit.me
   NEXT_PUBLIC_LOGIN_URL: https://vitera-portal-staging.cofit.me/login
-  NEXT_PUBLIC_LIFF_ID_WOUNDS: ''
+  NEXT_PUBLIC_LIFF_ID_WOUNDS: '2009369966-8j4V79oc'
 
 concurrency:
   group: vitera-staging-gitops
@@ -67,7 +67,7 @@ jobs:
           -f apps/wounds/Dockerfile \
           --build-arg NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }} \
           --build-arg NEXT_PUBLIC_LOGIN_URL=${{ env.NEXT_PUBLIC_LOGIN_URL }} \
-          --build-arg NEXT_PUBLIC_LIFF_ID_WOUNDS=${{ env.NEXT_PUBLIC_LIFF_ID_WOUNDS }} \
+          --build-arg NEXT_PUBLIC_LIFF_ID=${{ env.NEXT_PUBLIC_LIFF_ID_WOUNDS }} \
           -t ${{ env.IMAGE }}:$SHORT_SHA \
           -t ${{ env.IMAGE }}:staging-latest \
           --push .

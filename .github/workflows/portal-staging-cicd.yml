@@ -25,6 +25,7 @@ env:
   NEXT_PUBLIC_API_URL: https://vitera-api-staging.cofit.me
   NEXT_PUBLIC_LOGIN_URL: https://vitera-portal-staging.cofit.me/login
   NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS: https://vitera-wounds-staging.cofit.me,https://vitera-bones-staging.cofit.me,https://vitera-supplements-staging.cofit.me,https://vitera-intimacy-staging.cofit.me,https://vitera-hq-staging.cofit.me
+  NEXT_PUBLIC_LIFF_ID_PORTAL: '2009369966-6Ly7P5hr'
 
 concurrency:
   group: vitera-staging-gitops
@@ -68,6 +69,7 @@ jobs:
           --build-arg NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }} \
           --build-arg NEXT_PUBLIC_LOGIN_URL=${{ env.NEXT_PUBLIC_LOGIN_URL }} \
           --build-arg NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS=${{ env.NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS }} \
+          --build-arg NEXT_PUBLIC_LIFF_ID=${{ env.NEXT_PUBLIC_LIFF_ID_PORTAL }} \
           -t ${{ env.IMAGE }}:$SHORT_SHA \
           -t ${{ env.IMAGE }}:staging-latest \
           --push .
