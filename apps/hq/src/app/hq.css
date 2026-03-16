@@ -603,6 +603,12 @@
   border-color: rgba(59, 130, 246, 0.2);
 }
 
+.hq-badge-green {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
 .hq-badge-gray {
   background-color: #222;
   color: #888;

@@ -14,6 +14,8 @@ import analyzeRoutes from './routes/analyze.js';
 import checkinsRoutes from './routes/checkins.js';
 import notifyRoutes from './routes/notify.js';
 import modulesRoutes from './routes/modules.js';
+import richmenuRoutes from './routes/richmenu.js';
+import lineoaRoutes from './routes/lineoa.js';
 
 const app = new Hono();
 
@@ -51,6 +53,8 @@ app.route('/api/hq', hqRoutes);
 app.route('/api/analyze', analyzeRoutes);
 app.route('/api/notify', notifyRoutes);
 app.route('/api/modules', modulesRoutes);
+app.route('/api/line/richmenu', richmenuRoutes);
+app.route('/api/line/oa', lineoaRoutes);
 
 // 404 fallback
 app.notFound((c) => c.json({ error: 'Not found' }, 404));

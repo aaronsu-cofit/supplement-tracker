@@ -20,6 +20,7 @@
 這個板塊提供步驟式的操作手冊，解決特定情境的問題。
 
 * [如何將專案部署到 Vercel (CI/CD)](./how-to/deploy.md)
+* [常見問題排除 (Troubleshooting)](./how-to/troubleshooting.md)
 * *(待補)* 如何串接新的 LIFF ID
 * *(待補)* 如何新增一個 API 路由
 
