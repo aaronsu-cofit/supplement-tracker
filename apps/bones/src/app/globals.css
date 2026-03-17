@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap');
 @import "tailwindcss";
 
 /* Tell Tailwind v4 where to scan for utility classes in this monorepo */
@@ -8,34 +8,34 @@
 
 :root {
   /* Color System */
-  --bg-primary: #0a0a12;
-  --bg-secondary: #12121f;
-  --bg-card: rgba(255, 255, 255, 0.04);
-  --bg-card-hover: rgba(255, 255, 255, 0.07);
-  --bg-glass: rgba(255, 255, 255, 0.06);
-  --bg-glass-strong: rgba(255, 255, 255, 0.1);
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-card: rgba(0, 0, 0, 0.02);
+  --bg-card-hover: rgba(0, 0, 0, 0.04);
+  --bg-glass: rgba(255, 255, 255, 0.85);
+  --bg-glass-strong: rgba(255, 255, 255, 0.97);
 
-  --text-primary: #f0f0f5;
-  --text-secondary: #8888a0;
-  --text-muted: #55556a;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
 
-  --accent-primary: #7c5cfc;
-  --accent-primary-glow: rgba(124, 92, 252, 0.3);
-  --accent-secondary: #5ce0d8;
-  --accent-secondary-glow: rgba(92, 224, 216, 0.2);
-  --accent-warning: #ffa64d;
-  --accent-success: #4dff91;
-  --accent-danger: #ff5c5c;
+  --accent-primary: #2563eb;
+  --accent-primary-glow: rgba(37, 99, 235, 0.18);
+  --accent-secondary: #3b82f6;
+  --accent-secondary-glow: rgba(59, 130, 246, 0.12);
+  --accent-warning: #d97706;
+  --accent-success: #059669;
+  --accent-danger: #dc2626;
 
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-light: rgba(255, 255, 255, 0.1);
+  --border-subtle: rgba(0, 0, 0, 0.07);
+  --border-light: rgba(0, 0, 0, 0.12);
 
-  --gradient-primary: linear-gradient(135deg, #7c5cfc, #5ce0d8);
-  --gradient-warm: linear-gradient(135deg, #ffa64d, #ff5c8a);
-  --gradient-card: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  --gradient-primary: linear-gradient(135deg, #1d4ed8, #3b82f6);
+  --gradient-warm: linear-gradient(135deg, #f59e0b, #ef4444);
+  --gradient-card: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.8));
 
-  --shadow-glow: 0 0 40px rgba(124, 92, 252, 0.15);
-  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 40px rgba(37, 99, 235, 0.1);
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.07);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -43,7 +43,7 @@
   --radius-xl: 24px;
   --radius-full: 50%;
 
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
   --transition-smooth: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -68,9 +68,7 @@ body {
 }
 
 body {
-  background-image:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124, 92, 252, 0.12), transparent),
-    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(92, 224, 216, 0.08), transparent);
+  background-image: none;
   padding-bottom: 80px;
 }
 
@@ -616,7 +614,7 @@ textarea.form-input {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(10, 10, 18, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--border-subtle);
@@ -652,7 +650,7 @@ textarea.form-input {
 
 .nav-link:hover {
   color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .nav-link.active {
@@ -1158,6 +1156,13 @@ textarea.form-input {
 
 .btn-action.primary:hover {
   background: rgba(124, 92, 252, 0.2);
+}
+
+/* Focus States */
+:focus-visible {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 /* Reduced Motion */

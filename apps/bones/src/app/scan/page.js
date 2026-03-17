@@ -4,6 +4,7 @@ import { apiFetch } from '@vitera/lib';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ChevronLeft, Camera, Smartphone, Image, RotateCcw, ScanSearch, AlertCircle } from 'lucide-react';
 
 export default function BonesScanPage() {
     const router = useRouter();
@@ -14,7 +15,6 @@ export default function BonesScanPage() {
     const [error, setError] = useState(null);
     const [result, setResult] = useState(null);
 
-    // Custom WebRTC Camera States
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const [isCameraActive, setIsCameraActive] = useState(false);
@@ -41,7 +41,7 @@ export default function BonesScanPage() {
                 console.error("Camera fallback error:", fallbackErr);
                 let errorMsg = "無法啟動相機。";
                 if (fallbackErr.name === 'NotAllowedError') {
-                    errorMsg = "🎥 相機權限已被拒絕。請至瀏覽器設定中「允許」此應用程式存取相機。";
+                    errorMsg = "相機權限已被拒絕。請至瀏覽器設定中「允許」此應用程式存取相機。";
                 } else if (fallbackErr.name === 'NotFoundError') {
                     errorMsg = "找不到相機裝置。";
                 }
@@ -164,35 +164,42 @@ export default function BonesScanPage() {
     };
 
     return (
-        <div className="p-6 max-w-[600px] mx-auto flex flex-col gap-8">
+        <div className="p-5 max-w-[600px] mx-auto flex flex-col gap-6">
             <header>
-                <Link href="/bones" className="text-[#a8ff78] no-underline text-[0.9rem] mb-4 inline-block">
-                    ← 返回中心
+                <Link href="/" className="flex items-center gap-1 text-blue-600 no-underline text-[0.88rem] mb-3 hover:text-blue-700 transition-colors w-fit">
+                    <ChevronLeft size={16} />
+                    返回中心
                 </Link>
-                <h2 className="text-[1.5rem] font-bold m-0 mb-2">📷 AI 拇趾外翻檢測</h2>
-                <p className="text-white/60 m-0 text-[0.9rem]">請脫掉襪子，將手機移至足部正上方垂直往下拍攝。</p>
+                <div className="flex items-center gap-3 mb-1">
+                    <div className="w-10 h-10 rounded-[10px] bg-blue-50 flex items-center justify-center">
+                        <Camera size={20} className="text-blue-600" />
+                    </div>
+                    <h2 className="text-[1.35rem] font-bold m-0 text-slate-800">AI 拇趾外翻檢測</h2>
+                </div>
+                <p className="text-slate-400 m-0 text-[0.88rem] leading-relaxed pl-[52px]">請脫掉襪子，將手機移至足部正上方垂直往下拍攝。</p>
             </header>
 
             {!preview ? (
-                <div className="rounded-[16px] p-6 px-4 text-center bg-white/[0.03] border border-white/[0.08]">
-                    <p className="text-white font-bold text-[1.1rem] mb-2">請拍攝雙腳正上方俯拍照</p>
-                    <p className="text-white/50 text-[0.85rem] mb-6">確保光線明亮，請將雙腳對齊下方參考線</p>
+                <div className="rounded-[16px] p-5 text-center bg-white border border-slate-200 shadow-sm">
+                    <p className="text-slate-700 font-semibold text-[1rem] mb-1">請拍攝雙腳正上方俯拍照</p>
+                    <p className="text-slate-400 text-[0.84rem] mb-5">確保光線明亮，請將雙腳對齊下方參考線</p>
 
-                    {/* WebRTC Camera Area */}
-                    <div className="relative w-full h-[400px] bg-black rounded-[16px] mb-6 overflow-hidden flex flex-col items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+                    {/* 相機區域（保留深色，功能性需求） */}
+                    <div className="relative w-full h-[380px] bg-slate-900 rounded-[14px] mb-5 overflow-hidden flex flex-col items-center justify-center shadow-md">
                         {!isCameraActive ? (
-                            <div className="flex flex-col items-center gap-4">
-                                <div className="text-[3rem] opacity-50">📷</div>
+                            <div className="flex flex-col items-center gap-5">
+                                <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center">
+                                    <Camera size={32} className="text-white/40" />
+                                </div>
                                 <button
                                     onClick={startCamera}
-                                    className="py-3 px-6 bg-[#a8ff78] text-[#1a3630] border-none rounded-[24px] font-bold cursor-pointer shadow-[0_4px_12px_rgba(168,255,120,0.3)]"
+                                    className="py-3 px-7 bg-blue-600 text-white border-none rounded-full font-semibold cursor-pointer hover:bg-blue-700 transition-colors shadow-md min-h-[44px]"
                                 >
                                     啟動智能相機
                                 </button>
                             </div>
                         ) : (
                             <>
-                                {/* Live Video Stream */}
                                 <video
                                     key={isCameraActive ? 'active' : 'inactive'}
                                     ref={videoRef}
@@ -204,27 +211,27 @@ export default function BonesScanPage() {
                                     style={{ transform: 'translateZ(0)', WebkitTransform: 'translateZ(0)' }}
                                 />
 
-                                {/* Glowing Foot Guideline SVG */}
+                                {/* 足部輪廓參考線 */}
                                 <svg
                                     viewBox="0 0 200 240"
                                     className="absolute inset-0 w-full h-full z-[5] pointer-events-none"
-                                    stroke="rgba(168, 255, 120, 0.9)" strokeWidth="2" fill="none"
+                                    stroke="rgba(96, 165, 250, 0.85)" strokeWidth="2" fill="none"
                                     strokeDasharray="4 4"
-                                    style={{ filter: 'drop-shadow(0 0 4px rgba(168, 255, 120, 0.5))' }}
+                                    style={{ filter: 'drop-shadow(0 0 4px rgba(96, 165, 250, 0.45))' }}
                                 >
                                     <path d="M70,40 C50,40 40,80 40,110 C40,150 45,180 50,190 C55,200 65,205 75,200 C85,195 90,170 90,140 C90,100 85,40 70,40 Z" />
                                     <path d="M130,40 C150,40 160,80 160,110 C160,150 155,180 150,190 C145,200 135,205 125,200 C115,195 110,170 110,140 C110,100 115,40 130,40 Z" />
-                                    <line x1="100" y1="20" x2="100" y2="220" stroke="rgba(255,255,255,0.4)" strokeDasharray="2 6" strokeWidth="1" />
-                                    <line x1="40" y1="120" x2="160" y2="120" stroke="rgba(255,255,255,0.4)" strokeDasharray="2 6" strokeWidth="1" />
+                                    <line x1="100" y1="20" x2="100" y2="220" stroke="rgba(255,255,255,0.3)" strokeDasharray="2 6" strokeWidth="1" />
+                                    <line x1="40" y1="120" x2="160" y2="120" stroke="rgba(255,255,255,0.3)" strokeDasharray="2 6" strokeWidth="1" />
                                 </svg>
 
-                                {/* Shutter Button */}
+                                {/* 拍照按鈕 */}
                                 <div className="absolute bottom-5 left-0 right-0 flex justify-center z-10">
                                     <button
                                         onClick={captureFromVideo}
-                                        className="w-16 h-16 rounded-full bg-white/20 border-4 border-white cursor-pointer flex items-center justify-center backdrop-blur shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+                                        className="w-16 h-16 rounded-full bg-white/20 border-[3px] border-white cursor-pointer flex items-center justify-center backdrop-blur shadow-lg hover:bg-white/30 transition-colors"
                                     >
-                                        <div className="w-12 h-12 bg-white rounded-full" />
+                                        <div className="w-11 h-11 bg-white rounded-full" />
                                     </button>
                                 </div>
                             </>
@@ -233,73 +240,79 @@ export default function BonesScanPage() {
                     </div>
 
                     {error && (
-                        <div className="p-3 bg-[rgba(255,99,132,0.1)] text-[#ff6384] rounded-[8px] border border-[rgba(255,99,132,0.3)] mb-6 text-[0.85rem]">
-                            {error}
+                        <div className="flex items-start gap-2 p-3.5 bg-red-50 text-red-600 rounded-[10px] border border-red-200 mb-5 text-[0.84rem] text-left">
+                            <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                            <span>{error}</span>
                         </div>
                     )}
 
-                    <div className="flex justify-center gap-4 flex-wrap">
-                        <label
-                            className="flex items-center gap-2 py-3 px-6 bg-[rgba(168,255,120,0.1)] text-[#a8ff78] border border-[rgba(168,255,120,0.3)] rounded-[24px] cursor-pointer text-[0.9rem]"
+                    <div className="flex justify-center gap-3 flex-wrap">
+                        <button
+                            className="flex items-center gap-2 py-3 px-5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full cursor-pointer text-[0.88rem] font-medium hover:bg-blue-100 transition-colors min-h-[44px]"
                             onClick={() => {
                                 const input = document.createElement('input');
                                 input.type = 'file'; input.accept = 'image/*'; input.capture = 'environment';
                                 input.onchange = handleCapture; input.click();
                             }}
                         >
-                            <span>📱</span><span>一般相機拍照</span>
-                        </label>
-                        <label
-                            className="flex items-center gap-2 py-3 px-6 bg-white/5 text-white border border-white/10 rounded-[24px] cursor-pointer text-[0.9rem]"
+                            <Smartphone size={16} />
+                            一般相機拍照
+                        </button>
+                        <button
+                            className="flex items-center gap-2 py-3 px-5 bg-slate-50 text-slate-600 border border-slate-200 rounded-full cursor-pointer text-[0.88rem] font-medium hover:bg-slate-100 transition-colors min-h-[44px]"
                             onClick={() => {
                                 const input = document.createElement('input');
                                 input.type = 'file'; input.accept = 'image/*';
                                 input.onchange = handleCapture; input.click();
                             }}
                         >
-                            <span>🖼️</span><span>從相簿選取</span>
-                        </label>
+                            <Image size={16} />
+                            從相簿選取
+                        </button>
                     </div>
                 </div>
             ) : (
-                <div className="flex flex-col gap-6">
-                    <div className="rounded-[16px] overflow-hidden border border-white/10 bg-black flex justify-center items-center">
+                <div className="flex flex-col gap-4">
+                    <div className="rounded-[14px] overflow-hidden border border-slate-200 bg-slate-900 flex justify-center items-center shadow-sm">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={preview} alt="Preview" className="w-full max-h-[400px] object-contain" />
                     </div>
 
                     {error && (
-                        <div className="p-4 bg-[rgba(255,99,132,0.1)] text-[#ff6384] rounded-[8px] border border-[#ff6384]">
-                            {error}
+                        <div className="flex items-start gap-2 p-3.5 bg-red-50 text-red-600 rounded-[10px] border border-red-200 text-[0.84rem]">
+                            <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                            <span>{error}</span>
                         </div>
                     )}
 
                     {!result && (
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-3">
                             <button
                                 onClick={handleRetake}
                                 disabled={analyzing}
-                                className="p-4 bg-white/10 text-white border-none rounded-[12px] font-bold cursor-pointer"
+                                className="flex items-center justify-center gap-2 p-3.5 bg-white text-slate-700 border border-slate-300 rounded-[12px] font-semibold cursor-pointer hover:bg-slate-50 transition-colors min-h-[48px] shadow-sm"
                             >
+                                <RotateCcw size={16} />
                                 重拍
                             </button>
                             <button
                                 onClick={handleAnalyze}
                                 disabled={analyzing}
-                                className="p-4 bg-[#a8ff78] text-[#1a3630] border-none rounded-[12px] font-bold flex justify-center items-center gap-2 cursor-pointer"
+                                className="flex items-center justify-center gap-2 p-3.5 bg-blue-600 text-white border-none rounded-[12px] font-semibold cursor-pointer hover:bg-blue-700 transition-colors min-h-[48px] disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
                             >
-                                {analyzing ? 'AI 分析中...' : '開始分析 ✨'}
+                                <ScanSearch size={16} />
+                                {analyzing ? 'AI 分析中...' : '開始分析'}
                             </button>
                         </div>
                     )}
 
                     {result && (
-                        <div className="bg-gradient-to-br from-[rgba(168,255,120,0.15)] to-[rgba(6,23,0,0.5)] border border-[#a8ff78] rounded-[16px] p-6 animate-fade-in">
+                        <div className="bg-blue-50 border border-blue-200 rounded-[16px] p-5 shadow-sm">
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="m-0 text-[#a8ff78]">分析完成</h3>
+                                <h3 className="m-0 text-blue-700 font-semibold">分析完成</h3>
                                 <span
-                                    className="py-1 px-3 rounded-[20px] text-[0.85rem] font-bold text-[#1a3630]"
-                                    style={{ background: result.ai_severity === 'severe' || result.ai_severity === 'moderate' ? '#ff9a9e' : '#a8ff78' }}
+                                    className="py-1 px-3 rounded-full text-[0.82rem] font-semibold text-white"
+                                    style={{ background: result.ai_severity === 'severe' || result.ai_severity === 'moderate' ? '#dc2626' : '#2563eb' }}
                                 >
                                     {result.ai_severity === 'normal' && '正常'}
                                     {result.ai_severity === 'mild' && '輕度外翻'}
@@ -308,21 +321,21 @@ export default function BonesScanPage() {
                                 </span>
                             </div>
 
-                            <p className="text-white/90 leading-relaxed m-0 mb-6 text-[0.95rem]">
+                            <p className="text-slate-700 leading-relaxed m-0 mb-5 text-[0.9rem]">
                                 {result.ai_summary}
                             </p>
 
                             <button
                                 onClick={handleSaveAndView}
                                 disabled={saving}
-                                className="w-full p-4 bg-[#a8ff78] text-[#1a3630] border-none rounded-[12px] font-bold cursor-pointer"
+                                className="w-full p-3.5 bg-blue-600 text-white border-none rounded-[12px] font-semibold cursor-pointer hover:bg-blue-700 transition-colors min-h-[48px] disabled:opacity-60 disabled:cursor-not-allowed"
                             >
-                                {saving ? '儲存中...' : '儲存紀錄並查看建議 ➔'}
+                                {saving ? '儲存中...' : '儲存紀錄並查看建議 →'}
                             </button>
                             <button
                                 onClick={handleRetake}
                                 disabled={saving}
-                                className="w-full p-4 bg-transparent text-white border-none mt-2 cursor-pointer"
+                                className="w-full p-3.5 bg-transparent text-slate-500 border-none mt-2 cursor-pointer hover:text-slate-700 transition-colors text-[0.88rem]"
                             >
                                 取消重新掃描
                             </button>
