@@ -1,6 +1,9 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/authMiddleware.js';
-import { getAllLineOAs, getLineOAById, createLineOA, updateLineOA, deleteLineOA } from '../lib/db.js';
+import {
+  getAllLineOAs, getLineOAById, createLineOA, updateLineOA, deleteLineOA,
+  getTemplatesForOA, getTemplateById, createTemplate, updateTemplate, deleteTemplate, setActiveTemplate,
+} from '../lib/db.js';
 
 const lineoa = new Hono();
 lineoa.use('*', authMiddleware);
@@ -83,13 +86,6 @@ lineoa.post('/:id/richmenu', async (c) => {
     if (!z.uri) return c.json({ error: '每個區塊都必須填入 LIFF URI' }, 400);
   }
 
-  const BOUNDS = [
-    { x: 0,    y: 0,   width: 1250, height: 843 },
-    { x: 1250, y: 0,   width: 1250, height: 843 },
-    { x: 0,    y: 843, width: 1250, height: 843 },
-    { x: 1250, y: 843, width: 1250, height: 843 },
-  ];
-
   const { Client } = await import('@line/bot-sdk');
   const client = new Client({ channelAccessToken: oa.channel_access_token });
 
@@ -123,6 +119,153 @@ lineoa.post('/:id/richmenu', async (c) => {
   } catch (error) {
     console.error('Rich menu deploy error:', error);
     return c.json({ success: false, error: '部署失敗', details: error?.message || String(error) }, 500);
+  }
+});
+
+// ─── Rich Menu Templates ─────────────────────────────────────────────────────
+
+const BOUNDS = [
+  { x: 0,    y: 0,   width: 1250, height: 843 },
+  { x: 1250, y: 0,   width: 1250, height: 843 },
+  { x: 0,    y: 843, width: 1250, height: 843 },
+  { x: 1250, y: 843, width: 1250, height: 843 },
+];
+
+// GET /api/line/oa/:id/templates
+lineoa.get('/:id/templates', async (c) => {
+  const id = Number(c.req.param('id'));
+  const templates = await getTemplatesForOA(id);
+  return c.json({ templates });
+});
+
+// POST /api/line/oa/:id/templates  — create template (zones only, no image)
+lineoa.post('/:id/templates', async (c) => {
+  const id = Number(c.req.param('id'));
+  const oa = await getLineOAById(id);
+  if (!oa) return c.json({ error: '找不到此 LINE OA 設定' }, 404);
+
+  const body = await c.req.json();
+  const { name, zones } = body;
+  if (!name?.trim()) return c.json({ error: '請提供模板名稱' }, 400);
+
+  const defaultZones = [
+    { id: 'A', position: '左上', label: '', uri: '' },
+    { id: 'B', position: '右上', label: '', uri: '' },
+    { id: 'C', position: '左下', label: '', uri: '' },
+    { id: 'D', position: '右下', label: '', uri: '' },
+  ];
+  const template = await createTemplate(id, { name: name.trim(), zones: zones || defaultZones });
+  return c.json({ template }, 201);
+});
+
+// PATCH /api/line/oa/:id/templates/:tid
+lineoa.patch('/:id/templates/:tid', async (c) => {
+  const tid = Number(c.req.param('tid'));
+  const body = await c.req.json();
+  try {
+    const template = await updateTemplate(tid, { name: body.name, zones: body.zones });
+    return c.json({ template });
+  } catch (e) {
+    if (e?.code === 'P2025') return c.json({ error: '找不到模板' }, 404);
+    throw e;
+  }
+});
+
+// DELETE /api/line/oa/:id/templates/:tid
+lineoa.delete('/:id/templates/:tid', async (c) => {
+  const tid = Number(c.req.param('tid'));
+  try {
+    await deleteTemplate(tid);
+    return c.json({ success: true });
+  } catch (e) {
+    if (e?.code === 'P2025') return c.json({ error: '找不到模板' }, 404);
+    throw e;
+  }
+});
+
+// POST /api/line/oa/:id/templates/:tid/deploy  — upload image + deploy to LINE
+lineoa.post('/:id/templates/:tid/deploy', async (c) => {
+  const id = Number(c.req.param('id'));
+  const tid = Number(c.req.param('tid'));
+
+  const oa = await getLineOAById(id);
+  if (!oa) return c.json({ error: '找不到此 LINE OA 設定' }, 404);
+  if (!oa.is_active) return c.json({ error: '此 LINE OA 已停用' }, 400);
+
+  const template = await getTemplateById(tid);
+  if (!template || template.oa_id !== id) return c.json({ error: '找不到模板' }, 404);
+
+  let formData;
+  try { formData = await c.req.formData(); } catch {
+    return c.json({ error: '無法解析表單資料' }, 400);
+  }
+
+  const imageFile = formData.get('image');
+  if (!imageFile || typeof imageFile === 'string') return c.json({ error: '未提供圖片檔案' }, 400);
+
+  const zones = template.zones;
+  if (!Array.isArray(zones) || zones.length !== 4) return c.json({ error: 'zones 格式錯誤' }, 400);
+  for (const z of zones) {
+    if (!z.uri) return c.json({ error: `請先填入所有區塊的 LIFF URI 再部署` }, 400);
+  }
+
+  const { Client } = await import('@line/bot-sdk');
+  const client = new Client({ channelAccessToken: oa.channel_access_token });
+
+  const richMenuBody = {
+    size: { width: 2500, height: 1686 },
+    selected: true,
+    name: `${oa.name} - ${template.name}`,
+    chatBarText: '開啟選單',
+    areas: zones.map((z, i) => ({
+      bounds: BOUNDS[i],
+      action: { type: 'uri', uri: z.uri },
+    })),
+  };
+
+  try {
+    const richMenuId = await client.createRichMenu(richMenuBody);
+    const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
+    await client.setRichMenuImage(richMenuId, imageBuffer, imageFile.type || 'image/jpeg');
+    await client.setDefaultRichMenu(richMenuId);
+
+    // Delete the template's old rich menu from LINE (if any)
+    if (template.line_rich_menu_id) {
+      try { await client.deleteRichMenu(template.line_rich_menu_id); } catch {
+        console.warn('舊模板選單刪除失敗（不影響部署）');
+      }
+    }
+
+    const updated = await setActiveTemplate(id, tid, richMenuId);
+    return c.json({ success: true, richMenuId, template: updated });
+  } catch (error) {
+    console.error('Rich menu deploy error:', error);
+    return c.json({ success: false, error: '部署失敗', details: error?.message || String(error) }, 500);
+  }
+});
+
+// POST /api/line/oa/:id/templates/:tid/activate  — re-activate without re-upload
+lineoa.post('/:id/templates/:tid/activate', async (c) => {
+  const id = Number(c.req.param('id'));
+  const tid = Number(c.req.param('tid'));
+
+  const oa = await getLineOAById(id);
+  if (!oa) return c.json({ error: '找不到此 LINE OA 設定' }, 404);
+  if (!oa.is_active) return c.json({ error: '此 LINE OA 已停用' }, 400);
+
+  const template = await getTemplateById(tid);
+  if (!template || template.oa_id !== id) return c.json({ error: '找不到模板' }, 404);
+  if (!template.line_rich_menu_id) return c.json({ error: '此模板尚未部署，請先上傳圖片並部署' }, 400);
+
+  const { Client } = await import('@line/bot-sdk');
+  const client = new Client({ channelAccessToken: oa.channel_access_token });
+
+  try {
+    await client.setDefaultRichMenu(template.line_rich_menu_id);
+    const updated = await setActiveTemplate(id, tid);
+    return c.json({ success: true, template: updated });
+  } catch (error) {
+    return c.json({ success: false, error: '切換失敗', details: error?.message || String(error) }, 500);
   }
 });
 

@@ -10,7 +10,7 @@ export const viewport = { width: 'device-width', initialScale: 1, maximumScale: 
 export default function RootLayout({ children }) {
   return (
     <html lang="zh-TW" suppressHydrationWarning>
-      <head><meta name="theme-color" content="#1a1225" /></head>
+      <head><meta name="theme-color" content="#ffffff" /></head>
       <body suppressHydrationWarning>
         <ClientLayout>{children}</ClientLayout>
       </body>

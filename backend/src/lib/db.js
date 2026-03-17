@@ -453,3 +453,51 @@ export async function deleteLineOA(id) {
   await db().lineOA.delete({ where: { id } });
   return { success: true };
 }
+
+// ─── LINE OA Rich Menu Templates ────────────────────────────────────────────
+
+export async function getTemplatesForOA(oaId) {
+  return db().lineOARichMenuTemplate.findMany({
+    where: { oa_id: oaId },
+    orderBy: { created_at: 'desc' },
+  });
+}
+
+export async function getTemplateById(id) {
+  return db().lineOARichMenuTemplate.findUnique({ where: { id } });
+}
+
+export async function createTemplate(oaId, data) {
+  return db().lineOARichMenuTemplate.create({
+    data: { oa_id: oaId, name: data.name, zones: data.zones },
+  });
+}
+
+export async function updateTemplate(id, data) {
+  return db().lineOARichMenuTemplate.update({
+    where: { id },
+    data: {
+      ...(data.name != null && { name: data.name }),
+      ...(data.zones != null && { zones: data.zones }),
+    },
+  });
+}
+
+export async function deleteTemplate(id) {
+  await db().lineOARichMenuTemplate.delete({ where: { id } });
+  return { success: true };
+}
+
+export async function setActiveTemplate(oaId, templateId, richMenuId = null) {
+  await db().lineOARichMenuTemplate.updateMany({
+    where: { oa_id: oaId },
+    data: { is_active: false },
+  });
+  return db().lineOARichMenuTemplate.update({
+    where: { id: templateId },
+    data: {
+      is_active: true,
+      ...(richMenuId != null && { line_rich_menu_id: richMenuId }),
+    },
+  });
+}
