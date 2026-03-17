@@ -20,10 +20,11 @@ async function callGeminiRaw(apiKey, body) {
         });
         if (res.ok) {
           const data = await res.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          const parts = data.candidates?.[0]?.content?.parts || [];
+          const text = parts.filter(p => !p.thought).map(p => p.text || '').join('').trim();
           if (text) {
             console.log(`Gemini success: ${model}/${apiVersion}`);
-            return text.trim();
+            return text;
           }
         } else {
           const errData = await res.json().catch(() => ({}));
@@ -63,10 +64,13 @@ export function callGeminiText(apiKey, prompt) {
 }
 
 export function parseGeminiJson(text) {
-  const jsonStr = text
+  let jsonStr = text
     .replace(/```json?\n?/g, "")
     .replace(/```/g, "")
     .trim();
+  // Extract JSON object/array if surrounded by extra text
+  const jsonMatch = jsonStr.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+  if (jsonMatch) jsonStr = jsonMatch[0];
   try {
     return JSON.parse(jsonStr);
   } catch (e) {
