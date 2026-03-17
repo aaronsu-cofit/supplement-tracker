@@ -84,6 +84,41 @@ export default function BonesDashboard() {
         )}
       </div>
 
+      {/* 衛教影片區 */}
+      <div>
+        <h3 className="text-[1.1rem] mb-4 text-white flex items-center gap-2">
+          <span>🎬</span> 醫師衛教專區
+        </h3>
+        <div className="flex flex-col gap-3">
+          <a href="#" className="no-underline block">
+            <div className="bg-white/[0.03] hover:bg-white/[0.08] transition-colors border border-white/[0.08] rounded-[16px] p-4 flex items-center gap-4">
+              <div className="w-[100px] h-[64px] bg-black/40 rounded-[8px] flex items-center justify-center border border-white/10 shrink-0 relative overflow-hidden">
+                <span className="text-[1.5rem] z-10">▶️</span>
+                <div className="absolute inset-0 bg-gradient-to-br from-[#a8ff78]/10 to-transparent"></div>
+              </div>
+              <div>
+                <div className="text-[#a8ff78] text-[0.7rem] mb-1 font-medium bg-[#a8ff78]/10 inline-block px-2 py-0.5 rounded-full">主治醫師 陳永仁</div>
+                <h4 className="m-0 text-white text-[0.95rem] font-medium mb-1">認識拇趾外翻</h4>
+                <p className="m-0 text-white/50 text-[0.8rem]">了解成因與初期症狀</p>
+              </div>
+            </div>
+          </a>
+          <a href="#" className="no-underline block">
+            <div className="bg-white/[0.03] hover:bg-white/[0.08] transition-colors border border-white/[0.08] rounded-[16px] p-4 flex items-center gap-4">
+              <div className="w-[100px] h-[64px] bg-black/40 rounded-[8px] flex items-center justify-center border border-white/10 shrink-0 relative overflow-hidden">
+                <span className="text-[1.5rem] z-10">▶️</span>
+                <div className="absolute inset-0 bg-gradient-to-br from-[#a8ff78]/10 to-transparent"></div>
+              </div>
+              <div>
+                <div className="text-[#a8ff78] text-[0.7rem] mb-1 font-medium bg-[#a8ff78]/10 inline-block px-2 py-0.5 rounded-full">主治醫師 陳永仁</div>
+                <h4 className="m-0 text-white text-[0.95rem] font-medium mb-1">居家足部復健運動</h4>
+                <p className="m-0 text-white/50 text-[0.8rem]">每日 5 分鐘舒緩疼痛</p>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+
       <div className="bg-gradient-to-br from-[rgba(168,255,120,0.1)] to-[rgba(120,255,214,0.1)] border border-[rgba(168,255,120,0.2)] rounded-[16px] p-5 mt-4">
         <h3 className="m-0 mb-2 text-[#a8ff78] text-[1rem]">🛍️ 專屬照護推薦</h3>
         <p className="m-0 mb-4 text-white/70 text-[0.85rem]">依據您的評估紀錄，建議使用夜間夾板或足弓支撐墊。現在結帳輸入 <strong className="text-white">CARE20</strong> 享專屬折扣。</p>
