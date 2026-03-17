@@ -1,16 +1,32 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { apiFetch } from '@vitera/lib';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { apiFetch } from "@vitera/lib";
+
+const EDUCATION_VIDEOS = [
+  {
+    youtubeId: "hb8m0Y7D2l4", // 替換為實際的 YouTube 影片 ID
+    doctor: "主治醫師 陳永仁",
+    title: "拇趾外翻的原因？",
+    description: "了解拇趾外翻的成因",
+  },
+  {
+    youtubeId: "nqqCtz6Orqk", // 替換為實際的 YouTube 影片 ID
+    doctor: "主治醫師 陳永仁",
+    title: "扁平足的原因是什麼？",
+    description: "了解扁平足的成因",
+  },
+];
 
 export default function BonesDashboard() {
   const [latestAssessment, setLatestAssessment] = useState(null);
+  const [activeVideo, setActiveVideo] = useState(null);
 
   useEffect(() => {
-    apiFetch('/api/footcare/assessments')
-      .then(r => r.ok ? r.json() : [])
-      .then(data => {
+    apiFetch("/api/footcare/assessments")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
         const list = Array.isArray(data) ? data : [];
         if (list.length > 0) setLatestAssessment(list[0]);
       })
@@ -19,13 +35,16 @@ export default function BonesDashboard() {
 
   return (
     <div className="p-6 max-w-[600px] mx-auto flex flex-col gap-6 pb-8">
-
       <Link href="/scan" className="no-underline">
         <div className="bg-gradient-to-br from-[rgba(82,194,52,0.2)] to-[rgba(6,23,0,0.4)] border border-[rgba(168,255,120,0.3)] rounded-[16px] p-6 flex items-center gap-4 relative overflow-hidden">
           <div className="text-[2.5rem]">📷</div>
           <div className="flex-1">
-            <h3 className="m-0 mb-1 text-[#a8ff78] text-[1.1rem]">AI 拇趾外翻檢測</h3>
-            <p className="m-0 text-white/80 text-[0.85rem]">只要拍攝足部俯拍照，即可透過 AI 分析外翻角度與嚴重程度。</p>
+            <h3 className="m-0 mb-1 text-[#a8ff78] text-[1.1rem]">
+              AI 拇趾外翻檢測
+            </h3>
+            <p className="m-0 text-white/80 text-[0.85rem]">
+              只要拍攝足部俯拍照，即可透過 AI 分析外翻角度與嚴重程度。
+            </p>
           </div>
         </div>
       </Link>
@@ -34,14 +53,18 @@ export default function BonesDashboard() {
         <Link href="/assess" className="no-underline">
           <div className="bg-white/[0.03] border border-white/[0.08] rounded-[16px] p-5 text-center flex flex-col items-center gap-2">
             <div className="text-[2rem]">📝</div>
-            <h3 className="m-0 text-white text-[1rem] font-semibold">今日痛點評估</h3>
+            <h3 className="m-0 text-white text-[1rem] font-semibold">
+              今日痛點評估
+            </h3>
             <p className="m-0 text-white/50 text-[0.75rem]">紀錄疼痛與活動力</p>
           </div>
         </Link>
         <Link href="/history" className="no-underline">
           <div className="bg-white/[0.03] border border-white/[0.08] rounded-[16px] p-5 text-center flex flex-col items-center gap-2">
             <div className="text-[2rem]">📸</div>
-            <h3 className="m-0 text-white text-[1rem] font-semibold">檢測歷程追蹤</h3>
+            <h3 className="m-0 text-white text-[1rem] font-semibold">
+              檢測歷程追蹤
+            </h3>
             <p className="m-0 text-white/50 text-[0.75rem]">追蹤外翻角度變化</p>
           </div>
         </Link>
@@ -54,32 +77,57 @@ export default function BonesDashboard() {
         {latestAssessment ? (
           <div className="bg-black/20 rounded-[12px] p-4 border border-white/[0.05]">
             <div className="flex justify-between mb-2">
-              <span className="text-white/50 text-[0.85rem]">最新紀錄 {latestAssessment.date}</span>
-              <span className="font-bold" style={{ color: latestAssessment.nrs_pain_score > 3 ? '#ff9a9e' : '#a8ff78' }}>
+              <span className="text-white/50 text-[0.85rem]">
+                最新紀錄 {latestAssessment.date}
+              </span>
+              <span
+                className="font-bold"
+                style={{
+                  color:
+                    latestAssessment.nrs_pain_score > 3 ? "#ff9a9e" : "#a8ff78",
+                }}
+              >
                 疼痛指數: {latestAssessment.nrs_pain_score}/10
               </span>
             </div>
             {latestAssessment.pain_locations && (
               <div className="flex gap-2 flex-wrap mt-2">
-                {latestAssessment.pain_locations.split(',').map((loc, idx) => (
-                  <span key={idx} className="bg-white/10 py-[0.2rem] px-2 rounded text-[0.8rem]">{loc.trim()} 📍</span>
+                {latestAssessment.pain_locations.split(",").map((loc, idx) => (
+                  <span
+                    key={idx}
+                    className="bg-white/10 py-[0.2rem] px-2 rounded text-[0.8rem]"
+                  >
+                    {loc.trim()} 📍
+                  </span>
                 ))}
               </div>
             )}
             <div className="flex gap-4 mt-4 pt-4 border-t border-white/[0.05]">
               <div className="flex-1">
-                <div className="text-[0.75rem] text-white/50 mb-1">今日活動</div>
-                <div className="text-[1.1rem] text-white">{latestAssessment.steps_count} 步</div>
+                <div className="text-[0.75rem] text-white/50 mb-1">
+                  今日活動
+                </div>
+                <div className="text-[1.1rem] text-white">
+                  {latestAssessment.steps_count} 步
+                </div>
               </div>
               <div className="flex-1 border-l border-white/[0.05] pl-4">
-                <div className="text-[0.75rem] text-white/50 mb-1">累積久站</div>
-                <div className="text-[1.1rem] text-white">{latestAssessment.standing_hours} 小時</div>
+                <div className="text-[0.75rem] text-white/50 mb-1">
+                  累積久站
+                </div>
+                <div className="text-[1.1rem] text-white">
+                  {latestAssessment.standing_hours} 小時
+                </div>
               </div>
             </div>
           </div>
         ) : (
           <div className="bg-black/20 rounded-[12px] p-8 border border-dashed border-white/10 text-center">
-            <p className="text-white/50 m-0 text-[0.9rem]">目前尚無評估資料。<br />點擊上方「今日痛點評估」開始紀錄。</p>
+            <p className="text-white/50 m-0 text-[0.9rem]">
+              目前尚無評估資料。
+              <br />
+              點擊上方「今日痛點評估」開始紀錄。
+            </p>
           </div>
         )}
       </div>
@@ -90,39 +138,93 @@ export default function BonesDashboard() {
           <span>🎬</span> 醫師衛教專區
         </h3>
         <div className="flex flex-col gap-3">
-          <a href="#" className="no-underline block">
-            <div className="bg-white/[0.03] hover:bg-white/[0.08] transition-colors border border-white/[0.08] rounded-[16px] p-4 flex items-center gap-4">
-              <div className="w-[100px] h-[64px] bg-black/40 rounded-[8px] flex items-center justify-center border border-white/10 shrink-0 relative overflow-hidden">
-                <span className="text-[1.5rem] z-10">▶️</span>
-                <div className="absolute inset-0 bg-gradient-to-br from-[#a8ff78]/10 to-transparent"></div>
+          {EDUCATION_VIDEOS.map((video) => (
+            <button
+              key={video.youtubeId}
+              onClick={() => setActiveVideo(video)}
+              className="text-left w-full bg-none border-none p-0 cursor-pointer"
+            >
+              <div className="bg-white/[0.03] hover:bg-white/[0.08] transition-colors border border-white/[0.08] rounded-[16px] p-4 flex items-center gap-4">
+                <div className="w-[100px] h-[64px] rounded-[8px] shrink-0 relative overflow-hidden border border-white/10">
+                  <img
+                    src={`https://img.youtube.com/vi/${video.youtubeId}/mqdefault.jpg`}
+                    alt={video.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <div className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center">
+                      <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-[#1a3630] ml-1"></div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[#a8ff78] text-[0.7rem] mb-1 font-medium bg-[#a8ff78]/10 inline-block px-2 py-0.5 rounded-full">
+                    {video.doctor}
+                  </div>
+                  <h4 className="m-0 text-white text-[0.95rem] font-medium mb-1">
+                    {video.title}
+                  </h4>
+                  <p className="m-0 text-white/50 text-[0.8rem]">
+                    {video.description}
+                  </p>
+                </div>
               </div>
-              <div>
-                <div className="text-[#a8ff78] text-[0.7rem] mb-1 font-medium bg-[#a8ff78]/10 inline-block px-2 py-0.5 rounded-full">主治醫師 陳永仁</div>
-                <h4 className="m-0 text-white text-[0.95rem] font-medium mb-1">認識拇趾外翻</h4>
-                <p className="m-0 text-white/50 text-[0.8rem]">了解成因與初期症狀</p>
-              </div>
-            </div>
-          </a>
-          <a href="#" className="no-underline block">
-            <div className="bg-white/[0.03] hover:bg-white/[0.08] transition-colors border border-white/[0.08] rounded-[16px] p-4 flex items-center gap-4">
-              <div className="w-[100px] h-[64px] bg-black/40 rounded-[8px] flex items-center justify-center border border-white/10 shrink-0 relative overflow-hidden">
-                <span className="text-[1.5rem] z-10">▶️</span>
-                <div className="absolute inset-0 bg-gradient-to-br from-[#a8ff78]/10 to-transparent"></div>
-              </div>
-              <div>
-                <div className="text-[#a8ff78] text-[0.7rem] mb-1 font-medium bg-[#a8ff78]/10 inline-block px-2 py-0.5 rounded-full">主治醫師 陳永仁</div>
-                <h4 className="m-0 text-white text-[0.95rem] font-medium mb-1">居家足部復健運動</h4>
-                <p className="m-0 text-white/50 text-[0.8rem]">每日 5 分鐘舒緩疼痛</p>
-              </div>
-            </div>
-          </a>
+            </button>
+          ))}
         </div>
       </div>
 
+      {/* YouTube 影片 Modal */}
+      {activeVideo && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setActiveVideo(null)}
+        >
+          <div
+            className="w-full max-w-[600px] bg-[#0d1f0d] rounded-[16px] overflow-hidden border border-white/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08]">
+              <div>
+                <div className="text-[#a8ff78] text-[0.7rem] font-medium bg-[#a8ff78]/10 inline-block px-2 py-0.5 rounded-full mb-1">
+                  {activeVideo.doctor}
+                </div>
+                <h4 className="m-0 text-white text-[0.95rem] font-medium">
+                  {activeVideo.title}
+                </h4>
+              </div>
+              <button
+                onClick={() => setActiveVideo(null)}
+                className="text-white/50 hover:text-white text-[1.5rem] leading-none bg-none border-none cursor-pointer p-1"
+              >
+                ×
+              </button>
+            </div>
+            <div
+              className="relative w-full"
+              style={{ paddingBottom: "56.25%" }}
+            >
+              <iframe
+                className="absolute inset-0 w-full h-full"
+                src={`https://www.youtube.com/embed/${activeVideo.youtubeId}?autoplay=1&rel=0`}
+                title={activeVideo.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-gradient-to-br from-[rgba(168,255,120,0.1)] to-[rgba(120,255,214,0.1)] border border-[rgba(168,255,120,0.2)] rounded-[16px] p-5 mt-4">
         <h3 className="m-0 mb-2 text-[#a8ff78] text-[1rem]">🛍️ 專屬照護推薦</h3>
-        <p className="m-0 mb-4 text-white/70 text-[0.85rem]">依據您的評估紀錄，建議使用夜間夾板或足弓支撐墊。現在結帳輸入 <strong className="text-white">CARE20</strong> 享專屬折扣。</p>
-        <button className="w-full py-3 rounded-[8px] border-none bg-[#a8ff78] text-[#1a3630] font-bold cursor-pointer">前往商城選購</button>
+        <p className="m-0 mb-4 text-white/70 text-[0.85rem]">
+          依據您的評估紀錄，建議使用夜間夾板或足弓支撐墊。現在結帳輸入{" "}
+          <strong className="text-white">CARE20</strong> 享專屬折扣。
+        </p>
+        <button className="w-full py-3 rounded-[8px] border-none bg-[#a8ff78] text-[#1a3630] font-bold cursor-pointer">
+          前往商城選購
+        </button>
       </div>
     </div>
   );
