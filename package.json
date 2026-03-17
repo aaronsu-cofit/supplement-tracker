@@ -6,12 +6,19 @@
     "dev:wounds": "turbo dev --filter=@vitera/backend --filter=@vitera/wounds --filter=@vitera/portal",
     "dev:bones": "turbo dev --filter=@vitera/backend --filter=@vitera/bones --filter=@vitera/portal",
     "dev:supplements": "turbo dev --filter=@vitera/backend --filter=@vitera/supplements --filter=@vitera/portal",
-    "dev:hq": "turbo dev --filter=@vitera/backend --filter=@vitera/hq",
+    "dev:hq": "turbo dev --filter=@vitera/backend --filter=@vitera/hq --filter=@vitera/portal",
     "dev:intimacy": "turbo dev --filter=@vitera/backend --filter=@vitera/intimacy --filter=@vitera/portal",
     "dev:portal": "turbo dev --filter=@vitera/backend --filter=@vitera/portal",
     "dev:portal-only": "turbo dev --filter=@vitera/portal",
     "build": "turbo build",
-    "lint": "turbo lint"
+    "lint": "turbo lint",
+    "clean": "rm -rf apps/*/.next",
+    "clean:hq": "rm -rf apps/hq/.next",
+    "clean:portal": "rm -rf apps/portal/.next",
+    "clean:wounds": "rm -rf apps/wounds/.next",
+    "clean:bones": "rm -rf apps/bones/.next",
+    "clean:supplements": "rm -rf apps/supplements/.next",
+    "clean:intimacy": "rm -rf apps/intimacy/.next"
   },
   "devDependencies": {
     "turbo": "^2.3.3"

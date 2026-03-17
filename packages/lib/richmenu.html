@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LINE Rich Menu - Wounds Care</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Noto Sans TC", sans-serif;
+        background-color: #f8fafc;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+      }
+      /* 
+      依據 LINE Rich Menu 官方 Large 尺寸 2500x1686 設計。
+      這裡縮小呈現方便螢幕預覽，你可以在截圖時放大，或是透過工具直接轉出指定尺寸。
+    */
+      .rich-menu-container {
+        width: 1250px;
+        height: 843px;
+        background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 20px;
+        padding: 24px;
+        box-sizing: border-box;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        border-radius: 32px; /* 若 LINE 匯入需無邊框，可拿掉 padding 與 border-radius */
+      }
+      .menu-item {
+        background: white;
+        border-radius: 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        box-shadow: 0 10px 25px -5px rgba(14, 165, 233, 0.1);
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+      .menu-item::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+      }
+      .item-tl::before {
+        background: #0ea5e9;
+      } /* 記錄傷口 - 藍色 */
+      .item-tr::before {
+        background: #10b981;
+      } /* 癒合歷程 - 綠色 */
+      .item-bl::before {
+        background: #f59e0b;
+      } /* 換藥提醒 - 橘黃 */
+      .item-br::before {
+        background: #8b5cf6;
+      } /* 照護知識 - 紫色 */
+
+      .icon-wrapper {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 64px;
+        margin-bottom: 24px;
+      }
+      .item-tl .icon-wrapper {
+        background: #e0f2fe;
+        color: #0ea5e9;
+      }
+      .item-tr .icon-wrapper {
+        background: #d1fae5;
+        color: #10b981;
+      }
+      .item-bl .icon-wrapper {
+        background: #fef3c7;
+        color: #f59e0b;
+      }
+      .item-br .icon-wrapper {
+        background: #ede9fe;
+        color: #8b5cf6;
+      }
+
+      .title {
+        font-size: 48px;
+        font-weight: 900;
+        color: #1e293b;
+        margin-bottom: 16px;
+        letter-spacing: 2px;
+      }
+      .subtitle {
+        font-size: 28px;
+        font-weight: 500;
+        color: #64748b;
+        background: #f1f5f9;
+        padding: 8px 24px;
+        border-radius: 9999px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="rich-menu-container">
+      <!-- 左上：記錄傷口 -->
+      <div class="menu-item item-tl">
+        <div class="icon-wrapper">📷</div>
+        <div class="title">記錄傷口</div>
+        <div class="subtitle">拍照 + 疼痛評估</div>
+      </div>
+
+      <!-- 右上：癒合歷程 -->
+      <div class="menu-item item-tr">
+        <div class="icon-wrapper">📋</div>
+        <div class="title">癒合歷程</div>
+        <div class="subtitle">追蹤癒合進度</div>
+      </div>
+
+      <!-- 左下：換藥提醒 -->
+      <div class="menu-item item-bl">
+        <div class="icon-wrapper">💊</div>
+        <div class="title">換藥提醒</div>
+        <div class="subtitle">設定提醒時間</div>
+      </div>
+
+      <!-- 右下：照護知識 -->
+      <div class="menu-item item-br">
+        <div class="icon-wrapper">🎓</div>
+        <div class="title">照護知識</div>
+        <div class="subtitle">衛教文章 & 問答</div>
+      </div>
+    </div>
+  </body>
+</html>

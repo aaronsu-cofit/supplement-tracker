@@ -159,3 +159,15 @@ model Module {
 
   @@map("modules")
 }
+
+model LineOA {
+  id                   Int      @id @default(autoincrement())
+  name                 String   @db.VarChar(200)
+  description          String?
+  channel_access_token String   @db.VarChar(500)
+  is_active            Boolean  @default(true)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  @@map("line_oa")
+}

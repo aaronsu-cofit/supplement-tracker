@@ -398,3 +398,58 @@ export async function updateModule(id, updates) {
     },
   });
 }
+
+// ============================================
+// LINE OA CRUD
+// ============================================
+
+const OA_PUBLIC_SELECT = {
+  id: true,
+  name: true,
+  description: true,
+  is_active: true,
+  created_at: true,
+  updated_at: true,
+};
+
+export async function getAllLineOAs() {
+  return db().lineOA.findMany({
+    select: OA_PUBLIC_SELECT,
+    orderBy: { created_at: 'desc' },
+  });
+}
+
+export async function getLineOAById(id) {
+  return db().lineOA.findUnique({ where: { id } });
+}
+
+export async function createLineOA(data) {
+  const oa = await db().lineOA.create({
+    data: {
+      name: data.name,
+      description: data.description || null,
+      channel_access_token: data.channel_access_token,
+    },
+  });
+  const { channel_access_token: _, ...safe } = oa;
+  return safe;
+}
+
+export async function updateLineOA(id, data) {
+  const oa = await db().lineOA.update({
+    where: { id },
+    data: {
+      ...(data.name != null && { name: data.name }),
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.channel_access_token != null && { channel_access_token: data.channel_access_token }),
+      ...(data.is_active !== undefined && { is_active: data.is_active }),
+    },
+  });
+  const { channel_access_token: _, ...safe } = oa;
+  return safe;
+}
+
+export async function deleteLineOA(id) {
+  await db().lineOA.delete({ where: { id } });
+  return { success: true };
+}
