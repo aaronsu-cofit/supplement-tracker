@@ -24,8 +24,8 @@ env:
   # Build Args
   NEXT_PUBLIC_API_URL: https://vitera-api-staging.cofit.me
   NEXT_PUBLIC_LOGIN_URL: https://vitera-portal-staging.cofit.me/login
-  NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS: https://vitera-wounds-staging.cofit.me,https://vitera-bones-staging.cofit.me,https://vitera-supplements-staging.cofit.me,https://vitera-intimacy-staging.cofit.me,https://vitera-hq-staging.cofit.me
-  NEXT_PUBLIC_LIFF_ID_PORTAL: '2009369966-6Ly7P5hr'
+  NEXT_PUBLIC_ALLOWED_REDIRECT_ORIGINS: https://vitera-wounds-staging.cofit.me,https://vitera-bones-staging.cofit.me,https://vitera-intimacy-staging.cofit.me,https://vitera-hq-staging.cofit.me
+  NEXT_PUBLIC_LIFF_ID_PORTAL: "2009369966-6Ly7P5hr"
 
 concurrency:
   group: vitera-staging-gitops

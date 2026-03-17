@@ -19,7 +19,7 @@ set -euo pipefail
 #   cp .env.cloudrun.example .env.cloudrun.production
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APPS=("portal" "wounds" "supplements" "bones" "intimacy" "hq")
+APPS=("portal" "wounds" "bones" "intimacy" "hq")
 
 # ─── Parse args ───────────────────────────────────────────────────────────────
 APP="${1:-}"
@@ -93,7 +93,6 @@ gcloud auth configure-docker --quiet
 get_liff_id() {
   case "$1" in
     wounds)      echo "${LIFF_ID_WOUNDS:-}" ;;
-    supplements) echo "${LIFF_ID_SUPPLEMENTS:-}" ;;
     bones)       echo "${LIFF_ID_BONES:-}" ;;
     intimacy)    echo "${LIFF_ID_INTIMACY:-}" ;;
     hq)          echo "${LIFF_ID_HQ:-}" ;;

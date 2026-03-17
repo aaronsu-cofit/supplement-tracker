@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { useModules, useAuth } from '@vitera/lib';
 
 const MODULE_STYLES = {
-  supplements: { bg: 'linear-gradient(135deg, #A0C4FF 0%, #C4B5FD 100%)', emoji: '💊', color: '#1E40AF' },
   wounds:      { bg: 'linear-gradient(135deg, #BDE0FE 0%, #A7F3D0 100%)', emoji: '🩹', color: '#065F46' },
   bones:       { bg: 'linear-gradient(135deg, #FFC8DD 0%, #FFD6A5 100%)', emoji: '🦴', color: '#9A3412' },
   intimacy:    { bg: 'linear-gradient(135deg, #FFAFCC 0%, #FFB5A7 100%)', emoji: '💖', color: '#BE123C' },
