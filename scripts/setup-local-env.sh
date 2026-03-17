@@ -8,7 +8,7 @@ set -euo pipefail
 # Shared values (API_URL, LOGIN_URL) are set to localhost defaults automatically.
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APPS=("portal" "wounds" "supplements" "bones" "intimacy" "hq")
+APPS=("portal" "wounds" "bones" "intimacy" "hq")
 
 echo ""
 echo "╔══════════════════════════════════════════════════════════════╗"
@@ -20,7 +20,6 @@ echo "Leave LIFF IDs blank to skip LINE login locally."
 echo ""
 
 read -rp "LIFF ID for wounds    (or blank): " LIFF_WOUNDS
-read -rp "LIFF ID for supplements (or blank): " LIFF_SUPPLEMENTS
 read -rp "LIFF ID for bones     (or blank): " LIFF_BONES
 read -rp "LIFF ID for intimacy  (or blank): " LIFF_INTIMACY
 echo ""
@@ -28,7 +27,6 @@ echo ""
 get_liff_id() {
   case "$1" in
     wounds)      echo "$LIFF_WOUNDS" ;;
-    supplements) echo "$LIFF_SUPPLEMENTS" ;;
     bones)       echo "$LIFF_BONES" ;;
     intimacy)    echo "$LIFF_INTIMACY" ;;
     *)           echo "" ;;
