@@ -50,8 +50,7 @@ export function callGemini(apiKey, base64Data, mimeType, prompt) {
     ],
     generationConfig: {
       temperature: 0.2,
-      maxOutputTokens: 1024,
-      thinkingConfig: { thinkingLevel: "medium" },
+      maxOutputTokens: 2048,
     },
   });
 }
