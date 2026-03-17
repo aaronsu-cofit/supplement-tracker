@@ -1,6 +1,6 @@
 'use client';
 import { apiFetch } from '@vitera/lib';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const DEFAULT_ZONES = [
   { id: 'A', position: '左上', label: '', uri: '' },
@@ -8,32 +8,38 @@ const DEFAULT_ZONES = [
   { id: 'C', position: '左下', label: '', uri: '' },
   { id: 'D', position: '右下', label: '', uri: '' },
 ];
-
 const EMPTY_ADD_FORM = { name: '', description: '', channel_access_token: '' };
 
 export default function HQLineMenuClient() {
+  // ── OA list state ──────────────────────────────────────────────────────────
   const [oaList, setOaList] = useState([]);
   const [isLoadingOAs, setIsLoadingOAs] = useState(true);
   const [loadError, setLoadError] = useState(null);
-
-  // Add form
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState(EMPTY_ADD_FORM);
   const [isAdding, setIsAdding] = useState(false);
   const [addError, setAddError] = useState(null);
-
-  // Edit
-  const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({});
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
-
-  // Selected OA & rich menu config
+  const [editingOAId, setEditingOAId] = useState(null);
+  const [editOAForm, setEditOAForm] = useState({});
+  const [isSavingOA, setIsSavingOA] = useState(false);
   const [selectedOA, setSelectedOA] = useState(null);
-  const [zones, setZones] = useState(DEFAULT_ZONES.map(z => ({ ...z })));
-  const [imageFile, setImageFile] = useState(null);
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [deployStatus, setDeployStatus] = useState(null);
 
+  // ── Template list state ────────────────────────────────────────────────────
+  const [templates, setTemplates] = useState([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [showNewTemplateForm, setShowNewTemplateForm] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
+
+  // ── Template editor state ──────────────────────────────────────────────────
+  const [editingTemplate, setEditingTemplate] = useState(null); // { id, name, zones }
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [templateImageFile, setTemplateImageFile] = useState(null);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [isActivating, setIsActivating] = useState(null); // templateId being activated
+  const [actionStatus, setActionStatus] = useState(null); // { type, message }
+
+  // ── Load OAs ───────────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
     const fetchOAs = async () => {
@@ -53,16 +59,33 @@ export default function HQLineMenuClient() {
     return () => { cancelled = true; };
   }, []);
 
+  // ── Load templates when OA selected ───────────────────────────────────────
+  const fetchTemplates = useCallback(async (oaId) => {
+    setIsLoadingTemplates(true);
+    try {
+      const res = await apiFetch(`/api/line/oa/${oaId}/templates`);
+      const data = await res.json();
+      setTemplates(data.templates || []);
+    } catch {
+      setTemplates([]);
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  }, []);
+
   const handleSelectOA = (oa) => {
     setSelectedOA(oa);
-    setZones(DEFAULT_ZONES.map(z => ({ ...z })));
-    setImageFile(null);
-    setDeployStatus(null);
-    setEditingId(null);
+    setEditingOAId(null);
+    setEditingTemplate(null);
+    setTemplateImageFile(null);
+    setActionStatus(null);
+    setShowNewTemplateForm(false);
+    setNewTemplateName('');
+    fetchTemplates(oa.id);
   };
 
-  // ─── Add OA ─────────────────────────────────────────────────────────
-  const handleAdd = async () => {
+  // ── OA CRUD ────────────────────────────────────────────────────────────────
+  const handleAddOA = async () => {
     if (!addForm.name.trim() || !addForm.channel_access_token.trim()) {
       setAddError('名稱與 Channel Access Token 為必填');
       return;
@@ -87,20 +110,20 @@ export default function HQLineMenuClient() {
     }
   };
 
-  // ─── Edit OA ────────────────────────────────────────────────────────
-  const startEdit = (oa) => {
-    setEditingId(oa.id);
-    setEditForm({ name: oa.name, description: oa.description || '', channel_access_token: '' });
+  const startEditOA = (oa) => {
+    setEditingOAId(oa.id);
+    setEditOAForm({ name: oa.name, description: oa.description || '', channel_access_token: '' });
     setSelectedOA(null);
+    setEditingTemplate(null);
   };
 
-  const handleSaveEdit = async (id) => {
-    setIsSavingEdit(true);
+  const handleSaveOAEdit = async (id) => {
+    setIsSavingOA(true);
     try {
       const payload = {
-        name: editForm.name,
-        description: editForm.description,
-        ...(editForm.channel_access_token && { channel_access_token: editForm.channel_access_token }),
+        name: editOAForm.name,
+        description: editOAForm.description,
+        ...(editOAForm.channel_access_token && { channel_access_token: editOAForm.channel_access_token }),
       };
       const res = await apiFetch(`/api/line/oa/${id}`, {
         method: 'PATCH',
@@ -110,9 +133,9 @@ export default function HQLineMenuClient() {
       const data = await res.json();
       if (!res.ok) return;
       setOaList(prev => prev.map(o => o.id === id ? { ...o, ...data.oa } : o));
-      setEditingId(null);
+      setEditingOAId(null);
     } catch { /* ignore */ } finally {
-      setIsSavingEdit(false);
+      setIsSavingOA(false);
     }
   };
 
@@ -129,44 +152,143 @@ export default function HQLineMenuClient() {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDeleteOA = async (id) => {
     if (!confirm('確定要刪除此 LINE OA 設定？此操作無法復原。')) return;
     await apiFetch(`/api/line/oa/${id}`, { method: 'DELETE' });
     setOaList(prev => prev.filter(o => o.id !== id));
-    if (selectedOA?.id === id) setSelectedOA(null);
+    if (selectedOA?.id === id) { setSelectedOA(null); setTemplates([]); }
   };
 
-  // ─── Deploy rich menu ───────────────────────────────────────────────
-  const handleDeploy = async () => {
-    if (!imageFile) { setDeployStatus({ type: 'error', message: '請先上傳選單圖片（2500×1686）' }); return; }
-    for (const z of zones) {
-      if (!z.uri.trim()) { setDeployStatus({ type: 'error', message: `請填入「${z.position}（${z.id}）」的 LIFF URI` }); return; }
-    }
-
-    setIsDeploying(true);
-    setDeployStatus(null);
+  // ── Template CRUD ──────────────────────────────────────────────────────────
+  const handleCreateTemplate = async () => {
+    if (!newTemplateName.trim()) return;
+    setIsCreatingTemplate(true);
     try {
-      const formData = new FormData();
-      formData.append('image', imageFile);
-      formData.append('zones', JSON.stringify(zones.map(z => ({ label: z.label, uri: z.uri }))));
+      const res = await apiFetch(`/api/line/oa/${selectedOA.id}/templates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newTemplateName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) return;
+      setTemplates(prev => [data.template, ...prev]);
+      setNewTemplateName('');
+      setShowNewTemplateForm(false);
+      // Open editor for the new template
+      setEditingTemplate({ ...data.template, zones: data.template.zones || DEFAULT_ZONES.map(z => ({ ...z })) });
+      setTemplateImageFile(null);
+      setActionStatus(null);
+    } catch { /* ignore */ } finally {
+      setIsCreatingTemplate(false);
+    }
+  };
 
-      const res = await apiFetch(`/api/line/oa/${selectedOA.id}/richmenu`, {
+  const handleEditTemplate = (template) => {
+    setEditingTemplate({ ...template, zones: template.zones?.map(z => ({ ...z })) ?? DEFAULT_ZONES.map(z => ({ ...z })) });
+    setTemplateImageFile(null);
+    setActionStatus(null);
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!editingTemplate) return;
+    setIsSavingTemplate(true);
+    try {
+      const res = await apiFetch(`/api/line/oa/${selectedOA.id}/templates/${editingTemplate.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editingTemplate.name, zones: editingTemplate.zones }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setActionStatus({ type: 'error', message: data.error || '儲存失敗' }); return; }
+      setTemplates(prev => prev.map(t => t.id === editingTemplate.id ? data.template : t));
+      setEditingTemplate(data.template);
+      setActionStatus({ type: 'success', message: '模板設定已儲存' });
+    } catch {
+      setActionStatus({ type: 'error', message: '網路錯誤' });
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
+
+  const handleDeployTemplate = async () => {
+    if (!templateImageFile) {
+      setActionStatus({ type: 'error', message: '請先上傳選單圖片（2500×1686）' });
+      return;
+    }
+    for (const z of editingTemplate.zones) {
+      if (!z.uri.trim()) {
+        setActionStatus({ type: 'error', message: `請填入「${z.position}（${z.id}）」的 LIFF URI` });
+        return;
+      }
+    }
+    setIsDeploying(true);
+    setActionStatus(null);
+
+    // Save zones first, then deploy
+    try {
+      const saveRes = await apiFetch(`/api/line/oa/${selectedOA.id}/templates/${editingTemplate.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editingTemplate.name, zones: editingTemplate.zones }),
+      });
+      if (!saveRes.ok) { setActionStatus({ type: 'error', message: '儲存設定失敗' }); return; }
+
+      const formData = new FormData();
+      formData.append('image', templateImageFile);
+      const res = await apiFetch(`/api/line/oa/${selectedOA.id}/templates/${editingTemplate.id}/deploy`, {
         method: 'POST',
         body: formData,
       });
       const data = await res.json();
       if (data.success) {
-        setDeployStatus({ type: 'success', message: `Rich Menu 已成功部署！ID: ${data.richMenuId}` });
+        setTemplates(prev => prev.map(t =>
+          t.id === editingTemplate.id ? data.template : { ...t, is_active: false }
+        ));
+        setEditingTemplate(data.template);
+        setActionStatus({ type: 'success', message: `Rich Menu 已部署並啟用！ID: ${data.richMenuId}` });
+        setTemplateImageFile(null);
       } else {
-        setDeployStatus({ type: 'error', message: data.error || '部署失敗' });
+        setActionStatus({ type: 'error', message: data.error || '部署失敗' });
       }
     } catch {
-      setDeployStatus({ type: 'error', message: '網路連線錯誤' });
+      setActionStatus({ type: 'error', message: '網路連線錯誤' });
     } finally {
       setIsDeploying(false);
     }
   };
 
+  const handleActivateTemplate = async (template) => {
+    setIsActivating(template.id);
+    setActionStatus(null);
+    try {
+      const res = await apiFetch(`/api/line/oa/${selectedOA.id}/templates/${template.id}/activate`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTemplates(prev => prev.map(t =>
+          t.id === template.id ? data.template : { ...t, is_active: false }
+        ));
+        if (editingTemplate?.id === template.id) setEditingTemplate(data.template);
+        setActionStatus({ type: 'success', message: `「${template.name}」已切換為啟用選單` });
+      } else {
+        setActionStatus({ type: 'error', message: data.error || '切換失敗' });
+      }
+    } catch {
+      setActionStatus({ type: 'error', message: '網路連線錯誤' });
+    } finally {
+      setIsActivating(null);
+    }
+  };
+
+  const handleDeleteTemplate = async (template) => {
+    if (!confirm(`確定要刪除模板「${template.name}」？`)) return;
+    await apiFetch(`/api/line/oa/${selectedOA.id}/templates/${template.id}`, { method: 'DELETE' });
+    setTemplates(prev => prev.filter(t => t.id !== template.id));
+    if (editingTemplate?.id === template.id) setEditingTemplate(null);
+  };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="hq-fade-in">
       <h2 className="hq-section-title">
@@ -176,7 +298,7 @@ export default function HQLineMenuClient() {
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* ── Left: OA List ── */}
-        <div className="lg:w-[340px] flex-shrink-0 flex flex-col gap-4">
+        <div className="lg:w-[320px] flex-shrink-0 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <span className="hq-muted-text text-sm">共 {oaList.length} 個帳號</span>
             <button
@@ -187,37 +309,22 @@ export default function HQLineMenuClient() {
             </button>
           </div>
 
-          {/* Add form */}
           {showAddForm && (
             <div className="hq-card p-4 flex flex-col gap-3">
               <h4 className="font-semibold text-sm">新增 LINE OA</h4>
-              <input
-                className="hq-input text-sm"
-                placeholder="OA 名稱（必填）"
-                value={addForm.name}
-                onChange={e => setAddForm(p => ({ ...p, name: e.target.value }))}
-              />
-              <input
-                className="hq-input text-sm"
-                placeholder="說明（選填）"
-                value={addForm.description}
-                onChange={e => setAddForm(p => ({ ...p, description: e.target.value }))}
-              />
-              <input
-                className="hq-input text-sm font-mono"
-                placeholder="Channel Access Token（必填）"
-                type="password"
-                value={addForm.channel_access_token}
-                onChange={e => setAddForm(p => ({ ...p, channel_access_token: e.target.value }))}
-              />
+              <input className="hq-input text-sm" placeholder="OA 名稱（必填）"
+                value={addForm.name} onChange={e => setAddForm(p => ({ ...p, name: e.target.value }))} />
+              <input className="hq-input text-sm" placeholder="說明（選填）"
+                value={addForm.description} onChange={e => setAddForm(p => ({ ...p, description: e.target.value }))} />
+              <input className="hq-input text-sm font-mono" placeholder="Channel Access Token（必填）" type="password"
+                value={addForm.channel_access_token} onChange={e => setAddForm(p => ({ ...p, channel_access_token: e.target.value }))} />
               {addError && <p className="text-xs text-red-400">{addError}</p>}
-              <button onClick={handleAdd} disabled={isAdding} className="hq-btn-primary text-sm">
+              <button onClick={handleAddOA} disabled={isAdding} className="hq-btn-primary text-sm">
                 {isAdding ? <><span className="hq-spinner"></span> 新增中...</> : '確認新增'}
               </button>
             </div>
           )}
 
-          {/* OA list */}
           {isLoadingOAs ? (
             <div className="hq-card flex items-center gap-2 p-4 hq-muted-text text-sm">
               <span className="hq-spinner"></span> 載入中...
@@ -230,40 +337,25 @@ export default function HQLineMenuClient() {
             oaList.map(oa => (
               <div
                 key={oa.id}
-                className={`hq-card cursor-pointer transition-all ${selectedOA?.id === oa.id && editingId === null ? 'ring-2 ring-[var(--hq-cyan)]' : ''}`}
-                onClick={() => editingId !== oa.id && handleSelectOA(oa)}
+                className={`hq-card cursor-pointer transition-all ${selectedOA?.id === oa.id && editingOAId === null ? 'ring-2 ring-[var(--hq-cyan)]' : ''}`}
+                onClick={() => editingOAId !== oa.id && handleSelectOA(oa)}
               >
-                {editingId === oa.id ? (
-                  /* Edit form inline */
+                {editingOAId === oa.id ? (
                   <div className="flex flex-col gap-2 p-1" onClick={e => e.stopPropagation()}>
-                    <input
-                      className="hq-input text-sm"
-                      value={editForm.name}
-                      onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
-                      placeholder="OA 名稱"
-                    />
-                    <input
-                      className="hq-input text-sm"
-                      value={editForm.description}
-                      onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
-                      placeholder="說明（選填）"
-                    />
-                    <input
-                      className="hq-input text-sm font-mono"
-                      type="password"
-                      value={editForm.channel_access_token}
-                      onChange={e => setEditForm(p => ({ ...p, channel_access_token: e.target.value }))}
-                      placeholder="新 Token（留空=不變）"
-                    />
+                    <input className="hq-input text-sm" value={editOAForm.name}
+                      onChange={e => setEditOAForm(p => ({ ...p, name: e.target.value }))} placeholder="OA 名稱" />
+                    <input className="hq-input text-sm" value={editOAForm.description}
+                      onChange={e => setEditOAForm(p => ({ ...p, description: e.target.value }))} placeholder="說明（選填）" />
+                    <input className="hq-input text-sm font-mono" type="password" value={editOAForm.channel_access_token}
+                      onChange={e => setEditOAForm(p => ({ ...p, channel_access_token: e.target.value }))} placeholder="新 Token（留空=不變）" />
                     <div className="flex gap-2">
-                      <button onClick={() => handleSaveEdit(oa.id)} disabled={isSavingEdit} className="hq-btn-primary text-xs px-2 py-1">
-                        {isSavingEdit ? '儲存中...' : '儲存'}
+                      <button onClick={() => handleSaveOAEdit(oa.id)} disabled={isSavingOA} className="hq-btn-primary text-xs px-2 py-1">
+                        {isSavingOA ? '儲存中...' : '儲存'}
                       </button>
-                      <button onClick={() => setEditingId(null)} className="text-xs hq-muted-text hover:text-white">取消</button>
+                      <button onClick={() => setEditingOAId(null)} className="text-xs hq-muted-text hover:text-white">取消</button>
                     </div>
                   </div>
                 ) : (
-                  /* OA card display */
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-sm">{oa.name}</span>
@@ -273,11 +365,11 @@ export default function HQLineMenuClient() {
                     </div>
                     {oa.description && <p className="hq-muted-text text-xs">{oa.description}</p>}
                     <div className="flex items-center gap-2 mt-2" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => startEdit(oa)} className="text-xs hq-muted-text hover:text-white">編輯</button>
+                      <button onClick={() => startEditOA(oa)} className="text-xs hq-muted-text hover:text-white">編輯</button>
                       <button onClick={() => handleToggleActive(oa)} className="text-xs hq-muted-text hover:text-white">
                         {oa.is_active ? '停用' : '啟用'}
                       </button>
-                      <button onClick={() => handleDelete(oa.id)} className="text-xs text-red-400 hover:text-red-300 ml-auto">刪除</button>
+                      <button onClick={() => handleDeleteOA(oa.id)} className="text-xs text-red-400 hover:text-red-300 ml-auto">刪除</button>
                     </div>
                   </div>
                 )}
@@ -286,15 +378,16 @@ export default function HQLineMenuClient() {
           )}
         </div>
 
-        {/* ── Right: Rich menu configurator ── */}
-        <div className="flex-1 min-w-0">
+        {/* ── Right: Template Manager ── */}
+        <div className="flex-1 min-w-0 flex flex-col gap-4">
           {!selectedOA ? (
             <div className="hq-card flex flex-col items-center justify-center py-16 hq-muted-text text-sm gap-2">
               <span className="text-3xl">👈</span>
               <p>請從左側選擇一個 LINE OA 帳號</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
+            <>
+              {/* OA Header */}
               <div className="hq-card flex items-center justify-between">
                 <div>
                   <h3 className="font-bold">{selectedOA.name}</h3>
@@ -305,87 +398,240 @@ export default function HQLineMenuClient() {
                 </span>
               </div>
 
-              {/* Zone grid preview + inputs */}
-              <div className="hq-card flex flex-col gap-4">
-                <h4 className="font-semibold text-sm">四宮格區塊設定（2500×1686）</h4>
+              {/* Global action status */}
+              {actionStatus && !editingTemplate && (
+                <div className={`hq-alert ${actionStatus.type === 'success' ? 'hq-alert-success' : 'hq-alert-error'}`}>
+                  {actionStatus.message}
+                </div>
+              )}
 
-                {/* Visual 2x2 preview */}
-                <div className="grid grid-cols-2 gap-2 bg-[var(--hq-bg-main)] rounded-lg p-3">
-                  {zones.map(z => (
-                    <div
-                      key={z.id}
-                      className="rounded-lg bg-[var(--hq-bg-card)] border border-white/10 flex flex-col items-center justify-center py-4 gap-1"
-                    >
-                      <span className="text-xs font-mono text-[var(--hq-cyan)]">區塊 {z.id}</span>
-                      <span className="text-xs hq-muted-text">{z.position}</span>
-                      {z.label && <span className="text-xs font-medium text-center px-2">{z.label}</span>}
-                    </div>
-                  ))}
+              {/* Templates List */}
+              <div className="hq-card flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-sm">選單模板</h4>
+                  <button
+                    onClick={() => { setShowNewTemplateForm(v => !v); setNewTemplateName(''); }}
+                    className="hq-btn-primary text-sm px-3 py-1.5"
+                  >
+                    {showNewTemplateForm ? '取消' : '+ 新增模板'}
+                  </button>
                 </div>
 
-                {/* Zone inputs */}
-                <div className="flex flex-col gap-3">
-                  {zones.map((z, i) => (
-                    <div key={z.id} className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold">
-                        <span className="hq-env-tag mr-2">區塊 {z.id} · {z.position}</span>
-                      </label>
-                      <input
-                        className="hq-input text-sm"
-                        placeholder="顯示標籤（選填，例：記錄傷口）"
-                        value={z.label}
-                        onChange={e => setZones(prev => prev.map((item, idx) => idx === i ? { ...item, label: e.target.value } : item))}
-                      />
-                      <input
-                        className="hq-input text-sm font-mono"
-                        placeholder="LIFF URI（必填，例：https://liff.line.me/xxxxx/record）"
-                        value={z.uri}
-                        onChange={e => setZones(prev => prev.map((item, idx) => idx === i ? { ...item, uri: e.target.value } : item))}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Image upload + deploy */}
-              <div className="hq-card flex flex-col gap-4">
-                <h4 className="font-semibold text-sm">圖片上傳與發布</h4>
-                <p className="hq-muted-text text-xs">上傳 2500×1686 像素的 JPG/PNG 圖片作為選單背景</p>
-
-                {deployStatus && (
-                  <div className={`hq-alert ${deployStatus.type === 'success' ? 'hq-alert-success' : 'hq-alert-error'}`}>
-                    {deployStatus.message}
+                {showNewTemplateForm && (
+                  <div className="flex gap-2">
+                    <input
+                      className="hq-input text-sm flex-1"
+                      placeholder="模板名稱（例：傷口護理選單）"
+                      value={newTemplateName}
+                      onChange={e => setNewTemplateName(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleCreateTemplate()}
+                    />
+                    <button onClick={handleCreateTemplate} disabled={isCreatingTemplate || !newTemplateName.trim()} className="hq-btn-primary text-sm px-3">
+                      {isCreatingTemplate ? '建立中...' : '建立'}
+                    </button>
                   </div>
                 )}
 
-                <div className="hq-upload-row">
-                  <label className="hq-file-label">
-                    <span className="hq-file-label-text">
-                      {imageFile ? imageFile.name : '選擇圖片（2500×1686 JPG/PNG）'}
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png"
-                      className="hq-file-input"
-                      onChange={e => { setImageFile(e.target.files[0]); setDeployStatus(null); }}
-                    />
-                  </label>
-
-                  <button
-                    onClick={handleDeploy}
-                    disabled={isDeploying || !selectedOA.is_active}
-                    className="hq-btn-primary"
-                  >
-                    {isDeploying
-                      ? <><span className="hq-spinner"></span> 部署中...</>
-                      : !selectedOA.is_active
-                        ? '帳號已停用'
-                        : '發布 Rich Menu'}
-                  </button>
-                </div>
+                {isLoadingTemplates ? (
+                  <div className="flex items-center gap-2 hq-muted-text text-sm py-2">
+                    <span className="hq-spinner"></span> 載入模板...
+                  </div>
+                ) : templates.length === 0 ? (
+                  <p className="hq-muted-text text-sm text-center py-4">尚未建立任何選單模板</p>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {templates.map(template => (
+                      <TemplateCard
+                        key={template.id}
+                        template={template}
+                        isEditing={editingTemplate?.id === template.id}
+                        isActivating={isActivating === template.id}
+                        oaActive={selectedOA.is_active}
+                        onEdit={() => handleEditTemplate(template)}
+                        onActivate={() => handleActivateTemplate(template)}
+                        onDelete={() => handleDeleteTemplate(template)}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
+
+              {/* Template Editor */}
+              {editingTemplate && (
+                <TemplateEditor
+                  template={editingTemplate}
+                  oaActive={selectedOA.is_active}
+                  imageFile={templateImageFile}
+                  isDeploying={isDeploying}
+                  isSaving={isSavingTemplate}
+                  actionStatus={actionStatus}
+                  onChangeName={name => setEditingTemplate(prev => ({ ...prev, name }))}
+                  onChangeZone={(idx, field, value) =>
+                    setEditingTemplate(prev => ({
+                      ...prev,
+                      zones: prev.zones.map((z, i) => i === idx ? { ...z, [field]: value } : z),
+                    }))
+                  }
+                  onImageChange={file => { setTemplateImageFile(file); setActionStatus(null); }}
+                  onSave={handleSaveTemplate}
+                  onDeploy={handleDeployTemplate}
+                  onClose={() => { setEditingTemplate(null); setActionStatus(null); }}
+                />
+              )}
+            </>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Template Card ──────────────────────────────────────────────────────────
+function TemplateCard({ template, isEditing, isActivating, oaActive, onEdit, onActivate, onDelete }) {
+  const zones = template.zones || DEFAULT_ZONES;
+  return (
+    <div className={`rounded-lg border transition-all ${isEditing ? 'border-[var(--hq-cyan)] bg-[var(--hq-bg-main)]' : 'border-white/10 bg-[var(--hq-bg-main)]'} p-3 flex flex-col gap-2`}>
+      <div className="flex items-center justify-between">
+        <span className="font-semibold text-sm">{template.name}</span>
+        <div className="flex items-center gap-2">
+          {template.is_active && (
+            <span className="hq-badge hq-badge-green">啟用中</span>
+          )}
+          {template.line_rich_menu_id && !template.is_active && (
+            <span className="hq-badge hq-badge-gray text-xs">已部署</span>
+          )}
+        </div>
+      </div>
+
+      {/* Mini zone preview */}
+      <div className="grid grid-cols-2 gap-1">
+        {zones.map(z => (
+          <div key={z.id} className="rounded bg-[var(--hq-bg-card)] border border-white/5 px-2 py-1.5 flex flex-col gap-0.5">
+            <span className="text-[10px] font-mono text-[var(--hq-cyan)]">{z.id} · {z.position}</span>
+            <span className="text-xs text-white/70 truncate">{z.label || <span className="text-white/30">未設定</span>}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2 pt-1">
+        <button onClick={onEdit} className="text-xs hq-muted-text hover:text-white">
+          {isEditing ? '編輯中...' : '編輯'}
+        </button>
+        {template.line_rich_menu_id && !template.is_active && oaActive && (
+          <button
+            onClick={onActivate}
+            disabled={isActivating}
+            className="text-xs text-[var(--hq-cyan)] hover:text-white disabled:opacity-50"
+          >
+            {isActivating ? '切換中...' : '切換啟用'}
+          </button>
+        )}
+        <button onClick={onDelete} className="text-xs text-red-400 hover:text-red-300 ml-auto">刪除</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Template Editor ────────────────────────────────────────────────────────
+function TemplateEditor({ template, oaActive, imageFile, isDeploying, isSaving, actionStatus, onChangeName, onChangeZone, onImageChange, onSave, onDeploy, onClose }) {
+  const zones = template.zones || DEFAULT_ZONES;
+  return (
+    <div className="hq-card flex flex-col gap-4 border-2 border-[var(--hq-cyan)]/40">
+      <div className="flex items-center justify-between">
+        <h4 className="font-semibold text-sm text-[var(--hq-cyan)]">編輯模板</h4>
+        <button onClick={onClose} className="text-xs hq-muted-text hover:text-white">關閉</button>
+      </div>
+
+      {/* Template name */}
+      <input
+        className="hq-input text-sm"
+        placeholder="模板名稱"
+        value={template.name}
+        onChange={e => onChangeName(e.target.value)}
+      />
+
+      {/* Zone grid preview */}
+      <div>
+        <p className="text-xs hq-muted-text mb-2">四宮格區塊設定（2500×1686）</p>
+        <div className="grid grid-cols-2 gap-2 bg-[var(--hq-bg-main)] rounded-lg p-3 mb-3">
+          {zones.map(z => (
+            <div key={z.id} className="rounded-lg bg-[var(--hq-bg-card)] border border-white/10 flex flex-col items-center justify-center py-3 gap-1">
+              <span className="text-xs font-mono text-[var(--hq-cyan)]">區塊 {z.id}</span>
+              <span className="text-xs hq-muted-text">{z.position}</span>
+              {z.label && <span className="text-xs font-medium text-center px-2">{z.label}</span>}
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {zones.map((z, i) => (
+            <div key={z.id} className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold">
+                <span className="hq-env-tag mr-2">區塊 {z.id} · {z.position}</span>
+              </label>
+              <input
+                className="hq-input text-sm"
+                placeholder="顯示標籤（選填）"
+                value={z.label}
+                onChange={e => onChangeZone(i, 'label', e.target.value)}
+              />
+              <input
+                className="hq-input text-sm font-mono"
+                placeholder="LIFF URI（必填）"
+                value={z.uri}
+                onChange={e => onChangeZone(i, 'uri', e.target.value)}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Action status */}
+      {actionStatus && (
+        <div className={`hq-alert ${actionStatus.type === 'success' ? 'hq-alert-success' : 'hq-alert-error'}`}>
+          {actionStatus.message}
+        </div>
+      )}
+
+      {/* Image upload + actions */}
+      <div className="flex flex-col gap-3">
+        <p className="text-xs hq-muted-text">上傳 2500×1686 JPG/PNG 圖片以部署新選單</p>
+        {template.line_rich_menu_id && (
+          <p className="text-xs text-[var(--hq-cyan)]/70">
+            已存在部署紀錄（ID: {template.line_rich_menu_id.slice(0, 12)}...），上傳新圖片可重新部署
+          </p>
+        )}
+        <div className="hq-upload-row">
+          <label className="hq-file-label flex-1">
+            <span className="hq-file-label-text">
+              {imageFile ? imageFile.name : '選擇圖片（2500×1686 JPG/PNG）'}
+            </span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png"
+              className="hq-file-input"
+              onChange={e => onImageChange(e.target.files[0])}
+            />
+          </label>
+        </div>
+
+        <div className="flex gap-2">
+          <button onClick={onSave} disabled={isSaving} className="hq-btn-secondary text-sm flex-1">
+            {isSaving ? '儲存中...' : '儲存設定'}
+          </button>
+          <button
+            onClick={onDeploy}
+            disabled={isDeploying || !oaActive || !imageFile}
+            className="hq-btn-primary text-sm flex-1"
+          >
+            {isDeploying
+              ? <><span className="hq-spinner"></span> 部署中...</>
+              : !oaActive
+                ? '帳號已停用'
+                : !imageFile
+                  ? '請先上傳圖片'
+                  : '部署並啟用'}
+          </button>
         </div>
       </div>
     </div>

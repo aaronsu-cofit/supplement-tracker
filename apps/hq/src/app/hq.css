@@ -493,6 +493,33 @@
   cursor: not-allowed;
 }
 
+.hq-btn-secondary {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+  transition: all 0.2s ease;
+  background-color: transparent;
+  color: #EDEDED;
+  border: 1px solid #444;
+}
+
+.hq-btn-secondary:not(:disabled):hover {
+  border-color: #888;
+  color: white;
+}
+
+.hq-btn-secondary:disabled {
+  color: #888;
+  border-color: #333;
+  cursor: not-allowed;
+}
+
 /* Admins Table */
 .hq-table-container {
   background-color: var(--hq-bg-card);

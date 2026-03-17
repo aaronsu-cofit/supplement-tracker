@@ -169,5 +169,23 @@ model LineOA {
   created_at           DateTime @default(now())
   updated_at           DateTime @updatedAt
 
+  richMenuTemplates LineOARichMenuTemplate[]
+
   @@map("line_oa")
+}
+
+model LineOARichMenuTemplate {
+  id                Int      @id @default(autoincrement())
+  oa_id             Int
+  name              String   @db.VarChar(200)
+  zones             Json
+  line_rich_menu_id String?  @db.VarChar(100)
+  is_active         Boolean  @default(false)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  oa LineOA @relation(fields: [oa_id], references: [id], onDelete: Cascade)
+
+  @@index([oa_id], name: "idx_rich_menu_templates_oa")
+  @@map("line_oa_rich_menu_template")
 }
