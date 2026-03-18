@@ -104,7 +104,7 @@ function BonesResultContent() {
                     <g transform={`translate(${(xmax + 0.02) * 100}, ${(ymin + 0.05) * 100})`}>
                         <rect x="-2%" y="-3%" width="22%" height="10%" rx="4" fill="rgba(0,0,0,0.7)" stroke={color} strokeWidth="1" />
                         <text x="0%" y="2%" fill="#fff" fontSize="5" fontWeight="bold" dominantBaseline="middle">{toeData.angle_degrees}°</text>
-                        <text x="0%" y="5.5%" fill={color} fontSize="3" fontWeight="bold" dominantBaseline="middle" textTransform="uppercase">{toeData.severity}</text>
+                        <text x="0%" y="5.5%" fill={color} fontSize="3" fontWeight="bold" dominantBaseline="middle" style={{ textTransform: 'uppercase' }}>{toeData.severity}</text>
                     </g>
                 </g>
             );

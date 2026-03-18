@@ -136,7 +136,29 @@ Return valid JSON only (no markdown, no code fences):
       }
     }
 
-    return c.json({ error: 'Invalid mode. Use "label", "checkin", "wound", "hallux_valgus", or "sexual_health"' }, 400);
+    if (mode === 'shoe_wear') {
+      const prompt = `You are a podiatric biomechanics specialist analyzing a photo of shoe sole(s).
+Identify the wear patterns visible to determine gait mechanics and hallux valgus risk.
+
+Return valid JSON only (no markdown, no code fences):
+{
+  "ai_risk_level": "low" | "moderate" | "high",
+  "ai_wear_pattern": "medial_forefoot" | "lateral" | "heel_center" | "toe_asymmetric" | "uniform" | "mixed",
+  "ai_summary": "客觀描述磨損模式及對拇趾外翻的潛在影響（約 30-50 字繁體中文）",
+  "left_shoe": { "detected": true, "primary_wear": "主要磨損區域描述", "gait_note": "步態特徵簡述" },
+  "right_shoe": { "detected": true, "primary_wear": "主要磨損區域描述", "gait_note": "步態特徵簡述" }
+}
+- Return ONLY the JSON object.`;
+      const text = await callGemini(apiKey, base64Data, mimeType, prompt);
+      try {
+        const parsed = parseGeminiJson(text);
+        return c.json({ success: true, ...parsed });
+      } catch {
+        return c.json({ error: 'Could not parse AI response', raw: text }, 422);
+      }
+    }
+
+    return c.json({ error: 'Invalid mode. Use "label", "checkin", "wound", "hallux_valgus", "shoe_wear", or "sexual_health"' }, 400);
   } catch (error) {
     console.error('AI analysis error:', error);
     return c.json({ error: error.message || 'Failed to analyze image' }, 500);

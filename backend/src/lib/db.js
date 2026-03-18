@@ -344,6 +344,26 @@ export async function createFootImage(userId, data) {
   });
 }
 
+export async function getShoeImages(userId) {
+  return db().shoeImage.findMany({
+    where: { user_id: userId },
+    orderBy: { logged_at: 'desc' },
+  });
+}
+
+export async function createShoeImage(userId, data) {
+  return db().shoeImage.create({
+    data: {
+      user_id: userId,
+      image_data: data.image_data || null,
+      ai_risk_level: data.ai_risk_level || null,
+      ai_wear_pattern: data.ai_wear_pattern || null,
+      ai_summary: data.ai_summary || null,
+      ai_details: data.ai_details || null,
+    },
+  });
+}
+
 // ============================================
 // Intimacy
 // ============================================

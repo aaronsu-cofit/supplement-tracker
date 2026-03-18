@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { softAuthMiddleware } from '../middleware/authMiddleware.js';
-import { getFootAssessments, createFootAssessment, getFootImages, createFootImage, initializeDatabase } from '../lib/db.js';
+import { getFootAssessments, createFootAssessment, getFootImages, createFootImage, getShoeImages, createShoeImage, initializeDatabase } from '../lib/db.js';
 
 const bones = new Hono();
 bones.use('*', softAuthMiddleware);
@@ -49,6 +49,31 @@ bones.post('/images', async (c) => {
     const userId = c.get('userId');
     const data = await c.req.json();
     const image = await createFootImage(userId, data);
+    return c.json(image, 201);
+  } catch (error) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// GET /api/footcare/shoe-images
+bones.get('/shoe-images', async (c) => {
+  try {
+    await initializeDatabase();
+    const userId = c.get('userId');
+    const images = await getShoeImages(userId);
+    return c.json(images);
+  } catch (error) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// POST /api/footcare/shoe-images
+bones.post('/shoe-images', async (c) => {
+  try {
+    await initializeDatabase();
+    const userId = c.get('userId');
+    const data = await c.req.json();
+    const image = await createShoeImage(userId, data);
     return c.json(image, 201);
   } catch (error) {
     return c.json({ error: error.message }, 500);
