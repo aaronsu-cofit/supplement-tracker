@@ -44,6 +44,7 @@ EXPOSE 8080
 
 COPY --from=builder /app/apps/bones/.next/standalone ./
 COPY --from=builder /app/apps/bones/.next/static ./apps/bones/.next/static
+COPY --from=builder /app/apps/bones/public ./apps/bones/public
 
 RUN chown -R nextjs:nodejs /app
 USER nextjs
