@@ -3,7 +3,8 @@ import { apiFetch } from '@vitera/lib';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ClipboardList, MapPin, Activity, Clock, Timer } from 'lucide-react';
+import Link from 'next/link';
+import { ClipboardList, MapPin, Activity, Clock, Timer, ChevronLeft } from 'lucide-react';
 
 const FOOT_ZONES = [
     { id: 'big_toe', label: '大拇趾（外翻處）' },
@@ -87,6 +88,10 @@ export default function BonesAssessPage() {
     return (
         <div className="p-5 max-w-[600px] mx-auto flex flex-col gap-7">
             <header>
+                <Link href="/" className="flex items-center gap-1 text-blue-600 no-underline text-[0.88rem] mb-3 hover:text-blue-700 transition-colors w-fit">
+                    <ChevronLeft size={16} />
+                    返回中心
+                </Link>
                 <div className="flex items-center gap-3 mb-1">
                     <div className="w-10 h-10 rounded-[10px] bg-blue-50 flex items-center justify-center">
                         <ClipboardList size={20} className="text-blue-600" />

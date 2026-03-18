@@ -15,6 +15,7 @@ import {
   MapPin,
   ScanSearch,
   Layers,
+  Dumbbell,
 } from "lucide-react";
 
 const EDUCATION_VIDEOS = [
@@ -106,26 +107,37 @@ export default function BonesDashboard() {
       </div>
 
       {/* 快速入口 */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <Link href="/assess" className="no-underline">
-          <div className="bg-white hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm transition-all duration-200 border border-slate-200 rounded-[16px] p-5 flex flex-col gap-3 cursor-pointer min-h-[120px] shadow-sm">
-            <div className="w-10 h-10 rounded-[12px] bg-blue-50 flex items-center justify-center">
-              <ClipboardList size={20} className="text-blue-600" />
+          <div className="bg-white hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm transition-all duration-200 border border-slate-200 rounded-[16px] p-4 flex flex-col gap-2.5 cursor-pointer min-h-[110px] shadow-sm">
+            <div className="w-9 h-9 rounded-[10px] bg-blue-50 flex items-center justify-center">
+              <ClipboardList size={18} className="text-blue-600" />
             </div>
             <div>
-              <h3 className="m-0 text-slate-800 text-[0.95rem] font-semibold mb-1">今日痛點評估</h3>
-              <p className="m-0 text-slate-400 text-[0.75rem]">紀錄疼痛與活動力</p>
+              <h3 className="m-0 text-slate-800 text-[0.85rem] font-semibold mb-0.5">今日評估</h3>
+              <p className="m-0 text-slate-400 text-[0.72rem]">紀錄疼痛</p>
+            </div>
+          </div>
+        </Link>
+        <Link href="/rehab" className="no-underline">
+          <div className="bg-white hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm transition-all duration-200 border border-slate-200 rounded-[16px] p-4 flex flex-col gap-2.5 cursor-pointer min-h-[110px] shadow-sm">
+            <div className="w-9 h-9 rounded-[10px] bg-green-50 flex items-center justify-center">
+              <Dumbbell size={18} className="text-green-600" />
+            </div>
+            <div>
+              <h3 className="m-0 text-slate-800 text-[0.85rem] font-semibold mb-0.5">復健運動</h3>
+              <p className="m-0 text-slate-400 text-[0.72rem]">日常訓練</p>
             </div>
           </div>
         </Link>
         <Link href="/history" className="no-underline">
-          <div className="bg-white hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm transition-all duration-200 border border-slate-200 rounded-[16px] p-5 flex flex-col gap-3 cursor-pointer min-h-[120px] shadow-sm">
-            <div className="w-10 h-10 rounded-[12px] bg-blue-50 flex items-center justify-center">
-              <History size={20} className="text-blue-600" />
+          <div className="bg-white hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm transition-all duration-200 border border-slate-200 rounded-[16px] p-4 flex flex-col gap-2.5 cursor-pointer min-h-[110px] shadow-sm">
+            <div className="w-9 h-9 rounded-[10px] bg-blue-50 flex items-center justify-center">
+              <History size={18} className="text-blue-600" />
             </div>
             <div>
-              <h3 className="m-0 text-slate-800 text-[0.95rem] font-semibold mb-1">檢測歷程追蹤</h3>
-              <p className="m-0 text-slate-400 text-[0.75rem]">追蹤外翻角度變化</p>
+              <h3 className="m-0 text-slate-800 text-[0.85rem] font-semibold mb-0.5">歷程追蹤</h3>
+              <p className="m-0 text-slate-400 text-[0.72rem]">角度變化</p>
             </div>
           </div>
         </Link>
