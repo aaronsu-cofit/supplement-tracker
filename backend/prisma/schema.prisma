@@ -23,6 +23,7 @@ model User {
   wound_logs           WoundLog[]
   foot_assessments     FootAssessment[]
   foot_images          FootImage[]
+  shoe_images          ShoeImage[]
   intimacy_assessments IntimacyAssessment[]
 
   @@map("users")
@@ -128,6 +129,22 @@ model FootImage {
 
   @@index([user_id], name: "idx_foot_images_user")
   @@map("foot_images")
+}
+
+model ShoeImage {
+  id              Int      @id @default(autoincrement())
+  user_id         String   @db.VarChar(64)
+  image_data      String?
+  ai_risk_level   String?  @db.VarChar(50)
+  ai_wear_pattern String?  @db.VarChar(100)
+  ai_summary      String?
+  ai_details      Json?
+  logged_at       DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id], name: "idx_shoe_images_user")
+  @@map("shoe_images")
 }
 
 model IntimacyAssessment {

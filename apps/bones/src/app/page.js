@@ -13,6 +13,8 @@ import {
   ChevronRight,
   X,
   MapPin,
+  ScanSearch,
+  Layers,
 } from "lucide-react";
 
 const EDUCATION_VIDEOS = [
@@ -33,6 +35,8 @@ const EDUCATION_VIDEOS = [
 export default function BonesDashboard() {
   const [latestAssessment, setLatestAssessment] = useState(null);
   const [activeVideo, setActiveVideo] = useState(null);
+  const [hasFootScan, setHasFootScan] = useState(false);
+  const [hasShoeScan, setHasShoeScan] = useState(false);
 
   useEffect(() => {
     apiFetch("/api/footcare/assessments")
@@ -42,24 +46,64 @@ export default function BonesDashboard() {
         if (list.length > 0) setLatestAssessment(list[0]);
       })
       .catch(() => {});
+
+    apiFetch("/api/footcare/images")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => { if (Array.isArray(data) && data.length > 0) setHasFootScan(true); })
+      .catch(() => {});
+
+    apiFetch("/api/footcare/shoe-images")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => { if (Array.isArray(data) && data.length > 0) setHasShoeScan(true); })
+      .catch(() => {});
   }, []);
 
   return (
     <div className="p-5 max-w-[600px] mx-auto flex flex-col gap-4 pb-8">
 
-      {/* AI 檢測 CTA */}
-      <Link href="/scan" className="no-underline">
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-[16px] p-5 flex items-center gap-4 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer shadow-sm">
-          <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center shrink-0">
-            <Camera size={24} className="text-blue-600" />
+      {/* AI 檢測 CTA 群組 */}
+      <div className="flex flex-col gap-3">
+        <Link href="/scan" className="no-underline">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-[16px] p-5 flex items-center gap-4 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer shadow-sm">
+            <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center shrink-0">
+              <Camera size={24} className="text-blue-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="m-0 mb-1 text-blue-700 text-[1.05rem] font-semibold">AI 拇趾外翻檢測</h3>
+              <p className="m-0 text-slate-500 text-[0.82rem] leading-relaxed">拍攝足部俯拍照，AI 即時分析外翻角度與嚴重程度</p>
+            </div>
+            <ChevronRight size={18} className="text-slate-300 shrink-0" />
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="m-0 mb-1 text-blue-700 text-[1.05rem] font-semibold">AI 拇趾外翻檢測</h3>
-            <p className="m-0 text-slate-500 text-[0.82rem] leading-relaxed">拍攝足部俯拍照，AI 即時分析外翻角度與嚴重程度</p>
+        </Link>
+
+        <Link href="/shoe-scan" className="no-underline">
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-[16px] p-5 flex items-center gap-4 hover:border-amber-300 hover:shadow-md transition-all duration-200 cursor-pointer shadow-sm">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center shrink-0">
+              <ScanSearch size={24} className="text-amber-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="m-0 mb-1 text-amber-700 text-[1.05rem] font-semibold">AI 鞋底磨損分析</h3>
+              <p className="m-0 text-slate-500 text-[0.82rem] leading-relaxed">拍攝鞋底磨損狀態，AI 分析步態模式與外翻風險</p>
+            </div>
+            <ChevronRight size={18} className="text-slate-300 shrink-0" />
           </div>
-          <ChevronRight size={18} className="text-slate-300 shrink-0" />
-        </div>
-      </Link>
+        </Link>
+
+        {hasFootScan && hasShoeScan && (
+          <Link href="/combined" className="no-underline">
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-[16px] p-5 flex items-center gap-4 hover:border-indigo-300 hover:shadow-md transition-all duration-200 cursor-pointer shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center shrink-0">
+                <Layers size={24} className="text-indigo-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="m-0 mb-1 text-indigo-700 text-[1.05rem] font-semibold">綜合足部評估</h3>
+                <p className="m-0 text-slate-500 text-[0.82rem] leading-relaxed">整合足部結構與鞋底磨損，產生完整健康建議</p>
+              </div>
+              <ChevronRight size={18} className="text-slate-300 shrink-0" />
+            </div>
+          </Link>
+        )}
+      </div>
 
       {/* 快速入口 */}
       <div className="grid grid-cols-2 gap-3">
