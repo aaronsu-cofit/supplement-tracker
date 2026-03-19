@@ -1,8 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback } from 'react';
-import zhTW from './zh-TW.json' assert { type: 'json' };
-import en from './en.json' assert { type: 'json' };
+import zhTW from './zh-TW.json';
+import en from './en.json';
 
 const languages = { 'zh-TW': zhTW, en };
 const LanguageContext = createContext();
