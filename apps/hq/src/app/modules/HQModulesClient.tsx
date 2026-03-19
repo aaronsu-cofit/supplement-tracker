@@ -1,0 +1,142 @@
+'use client';
+import { apiFetch } from '@vitera/lib';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@vitera/lib';
+import { useRouter } from 'next/navigation';
+import type { HQModule } from '../../../types';
+
+export default function HQModulesClient() {
+    const { user, isLoading: authLoading } = useAuth();
+    const router = useRouter();
+    const [modules, setModules] = useState<HQModule[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [savingId, setSavingId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!authLoading && (!user || (user.role !== 'super_admin' && user.role !== 'admin'))) {
+            router.replace('/hq');
+            return;
+        }
+
+        if (user) {
+            fetchModules();
+        }
+    }, [user, authLoading, router]);
+
+    const fetchModules = async () => {
+        try {
+            const res = await apiFetch('/api/hq/modules');
+            if (!res.ok) throw new Error('Failed to fetch modules');
+            const data = await res.json();
+            setModules(data.modules || []);
+        } catch (err) {
+            setError((err as Error).message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleUpdate = async (id: string, field: string, value: string | boolean) => {
+        setSavingId(id);
+        setError(null);
+        try {
+            const res = await fetch(`/api/hq/modules/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [field]: value }),
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to update module');
+            }
+            // Update local state
+            setModules(modules.map(m => m.id === id ? { ...m, [field]: value } : m));
+        } catch (err) {
+            setError((err as Error).message);
+        } finally {
+            setSavingId(null);
+        }
+    };
+
+    if (authLoading || isLoading) {
+        return <div className="hq-loading">載入模組清單中...</div>;
+    }
+
+    if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        return null; // RouteGuard will redirect
+    }
+
+    return (
+        <div className="hq-modules-container fade-in">
+            <header className="hq-header">
+                <h2>模組設定 (Module Configuration)</h2>
+                <p>設定前台入口網站要顯示的模組名稱與開關狀態。</p>
+            </header>
+
+            {error && <div className="hq-error">錯誤: {error}</div>}
+
+            <div className="hq-card">
+                <table className="hq-table">
+                    <thead>
+                        <tr>
+                            <th>ID (Code)</th>
+                            <th>中文名稱 (zh)</th>
+                            <th>英文名稱 (en)</th>
+                            <th>狀態 (Status)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {modules.map(mod => (
+                            <tr key={mod.id}>
+                                <td><span className="hq-badge bg-[#334155]">{mod.id}</span></td>
+                                <td>
+                                    <input
+                                        type="text"
+                                        className="hq-input"
+                                        defaultValue={mod.name_zh}
+                                        onBlur={(e) => {
+                                            if (e.target.value !== mod.name_zh) {
+                                                handleUpdate(mod.id, 'name_zh', e.target.value);
+                                            }
+                                        }}
+                                        disabled={savingId === mod.id}
+                                    />
+                                </td>
+                                <td>
+                                    <input
+                                        type="text"
+                                        className="hq-input"
+                                        defaultValue={mod.name_en}
+                                        onBlur={(e) => {
+                                            if (e.target.value !== mod.name_en) {
+                                                handleUpdate(mod.id, 'name_en', e.target.value);
+                                            }
+                                        }}
+                                        disabled={savingId === mod.id}
+                                    />
+                                </td>
+                                <td>
+                                    <label className="hq-toggle-switch">
+                                        <input
+                                            type="checkbox"
+                                            checked={mod.is_active}
+                                            onChange={(e) => handleUpdate(mod.id, 'is_active', e.target.checked)}
+                                            disabled={savingId === mod.id}
+                                        />
+                                        <span className="hq-toggle-slider"></span>
+                                    </label>
+                                    {savingId === mod.id && <span className="ml-[10px] text-[12px] text-[var(--accent-primary)]">儲存中...</span>}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                <p className="mt-4 text-[0.85rem] text-[#64748B]">
+                    提示：修改名稱後，只要點擊旁邊的空白處（取消聚焦）就會自動儲存並生效於前台了。
+                </p>
+            </div>
+        </div>
+    );
+}
