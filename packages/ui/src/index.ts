@@ -1,3 +1,3 @@
-export { default as AppHeader } from './AppHeader.jsx';
-export { default as CameraCapture } from './CameraCapture.jsx';
-export * from './icons.js';
+export { default as AppHeader } from './AppHeader';
+export { default as CameraCapture } from './CameraCapture';
+export * from './icons';

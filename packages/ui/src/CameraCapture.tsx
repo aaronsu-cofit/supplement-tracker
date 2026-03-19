@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { IconCamera } from './icons.js';
+import { IconCamera } from './icons';
 import { useLanguage, apiFetch } from '@vitera/lib';
 
 export default function CameraCapture({ mode, onResult, onClose }) {

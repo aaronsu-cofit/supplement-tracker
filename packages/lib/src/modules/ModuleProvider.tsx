@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { apiFetch } from '../api.js';
+import { apiFetch } from '../api';
 
 const ModuleContext = createContext({ modules: [], isLoading: true, error: null, getModule: () => null });
 

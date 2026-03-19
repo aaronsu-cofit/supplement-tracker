@@ -1,8 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useLiff } from '../liff/LiffProvider.js';
-import { apiFetch } from '../api.js';
+import { useLiff } from '../liff/LiffProvider';
+import { apiFetch } from '../api';
 
 const AuthContext = createContext({
   user: null,

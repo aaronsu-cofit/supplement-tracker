@@ -1,7 +1,7 @@
 'use client';
 
-import { useAuth } from './AuthProvider.js';
-import { useLiff } from '../liff/LiffProvider.js';
+import { useAuth } from './AuthProvider';
+import { useLiff } from '../liff/LiffProvider';
 import { useEffect } from 'react';
 
 /**

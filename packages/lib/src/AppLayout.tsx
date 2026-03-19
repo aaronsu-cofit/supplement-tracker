@@ -1,9 +1,9 @@
 'use client';
 
-import LiffProvider from './liff/LiffProvider.js';
-import AuthProvider from './auth/AuthProvider.js';
-import AuthGuard from './auth/AuthGuard.js';
-import { LanguageProvider } from './i18n/LanguageContext.js';
+import LiffProvider from './liff/LiffProvider';
+import AuthProvider from './auth/AuthProvider';
+import AuthGuard from './auth/AuthGuard';
+import { LanguageProvider } from './i18n/LanguageContext';
 
 const DEFAULT_LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL || 'http://localhost:3000/login';
 
