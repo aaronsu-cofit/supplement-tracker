@@ -1,20 +1,20 @@
+import type { Context, Next } from 'hono';
 import { verifyToken } from '../lib/auth.js';
 import { getCookie } from 'hono/cookie';
+import type { HonoEnv } from '../types.js';
 
 /**
  * Extracts userId from Authorization header (Bearer token) or cookie.
  * Attaches userId to context via c.set('userId', ...).
  */
-export async function authMiddleware(c, next) {
-  let token = null;
+export async function authMiddleware(c: Context<HonoEnv>, next: Next): Promise<Response | void> {
+  let token: string | null = null;
 
-  // 1. Authorization: Bearer <token>
   const authHeader = c.req.header('Authorization');
   if (authHeader?.startsWith('Bearer ')) {
     token = authHeader.slice(7);
   }
 
-  // 2. Fallback to cookie
   if (!token) {
     token = getCookie(c, 'auth_token') || null;
   }
@@ -36,8 +36,8 @@ export async function authMiddleware(c, next) {
  * Same as authMiddleware but falls back to generating a guest userId from
  * the supplement_user_id cookie (legacy anonymous mode).
  */
-export async function softAuthMiddleware(c, next) {
-  let userId = null;
+export async function softAuthMiddleware(c: Context<HonoEnv>, next: Next): Promise<void> {
+  let userId: string | null = null;
 
   const authHeader = c.req.header('Authorization');
   if (authHeader?.startsWith('Bearer ')) {
@@ -54,7 +54,9 @@ export async function softAuthMiddleware(c, next) {
     }
   }
 
-  if (!userId) userId = getCookie(c, 'line_user_id') || getCookie(c, 'supplement_user_id') || crypto.randomUUID();
+  if (!userId) {
+    userId = getCookie(c, 'line_user_id') || getCookie(c, 'supplement_user_id') || crypto.randomUUID();
+  }
 
   c.set('userId', userId);
   await next();

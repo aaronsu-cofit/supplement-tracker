@@ -1,26 +1,37 @@
 const MODELS = [
-  "gemini-3-flash-preview",
-  "gemini-3.1-flash-lite-preview",
-  "gemini-2.5-flash-lite",
-  "gemini-2.5-flash",
-  "gemini-flash-lite-latest",
-  "gemini-flash-latest",
+  'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite-preview',
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-flash',
+  'gemini-flash-lite-latest',
+  'gemini-flash-latest',
 ];
 
-async function callGeminiRaw(apiKey, body) {
-  let lastError = null;
+interface GeminiPart {
+  text?: string;
+  thought?: boolean;
+  inline_data?: { mime_type: string; data: string };
+}
+
+interface GeminiBody {
+  contents: Array<{ parts: GeminiPart[] }>;
+  generationConfig?: { temperature?: number; maxOutputTokens?: number };
+}
+
+async function callGeminiRaw(apiKey: string, body: GeminiBody): Promise<string> {
+  let lastError: string | null = null;
   for (const model of MODELS) {
-    for (const apiVersion of ["v1beta", "v1"]) {
+    for (const apiVersion of ['v1beta', 'v1']) {
       try {
         const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:generateContent?key=${apiKey}`;
         const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
         if (res.ok) {
           const data = await res.json();
-          const parts = data.candidates?.[0]?.content?.parts || [];
+          const parts: GeminiPart[] = data.candidates?.[0]?.content?.parts || [];
           const text = parts.filter(p => !p.thought).map(p => p.text || '').join('').trim();
           if (text) {
             console.log(`Gemini success: ${model}/${apiVersion}`);
@@ -28,17 +39,22 @@ async function callGeminiRaw(apiKey, body) {
           }
         } else {
           const errData = await res.json().catch(() => ({}));
-          lastError = `${model}/${apiVersion}: ${res.status} - ${errData.error?.message || "Unknown error"}`;
+          lastError = `${model}/${apiVersion}: ${res.status} - ${errData.error?.message || 'Unknown error'}`;
         }
       } catch (e) {
-        lastError = `${model}/${apiVersion}: ${e.message}`;
+        lastError = `${model}/${apiVersion}: ${(e as Error).message}`;
       }
     }
   }
   throw new Error(`All Gemini models failed. Last error: ${lastError}`);
 }
 
-export function callGemini(apiKey, base64Data, mimeType, prompt) {
+export function callGemini(
+  apiKey: string,
+  base64Data: string,
+  mimeType: string,
+  prompt: string
+): Promise<string> {
   return callGeminiRaw(apiKey, {
     contents: [
       {
@@ -55,24 +71,23 @@ export function callGemini(apiKey, base64Data, mimeType, prompt) {
   });
 }
 
-export function callGeminiText(apiKey, prompt) {
+export function callGeminiText(apiKey: string, prompt: string): Promise<string> {
   return callGeminiRaw(apiKey, {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
   });
 }
 
-export function parseGeminiJson(text) {
+export function parseGeminiJson<T = unknown>(text: string): T {
   let jsonStr = text
-    .replace(/```json?\n?/g, "")
-    .replace(/```/g, "")
+    .replace(/```json?\n?/g, '')
+    .replace(/```/g, '')
     .trim();
-  // Extract JSON object/array if surrounded by extra text
   const jsonMatch = jsonStr.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
   if (jsonMatch) jsonStr = jsonMatch[0];
   try {
-    return JSON.parse(jsonStr);
+    return JSON.parse(jsonStr) as T;
   } catch (e) {
-    throw new Error(`Failed to parse Gemini JSON: ${e.message}\nRaw: ${jsonStr.slice(0, 200)}`);
+    throw new Error(`Failed to parse Gemini JSON: ${(e as Error).message}\nRaw: ${jsonStr.slice(0, 200)}`);
   }
 }

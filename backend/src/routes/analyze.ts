@@ -2,13 +2,14 @@ import { Hono } from 'hono';
 import { softAuthMiddleware } from '../middleware/authMiddleware.js';
 import { callGemini, parseGeminiJson } from '../lib/ai.js';
 import { getSupplements } from '../lib/db.js';
+import type { HonoEnv, AnalyzeRequestBody } from '../types.js';
 
-const analyze = new Hono();
+const analyze = new Hono<HonoEnv>();
 analyze.use('*', softAuthMiddleware);
 
 analyze.post('/', async (c) => {
   try {
-    const { image, mode = 'wound', prompt: customPrompt } = await c.req.json();
+    const { image, mode = 'wound', prompt: customPrompt } = await c.req.json<AnalyzeRequestBody>();
     if (!image) return c.json({ error: 'No image provided' }, 400);
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -69,7 +70,7 @@ Return valid JSON only (no markdown, no code fences):
     }
 
     if (mode === 'wound') {
-      const prompt = `${customPrompt || "這是一張傷口照片。請分析傷口的復原狀況。"}
+      const prompt = `${customPrompt || '這是一張傷口照片。請分析傷口的復原狀況。'}
 
 請以「資深傷口護理師」的溫暖口吻，對這張傷口照片提供客觀的狀態描述。
 【重要原則】
@@ -113,7 +114,7 @@ Return valid JSON only (no markdown, no code fences):
     }
 
     if (mode === 'sexual_health') {
-      const prompt = `${customPrompt || "這是一份性健康與親密關係評估問卷。"}
+      const prompt = `${customPrompt || '這是一份性健康與親密關係評估問卷。'}
 
 請以「頂級性學權威與婦產/泌尿科醫師」的溫婉、包容、且極具醫療專業的口吻，綜合評估上述的問卷狀況。
 【重要原則】
@@ -161,7 +162,7 @@ Return valid JSON only (no markdown, no code fences):
     return c.json({ error: 'Invalid mode. Use "label", "checkin", "wound", "hallux_valgus", "shoe_wear", or "sexual_health"' }, 400);
   } catch (error) {
     console.error('AI analysis error:', error);
-    return c.json({ error: error.message || 'Failed to analyze image' }, 500);
+    return c.json({ error: (error as Error).message || 'Failed to analyze image' }, 500);
   }
 });
 

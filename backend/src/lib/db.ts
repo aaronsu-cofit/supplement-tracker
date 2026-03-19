@@ -1,58 +1,71 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from '@prisma/client';
+import type {
+  CreateSupplementInput,
+  CreateWoundInput,
+  UpdateWoundInput,
+  CreateWoundLogInput,
+  CreateFootAssessmentInput,
+  CreateFootImageInput,
+  CreateShoeImageInput,
+  CreateIntimacyAssessmentInput,
+  UpdateModuleInput,
+  CreateLineOAInput,
+  UpdateLineOAInput,
+  CreateTemplateInput,
+  UpdateTemplateInput,
+} from '../types.js';
 
-let _prisma;
+let _prisma: PrismaClient | undefined;
 
-function db() {
+function db(): PrismaClient {
   if (!_prisma) _prisma = new PrismaClient();
   return _prisma;
 }
 
-export async function initializeDatabase() {
+export async function initializeDatabase(): Promise<{ success: boolean; mode: string }> {
   await db().$connect();
-  return { success: true, mode: "postgres" };
+  return { success: true, mode: 'postgres' };
 }
 
 // ============================================
 // Supplements CRUD
 // ============================================
-export async function getSupplements(userId) {
+export async function getSupplements(userId: string) {
   return db().supplement.findMany({
     where: { user_id: userId },
-    orderBy: [{ time_of_day: "asc" }, { name: "asc" }],
+    orderBy: [{ time_of_day: 'asc' }, { name: 'asc' }],
   });
 }
 
-export async function createSupplement(userId, data) {
+export async function createSupplement(userId: string, data: CreateSupplementInput) {
   return db().supplement.create({
     data: {
       user_id: userId,
       name: data.name,
       dosage: data.dosage || null,
-      frequency: data.frequency || "daily",
-      time_of_day: data.time_of_day || "morning",
+      frequency: data.frequency || 'daily',
+      time_of_day: data.time_of_day || 'morning',
       notes: data.notes || null,
     },
   });
 }
 
-export async function updateSupplement(userId, id, data) {
-  const existing = await db().supplement.findFirst({
-    where: { id, user_id: userId },
-  });
+export async function updateSupplement(userId: string, id: string, data: CreateSupplementInput) {
+  const existing = await db().supplement.findFirst({ where: { id, user_id: userId } });
   if (!existing) return null;
   return db().supplement.update({
     where: { id },
     data: {
       name: data.name,
       dosage: data.dosage || null,
-      frequency: data.frequency || "daily",
-      time_of_day: data.time_of_day || "morning",
+      frequency: data.frequency || 'daily',
+      time_of_day: data.time_of_day || 'morning',
       notes: data.notes || null,
     },
   });
 }
 
-export async function deleteSupplement(userId, id) {
+export async function deleteSupplement(userId: string, id: string): Promise<{ success: boolean }> {
   await db().supplement.deleteMany({ where: { id, user_id: userId } });
   return { success: true };
 }
@@ -60,7 +73,7 @@ export async function deleteSupplement(userId, id) {
 // ============================================
 // Check-ins
 // ============================================
-export async function getCheckIns(userId, date) {
+export async function getCheckIns(userId: string, date: string) {
   const rows = await db().$queryRaw`
     SELECT ci.*, s.name as supplement_name, s.dosage, s.time_of_day
     FROM check_ins ci
@@ -72,7 +85,7 @@ export async function getCheckIns(userId, date) {
   return rows;
 }
 
-export async function getCheckInHistory(userId, startDate, endDate) {
+export async function getCheckInHistory(userId: string, startDate: string, endDate: string) {
   const rows = await db().$queryRaw`
     SELECT
       ci.date::text,
@@ -88,20 +101,20 @@ export async function getCheckInHistory(userId, startDate, endDate) {
   return rows;
 }
 
-export async function createCheckIn(userId, supplementId) {
+export async function createCheckIn(userId: string, supplementId: string) {
   const existing = await db().$queryRaw`
     SELECT id FROM check_ins
     WHERE user_id = ${userId}
       AND supplement_id = ${supplementId}
       AND date = CURRENT_DATE
-  `;
+  ` as unknown[];
   if (existing.length > 0) return { already_checked: true };
   return db().checkIn.create({
     data: { user_id: userId, supplement_id: supplementId },
   });
 }
 
-export async function removeCheckIn(userId, supplementId, date) {
+export async function removeCheckIn(userId: string, supplementId: string, date: string): Promise<{ success: boolean }> {
   await db().$executeRaw`
     DELETE FROM check_ins
     WHERE user_id = ${userId}
@@ -111,7 +124,7 @@ export async function removeCheckIn(userId, supplementId, date) {
   return { success: true };
 }
 
-export async function getStreak(userId) {
+export async function getStreak(userId: string): Promise<number> {
   const rows = await db().$queryRaw`
     WITH dates AS (
       SELECT DISTINCT date FROM check_ins
@@ -126,81 +139,65 @@ export async function getStreak(userId) {
     SELECT COUNT(*)::int AS streak
     FROM numbered
     WHERE grp = (SELECT grp FROM numbered ORDER BY date DESC LIMIT 1)
-  `;
+  ` as Array<{ streak: number }>;
   return rows[0]?.streak || 0;
 }
 
 // ============================================
 // Wounds CRUD
 // ============================================
-export async function getWounds(userId) {
+export async function getWounds(userId: string) {
   return db().wound.findMany({
-    where: {
-      user_id: userId,
-      status: "active",
-    },
-    orderBy: { created_at: "desc" },
+    where: { user_id: userId, status: 'active' },
+    orderBy: { created_at: 'desc' },
   });
 }
 
-export async function getWoundById(userId, woundId) {
+export async function getWoundById(userId: string, woundId: number) {
   return db().wound.findFirst({
-    where: { id: Number(woundId), user_id: String(userId) },
+    where: { id: woundId, user_id: userId },
   });
 }
 
-export async function createWound(userId, data) {
+export async function createWound(userId: string, data: CreateWoundInput) {
   return db().wound.create({
     data: {
       user_id: userId,
-      name: data.name || "未命名傷口",
+      name: data.name || '未命名傷口',
       location: data.location || null,
-      date_of_injury: data.date_of_injury
-        ? new Date(data.date_of_injury)
-        : new Date(),
+      date_of_injury: data.date_of_injury ? new Date(data.date_of_injury) : new Date(),
       display_name: data.display_name || null,
       picture_url: data.picture_url || null,
       wound_type: data.wound_type || null,
       body_location: data.body_location || null,
-      status: "active",
+      status: 'active',
     },
   });
 }
 
-export async function updateWound(woundId, userId, updates) {
-  const existing = await db().wound.findFirst({
-    where: { id: woundId, user_id: userId },
-  });
+export async function updateWound(woundId: number, userId: string, updates: UpdateWoundInput) {
+  const existing = await db().wound.findFirst({ where: { id: woundId, user_id: userId } });
   if (!existing) return null;
   return db().wound.update({
     where: { id: woundId },
     data: {
       ...(updates.name != null && { name: updates.name }),
       ...(updates.wound_type != null && { wound_type: updates.wound_type }),
-      ...(updates.body_location != null && {
-        body_location: updates.body_location,
-      }),
-      ...(updates.date_of_injury != null && {
-        date_of_injury: new Date(updates.date_of_injury),
-      }),
+      ...(updates.body_location != null && { body_location: updates.body_location }),
+      ...(updates.date_of_injury != null && { date_of_injury: new Date(updates.date_of_injury) }),
     },
   });
 }
 
-export async function archiveWound(userId, woundId) {
-  const existing = await db().wound.findFirst({
-    where: { id: woundId, user_id: userId },
-  });
+export async function archiveWound(userId: string, woundId: number) {
+  const existing = await db().wound.findFirst({ where: { id: woundId, user_id: userId } });
   if (!existing) return null;
-  return db().wound.update({
-    where: { id: woundId },
-    data: { status: "archived" },
-  });
+  return db().wound.update({ where: { id: woundId }, data: { status: 'archived' } });
 }
 
 export async function getAllWoundsAdmin() {
   return db().wound.findMany({
-    orderBy: { created_at: "desc" },
+    orderBy: { created_at: 'desc' },
     take: 50,
   });
 }
@@ -208,21 +205,21 @@ export async function getAllWoundsAdmin() {
 // ============================================
 // Wound Logs
 // ============================================
-export async function getWoundLogs(userId, woundId) {
+export async function getWoundLogs(userId: string, woundId: number) {
   return db().woundLog.findMany({
     where: { user_id: userId, wound_id: woundId },
-    orderBy: { logged_at: "desc" },
+    orderBy: { logged_at: 'desc' },
   });
 }
 
-export async function getWoundLogsAdmin(woundId) {
+export async function getWoundLogsAdmin(woundId: number) {
   return db().woundLog.findMany({
     where: { wound_id: woundId },
-    orderBy: { logged_at: "desc" },
+    orderBy: { logged_at: 'desc' },
   });
 }
 
-export async function createWoundLog(userId, woundId, data) {
+export async function createWoundLog(userId: string, woundId: number, data: CreateWoundLogInput) {
   return db().woundLog.create({
     data: {
       user_id: userId,
@@ -239,26 +236,31 @@ export async function createWoundLog(userId, woundId, data) {
 // ============================================
 // User Auth
 // ============================================
-export async function findUserByEmail(email) {
+export async function findUserByEmail(email: string) {
   return db().user.findUnique({ where: { email } });
 }
 
-export async function createEmailUser(id, email, passwordHash, displayName) {
+export async function createEmailUser(
+  id: string,
+  email: string,
+  passwordHash: string,
+  displayName: string,
+) {
   return db().user.create({
     data: {
       id,
       email,
       password_hash: passwordHash,
       display_name: displayName,
-      auth_provider: "email",
+      auth_provider: 'email',
     },
   });
 }
 
 export async function findOrCreateLineUser(
-  lineUserId,
-  displayName,
-  pictureUrl,
+  lineUserId: string,
+  displayName?: string,
+  pictureUrl?: string,
 ) {
   return db().user.upsert({
     where: { id: lineUserId },
@@ -267,12 +269,12 @@ export async function findOrCreateLineUser(
       id: lineUserId,
       display_name: displayName,
       picture_url: pictureUrl,
-      auth_provider: "line",
+      auth_provider: 'line',
     },
   });
 }
 
-export async function findUserById(userId) {
+export async function findUserById(userId: string) {
   return db().user.findUnique({ where: { id: userId } });
 }
 
@@ -287,16 +289,13 @@ export async function getAllUsers() {
       role: true,
       created_at: true,
     },
-    orderBy: { created_at: "desc" },
+    orderBy: { created_at: 'desc' },
   });
 }
 
-export async function updateUserRole(userId, newRole) {
+export async function updateUserRole(userId: string, newRole: string) {
   try {
-    return await db().user.update({
-      where: { id: userId },
-      data: { role: newRole },
-    });
+    return await db().user.update({ where: { id: userId }, data: { role: newRole } });
   } catch {
     return null;
   }
@@ -305,14 +304,14 @@ export async function updateUserRole(userId, newRole) {
 // ============================================
 // Foot Care / Bones
 // ============================================
-export async function getFootAssessments(userId) {
+export async function getFootAssessments(userId: string) {
   return db().footAssessment.findMany({
     where: { user_id: userId },
-    orderBy: { date: "desc" },
+    orderBy: { date: 'desc' },
   });
 }
 
-export async function createFootAssessment(userId, data) {
+export async function createFootAssessment(userId: string, data: CreateFootAssessmentInput) {
   return db().footAssessment.create({
     data: {
       user_id: userId,
@@ -325,33 +324,33 @@ export async function createFootAssessment(userId, data) {
   });
 }
 
-export async function getFootImages(userId) {
+export async function getFootImages(userId: string) {
   return db().footImage.findMany({
     where: { user_id: userId },
-    orderBy: { logged_at: "desc" },
+    orderBy: { logged_at: 'desc' },
   });
 }
 
-export async function createFootImage(userId, data) {
+export async function createFootImage(userId: string, data: CreateFootImageInput) {
   return db().footImage.create({
     data: {
       user_id: userId,
       image_data: data.image_data || null,
       ai_severity: data.ai_severity || null,
       ai_summary: data.ai_summary || null,
-      ai_details: data.ai_details || null,
+      ai_details: (data.ai_details as object) || null,
     },
   });
 }
 
-export async function getShoeImages(userId) {
+export async function getShoeImages(userId: string) {
   return db().shoeImage.findMany({
     where: { user_id: userId },
     orderBy: { logged_at: 'desc' },
   });
 }
 
-export async function createShoeImage(userId, data) {
+export async function createShoeImage(userId: string, data: CreateShoeImageInput) {
   return db().shoeImage.create({
     data: {
       user_id: userId,
@@ -359,7 +358,7 @@ export async function createShoeImage(userId, data) {
       ai_risk_level: data.ai_risk_level || null,
       ai_wear_pattern: data.ai_wear_pattern || null,
       ai_summary: data.ai_summary || null,
-      ai_details: data.ai_details || null,
+      ai_details: (data.ai_details as object) || null,
     },
   });
 }
@@ -367,20 +366,20 @@ export async function createShoeImage(userId, data) {
 // ============================================
 // Intimacy
 // ============================================
-export async function getIntimacyAssessments(userId) {
+export async function getIntimacyAssessments(userId: string) {
   return db().intimacyAssessment.findMany({
     where: { user_id: userId },
-    orderBy: { created_at: "desc" },
+    orderBy: { created_at: 'desc' },
   });
 }
 
-export async function createIntimacyAssessment(userId, data) {
+export async function createIntimacyAssessment(userId: string, data: CreateIntimacyAssessmentInput) {
   return db().intimacyAssessment.create({
     data: {
       user_id: userId,
       gender: data.gender || null,
       primary_concern: data.primary_concern || null,
-      assessment_data: data.assessment_data || null,
+      assessment_data: (data.assessment_data as object) || null,
       ai_summary: data.ai_summary || null,
     },
   });
@@ -392,29 +391,23 @@ export async function createIntimacyAssessment(userId, data) {
 export async function getActiveModules() {
   return db().module.findMany({
     where: { is_active: true },
-    orderBy: { sort_order: "asc" },
+    orderBy: { sort_order: 'asc' },
   });
 }
 
 export async function getAllModules() {
-  return db().module.findMany({
-    orderBy: { sort_order: "asc" },
-  });
+  return db().module.findMany({ orderBy: { sort_order: 'asc' } });
 }
 
-export async function updateModule(id, updates) {
+export async function updateModule(id: string, updates: UpdateModuleInput) {
   return db().module.update({
     where: { id },
     data: {
       ...(updates.name_zh != null && { name_zh: updates.name_zh }),
       ...(updates.name_en != null && { name_en: updates.name_en }),
       ...(updates.is_active !== undefined && { is_active: updates.is_active }),
-      ...(updates.sort_order !== undefined && {
-        sort_order: updates.sort_order,
-      }),
-      ...(updates.external_url != null && {
-        external_url: updates.external_url,
-      }),
+      ...(updates.sort_order !== undefined && { sort_order: updates.sort_order }),
+      ...(updates.external_url != null && { external_url: updates.external_url }),
     },
   });
 }
@@ -439,11 +432,11 @@ export async function getAllLineOAs() {
   });
 }
 
-export async function getLineOAById(id) {
+export async function getLineOAById(id: string) {
   return db().lineOA.findUnique({ where: { id } });
 }
 
-export async function createLineOA(data) {
+export async function createLineOA(data: CreateLineOAInput) {
   const oa = await db().lineOA.create({
     data: {
       name: data.name,
@@ -455,7 +448,7 @@ export async function createLineOA(data) {
   return safe;
 }
 
-export async function updateLineOA(id, data) {
+export async function updateLineOA(id: string, data: UpdateLineOAInput) {
   const oa = await db().lineOA.update({
     where: { id },
     data: {
@@ -469,31 +462,31 @@ export async function updateLineOA(id, data) {
   return safe;
 }
 
-export async function deleteLineOA(id) {
+export async function deleteLineOA(id: string): Promise<{ success: boolean }> {
   await db().lineOA.delete({ where: { id } });
   return { success: true };
 }
 
 // ─── LINE OA Rich Menu Templates ────────────────────────────────────────────
 
-export async function getTemplatesForOA(oaId) {
+export async function getTemplatesForOA(oaId: string) {
   return db().lineOARichMenuTemplate.findMany({
     where: { oa_id: oaId },
     orderBy: { created_at: 'desc' },
   });
 }
 
-export async function getTemplateById(id) {
+export async function getTemplateById(id: string) {
   return db().lineOARichMenuTemplate.findUnique({ where: { id } });
 }
 
-export async function createTemplate(oaId, data) {
+export async function createTemplate(oaId: string, data: CreateTemplateInput) {
   return db().lineOARichMenuTemplate.create({
     data: { oa_id: oaId, name: data.name, zones: data.zones },
   });
 }
 
-export async function updateTemplate(id, data) {
+export async function updateTemplate(id: string, data: UpdateTemplateInput) {
   return db().lineOARichMenuTemplate.update({
     where: { id },
     data: {
@@ -503,12 +496,12 @@ export async function updateTemplate(id, data) {
   });
 }
 
-export async function deleteTemplate(id) {
+export async function deleteTemplate(id: string): Promise<{ success: boolean }> {
   await db().lineOARichMenuTemplate.delete({ where: { id } });
   return { success: true };
 }
 
-export async function setActiveTemplate(oaId, templateId, richMenuId = null) {
+export async function setActiveTemplate(oaId: string, templateId: string, richMenuId: string | null = null) {
   await db().lineOARichMenuTemplate.updateMany({
     where: { oa_id: oaId },
     data: { is_active: false },

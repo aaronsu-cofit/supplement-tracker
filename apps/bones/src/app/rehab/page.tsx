@@ -3,21 +3,35 @@ import { apiFetch } from '@vitera/lib';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronDown, ChevronUp, CheckCircle, Circle, Dumbbell, Clock, Layers } from 'lucide-react';
+import type { FootSeverity } from '../../types';
 
-const DIFFICULTY_CLASSES = {
+type Difficulty = 'easy' | 'medium';
+
+const DIFFICULTY_CLASSES: Record<Difficulty, { badge: string; label: string }> = {
     easy:   { badge: 'bg-emerald-100 text-emerald-700', label: '入門' },
     medium: { badge: 'bg-amber-100 text-amber-700',     label: '進階' },
 };
 
-// 嚴重度越高，越需要做哪些動作
-const SEVERITY_PRIORITY = {
+const SEVERITY_PRIORITY: Record<FootSeverity, string[]> = {
     normal:   ['toe_splay', 'calf_stretch', 'manual_stretch'],
     mild:     ['toe_splay', 'hallux_abduction', 'manual_stretch', 'calf_stretch'],
     moderate: ['toe_splay', 'hallux_abduction', 'short_foot', 'manual_stretch', 'calf_stretch'],
     severe:   ['toe_splay', 'hallux_abduction', 'short_foot', 'towel_scrunch', 'manual_stretch', 'calf_stretch'],
 };
 
-const EXERCISES = [
+interface Exercise {
+    id: string;
+    name: string;
+    subtitle: string;
+    target: string;
+    duration: string;
+    difficulty: Difficulty;
+    image: string;
+    steps: string[];
+    tip: string;
+}
+
+const EXERCISES: Exercise[] = [
     {
         id: 'toe_splay',
         name: '腳趾張開運動',
@@ -115,7 +129,14 @@ const EXERCISES = [
     },
 ];
 
-function ExerciseCard({ exercise, isRecommended, isDone, onToggleDone }) {
+interface ExerciseCardProps {
+    exercise: Exercise;
+    isRecommended: boolean;
+    isDone: boolean;
+    onToggleDone: (id: string) => void;
+}
+
+function ExerciseCard({ exercise, isRecommended, isDone, onToggleDone }: ExerciseCardProps) {
     const [expanded, setExpanded] = useState(false);
     const [imgError, setImgError] = useState(false);
     const diff = DIFFICULTY_CLASSES[exercise.difficulty];
@@ -210,19 +231,17 @@ function ExerciseCard({ exercise, isRecommended, isDone, onToggleDone }) {
 }
 
 export default function RehabPage() {
-    const [severity, setSeverity] = useState(null);
-    const [doneToday, setDoneToday] = useState({});
+    const [severity, setSeverity] = useState<FootSeverity | null>(null);
+    const [doneToday, setDoneToday] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
-        // 讀取最新足部掃描嚴重度
         apiFetch('/api/footcare/images')
             .then(r => r.ok ? r.json() : [])
-            .then(data => {
+            .then((data: { ai_severity: FootSeverity }[]) => {
                 if (Array.isArray(data) && data.length > 0) setSeverity(data[0].ai_severity);
             })
             .catch(() => {});
 
-        // 讀取今日完成紀錄（localStorage）
         const today = new Date().toISOString().slice(0, 10);
         const stored = localStorage.getItem(`rehab_done_${today}`);
         if (stored) {
@@ -230,7 +249,7 @@ export default function RehabPage() {
         }
     }, []);
 
-    const toggleDone = (id) => {
+    const toggleDone = (id: string) => {
         const today = new Date().toISOString().slice(0, 10);
         const updated = { ...doneToday, [id]: !doneToday[id] };
         setDoneToday(updated);
@@ -241,7 +260,6 @@ export default function RehabPage() {
     const doneCount = Object.values(doneToday).filter(Boolean).length;
     const totalCount = EXERCISES.length;
 
-    // 建議的動作排在前面
     const sorted = [
         ...EXERCISES.filter(e => recommended.includes(e.id)),
         ...EXERCISES.filter(e => !recommended.includes(e.id)),

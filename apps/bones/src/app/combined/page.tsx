@@ -3,23 +3,38 @@ import { apiFetch } from '@vitera/lib';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, Bot, AlertTriangle, CheckCircle, ShoppingBag } from 'lucide-react';
+import type { FootImage, ShoeImage, FootSeverity, ShoeRiskLevel } from '../../types';
 
-const SEVERITY_LABELS = { normal: '正常', mild: '輕度外翻', moderate: '中度外翻', severe: '重度外翻' };
-const SEVERITY_BADGE = {
+const SEVERITY_LABELS: Record<FootSeverity, string> = {
+    normal: '正常', mild: '輕度外翻', moderate: '中度外翻', severe: '重度外翻',
+};
+const SEVERITY_BADGE: Record<FootSeverity, string> = {
     normal:   'bg-emerald-100 text-emerald-700',
     mild:     'bg-blue-100 text-blue-700',
     moderate: 'bg-amber-100 text-amber-700',
     severe:   'bg-red-100 text-red-700',
 };
-const RISK_LABELS  = { low: '低風險', moderate: '中等風險', high: '高風險' };
-const RISK_BADGE   = { low: 'bg-emerald-100 text-emerald-700', moderate: 'bg-amber-100 text-amber-700', high: 'bg-red-100 text-red-700' };
-const WEAR_LABELS  = {
+const RISK_LABELS: Record<ShoeRiskLevel, string>  = { low: '低風險', moderate: '中等風險', high: '高風險' };
+const RISK_BADGE: Record<ShoeRiskLevel, string>   = {
+    low: 'bg-emerald-100 text-emerald-700',
+    moderate: 'bg-amber-100 text-amber-700',
+    high: 'bg-red-100 text-red-700',
+};
+const WEAR_LABELS: Record<string, string> = {
     medial_forefoot: '前掌內側磨損', lateral: '外側磨損',
     heel_center: '後跟中央磨損', toe_asymmetric: '前趾不對稱磨損',
     uniform: '均勻磨損', mixed: '複合磨損',
 };
 
-function getCombinedRecommendation(footSeverity, shoeRisk) {
+type RecommendationLevel = 'urgent' | 'warning' | 'caution' | 'good';
+
+interface Recommendation {
+    level: RecommendationLevel;
+    title: string;
+    body: string;
+}
+
+function getCombinedRecommendation(footSeverity: FootSeverity, shoeRisk: ShoeRiskLevel): Recommendation {
     if (footSeverity === 'severe') {
         return {
             level: 'urgent',
@@ -55,7 +70,13 @@ function getCombinedRecommendation(footSeverity, shoeRisk) {
     };
 }
 
-const RECOMMENDATION_STYLES = {
+interface RecommendationStyle {
+    card: string;
+    icon: React.ReactNode;
+    title: string;
+}
+
+const RECOMMENDATION_STYLES: Record<RecommendationLevel, RecommendationStyle> = {
     urgent:  { card: 'bg-red-50 border-red-200',    icon: <AlertTriangle size={18} className="text-red-500 shrink-0" />,     title: 'text-red-700' },
     warning: { card: 'bg-amber-50 border-amber-200', icon: <AlertTriangle size={18} className="text-amber-500 shrink-0" />,   title: 'text-amber-700' },
     caution: { card: 'bg-blue-50 border-blue-200',   icon: <Bot size={18} className="text-blue-500 shrink-0" />,              title: 'text-blue-700' },
@@ -63,15 +84,15 @@ const RECOMMENDATION_STYLES = {
 };
 
 export default function CombinedPage() {
-    const [footImage, setFootImage]  = useState(null);
-    const [shoeImage, setShoeImage]  = useState(null);
-    const [loading, setLoading]      = useState(true);
+    const [footImage, setFootImage] = useState<FootImage | null>(null);
+    const [shoeImage, setShoeImage] = useState<ShoeImage | null>(null);
+    const [loading, setLoading]     = useState(true);
 
     useEffect(() => {
         Promise.all([
             apiFetch('/api/footcare/images').then(r => r.ok ? r.json() : []),
             apiFetch('/api/footcare/shoe-images').then(r => r.ok ? r.json() : []),
-        ]).then(([footImages, shoeImages]) => {
+        ]).then(([footImages, shoeImages]: [FootImage[], ShoeImage[]]) => {
             setFootImage(Array.isArray(footImages) && footImages.length > 0 ? footImages[0] : null);
             setShoeImage(Array.isArray(shoeImages) && shoeImages.length > 0 ? shoeImages[0] : null);
         }).catch(() => {}).finally(() => setLoading(false));
@@ -131,7 +152,7 @@ export default function CombinedPage() {
                 </div>
             )}
 
-            {footImage && shoeImage && (
+            {footImage && shoeImage && reco && recoStyle && (
                 <>
                     {/* 綜合建議 */}
                     <div className={`border rounded-[16px] p-5 ${recoStyle.card}`}>

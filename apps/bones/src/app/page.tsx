@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { apiFetch } from "@vitera/lib";
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { apiFetch } from '@vitera/lib';
 import {
   Camera,
   ClipboardList,
@@ -16,46 +16,47 @@ import {
   ScanSearch,
   Layers,
   Dumbbell,
-} from "lucide-react";
+} from 'lucide-react';
+import type { FootAssessment, EducationVideo } from '../types';
 
-const EDUCATION_VIDEOS = [
+const EDUCATION_VIDEOS: EducationVideo[] = [
   {
-    youtubeId: "hb8m0Y7D2l4",
-    doctor: "主治醫師 陳永仁",
-    title: "拇趾外翻的原因？",
-    description: "了解拇趾外翻的成因",
+    youtubeId: 'hb8m0Y7D2l4',
+    doctor: '主治醫師 陳永仁',
+    title: '拇趾外翻的原因？',
+    description: '了解拇趾外翻的成因',
   },
   {
-    youtubeId: "nqqCtz6Orqk",
-    doctor: "主治醫師 陳永仁",
-    title: "扁平足的原因是什麼？",
-    description: "了解扁平足的成因",
+    youtubeId: 'nqqCtz6Orqk',
+    doctor: '主治醫師 陳永仁',
+    title: '扁平足的原因是什麼？',
+    description: '了解扁平足的成因',
   },
 ];
 
 export default function BonesDashboard() {
-  const [latestAssessment, setLatestAssessment] = useState(null);
-  const [activeVideo, setActiveVideo] = useState(null);
+  const [latestAssessment, setLatestAssessment] = useState<FootAssessment | null>(null);
+  const [activeVideo, setActiveVideo] = useState<EducationVideo | null>(null);
   const [hasFootScan, setHasFootScan] = useState(false);
   const [hasShoeScan, setHasShoeScan] = useState(false);
 
   useEffect(() => {
-    apiFetch("/api/footcare/assessments")
+    apiFetch('/api/footcare/assessments')
       .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
+      .then((data: FootAssessment[]) => {
         const list = Array.isArray(data) ? data : [];
         if (list.length > 0) setLatestAssessment(list[0]);
       })
       .catch(() => {});
 
-    apiFetch("/api/footcare/images")
+    apiFetch('/api/footcare/images')
       .then((r) => (r.ok ? r.json() : []))
-      .then((data) => { if (Array.isArray(data) && data.length > 0) setHasFootScan(true); })
+      .then((data: unknown[]) => { if (Array.isArray(data) && data.length > 0) setHasFootScan(true); })
       .catch(() => {});
 
-    apiFetch("/api/footcare/shoe-images")
+    apiFetch('/api/footcare/shoe-images')
       .then((r) => (r.ok ? r.json() : []))
-      .then((data) => { if (Array.isArray(data) && data.length > 0) setHasShoeScan(true); })
+      .then((data: unknown[]) => { if (Array.isArray(data) && data.length > 0) setHasShoeScan(true); })
       .catch(() => {});
   }, []);
 
@@ -156,8 +157,8 @@ export default function BonesDashboard() {
               <span
                 className="text-[0.82rem] font-semibold px-2.5 py-1 rounded-full"
                 style={{
-                  color: latestAssessment.nrs_pain_score > 3 ? "#dc2626" : "#059669",
-                  background: latestAssessment.nrs_pain_score > 3 ? "#fef2f2" : "#f0fdf4",
+                  color: latestAssessment.nrs_pain_score > 3 ? '#dc2626' : '#059669',
+                  background: latestAssessment.nrs_pain_score > 3 ? '#fef2f2' : '#f0fdf4',
                 }}
               >
                 疼痛指數 {latestAssessment.nrs_pain_score}/10
@@ -165,7 +166,7 @@ export default function BonesDashboard() {
             </div>
             {latestAssessment.pain_locations && (
               <div className="flex gap-2 flex-wrap mb-3">
-                {latestAssessment.pain_locations.split(",").map((loc, idx) => (
+                {latestAssessment.pain_locations.split(',').map((loc, idx) => (
                   <span key={idx} className="flex items-center gap-1 bg-slate-100 py-1 px-2.5 rounded-full text-[0.78rem] text-slate-500">
                     <MapPin size={11} className="text-slate-400" />
                     {loc.trim()}
@@ -258,12 +259,12 @@ export default function BonesDashboard() {
                 <X size={16} className="text-slate-500" />
               </button>
             </div>
-            <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
               <iframe
                 className="absolute inset-0 w-full h-full"
                 src={`https://www.youtube.com/embed/${activeVideo.youtubeId}?autoplay=1&rel=0`}
                 title={activeVideo.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-for-picture"
                 allowFullScreen
               />
             </div>
@@ -278,7 +279,7 @@ export default function BonesDashboard() {
           <h3 className="m-0 text-blue-700 text-[0.95rem] font-semibold">專屬照護推薦</h3>
         </div>
         <p className="m-0 mb-4 text-slate-600 text-[0.84rem] leading-relaxed">
-          依據您的評估紀錄，建議使用夜間夾板或足弓支撐墊。結帳輸入{" "}
+          依據您的評估紀錄，建議使用夜間夾板或足弓支撐墊。結帳輸入{' '}
           <strong className="text-slate-800 font-semibold">CARE20</strong> 享專屬折扣。
         </p>
         <button className="w-full py-3 rounded-[10px] border-none bg-blue-600 text-white font-semibold cursor-pointer hover:bg-blue-700 transition-colors duration-200 min-h-[44px]">
