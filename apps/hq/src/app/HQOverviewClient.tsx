@@ -1,5 +1,5 @@
 'use client';
-import type { HQMetric } from '../../types';
+import type { HQMetric } from '../types';
 
 export default function HQOverviewClient() {
     return (

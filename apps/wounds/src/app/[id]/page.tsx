@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch, WOUND_TYPES, BODY_LOCATIONS } from '@vitera/lib';
-import type { Wound, PhaseKey, PhaseInfo } from '../../../types';
+import type { Wound, PhaseKey, PhaseInfo } from '../../types';
 
 const PHASE_CLASSES: Record<PhaseKey, string> = {
     inflammation:  'phase-inflammation',

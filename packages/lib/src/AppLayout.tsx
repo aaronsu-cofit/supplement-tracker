@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import LiffProvider from './liff/LiffProvider';
 import AuthProvider from './auth/AuthProvider';
 import AuthGuard from './auth/AuthGuard';
@@ -20,7 +21,7 @@ const DEFAULT_LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL || 'http://localhost
  * @param {string}   [loginUrl]    Override NEXT_PUBLIC_LOGIN_URL redirect target.
  * @param {string[]} [publicPaths] Path prefixes that skip the auth guard.
  */
-export default function AppLayout({ children, liffId, loginUrl, publicPaths, lineOnly }) {
+export default function AppLayout({ children, liffId, loginUrl, publicPaths, lineOnly }: { children: React.ReactNode; liffId?: string; loginUrl?: string; publicPaths?: string[]; lineOnly?: boolean }) {
   return (
     <LiffProvider liffId={liffId}>
       <AuthProvider>

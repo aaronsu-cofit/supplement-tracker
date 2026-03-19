@@ -2,7 +2,7 @@
 import { apiFetch } from '@vitera/lib';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import type { AdminPatient, WoundLog } from '../../../types';
+import type { AdminPatient, WoundLog } from '../../types';
 
 export default function WoundsAdminDashboard() {
     const [patients, setPatients] = useState<AdminPatient[]>([]);
@@ -59,8 +59,8 @@ export default function WoundsAdminDashboard() {
                     };
 
                     const finalPatients = [demoPatient, ...mappedPatients];
-                    setPatients(finalPatients);
-                    if (finalPatients.length > 0) setSelectedPatient(finalPatients[0]);
+                    setPatients(finalPatients as AdminPatient[]);
+                    if (finalPatients.length > 0) setSelectedPatient(finalPatients[0] as AdminPatient);
                 }
             } catch (err) {
                 console.error((err as Error).message);

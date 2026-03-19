@@ -4,7 +4,7 @@ import { apiFetch } from '@vitera/lib';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@vitera/lib';
 import { useRouter } from 'next/navigation';
-import type { HQModule } from '../../../types';
+import type { HQModule } from '../../types';
 
 export default function HQModulesClient() {
     const { user, isLoading: authLoading } = useAuth();

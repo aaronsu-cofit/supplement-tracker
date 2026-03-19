@@ -1,3 +1,4 @@
+import React from 'react';
 import Link from 'next/link';
 
 /**
@@ -9,7 +10,7 @@ import Link from 'next/link';
  *   accent       – CSS gradient string for the title text
  *   rightElement – optional JSX rendered on the right (e.g. an edit button)
  */
-export default function AppHeader({ backHref = '/', title, accent, rightElement }) {
+export default function AppHeader({ backHref = '/', title, accent, rightElement }: { backHref?: string; title: string; accent?: string; rightElement?: React.ReactNode }) {
     const titleGradient = accent || 'linear-gradient(135deg, #7c5cfc, #5ce0d8)';
 
     return (

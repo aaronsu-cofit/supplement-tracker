@@ -26,7 +26,7 @@ const iconBox = (bg) => ({
     flexShrink: 0,
 });
 
-export default function IntimacyClientDashboard({ initialAssessments }) {
+export default function IntimacyClientDashboard({ initialAssessments = [] }: { initialAssessments?: any[] }) {
     const router = useRouter();
     const { user } = useAuth();
     const latest = initialAssessments[0];

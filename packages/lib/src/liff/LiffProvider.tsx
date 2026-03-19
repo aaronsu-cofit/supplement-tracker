@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, createContext, useContext } from 'react';
+import React, { useEffect, useState, createContext, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
 export const LiffContext = createContext({
@@ -15,7 +15,7 @@ export function useLiff() {
   return useContext(LiffContext);
 }
 
-export default function LiffProvider({ children, liffId: propLiffId }) {
+export default function LiffProvider({ children, liffId: propLiffId }: { children: React.ReactNode; liffId?: string }) {
   const [liffState, setLiffState] = useState({
     liff: null,
     profile: null,

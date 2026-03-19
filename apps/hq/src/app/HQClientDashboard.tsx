@@ -3,7 +3,7 @@ import { apiFetch } from '@vitera/lib';
 
 import { useState } from 'react';
 import Link from 'next/link';
-import type { ModuleInfo, MenuMapping, ActionStatus } from '../../types';
+import type { ModuleInfo, MenuMapping, ActionStatus } from '../types';
 
 const MODULES: ModuleInfo[] = [
     {
