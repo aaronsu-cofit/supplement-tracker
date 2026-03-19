@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 WORKDIR /app
 RUN npm install -g pnpm && apk add --no-cache openssl
 
@@ -15,7 +15,7 @@ ENV POSTGRES_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 RUN cd backend && npx prisma generate --schema=prisma/schema.prisma
 
 # ---- Runner ----
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 RUN apk add --no-cache openssl
 
