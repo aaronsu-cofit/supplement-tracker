@@ -2,7 +2,7 @@
 import { apiFetch } from '@vitera/lib';
 
 import { useState, useEffect } from 'react';
-import type { HQUser } from '../../../types';
+import type { HQUser } from '../../types';
 
 export default function HQAdminsClient() {
     const [users, setUsers] = useState<HQUser[]>([]);

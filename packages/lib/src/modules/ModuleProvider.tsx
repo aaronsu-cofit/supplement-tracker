@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { apiFetch } from '../api';
 
-const ModuleContext = createContext({ modules: [], isLoading: true, error: null, getModule: () => null });
+const ModuleContext = createContext<{ modules: any[]; isLoading: boolean; error: string | null; getModule: (id: any) => any }>({ modules: [], isLoading: true, error: null, getModule: () => null });
 
 export function useModules() {
   return useContext(ModuleContext);

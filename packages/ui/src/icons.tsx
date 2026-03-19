@@ -3,16 +3,16 @@
  * All icons include aria-hidden="true" since they are decorative alongside visible labels.
  */
 
-const svgProps = (size) => ({
+const svgProps = (size: number) => ({
     width: size,
     height: size,
     viewBox: '0 0 24 24',
     fill: 'none',
     stroke: 'currentColor',
     strokeWidth: 2,
-    strokeLinecap: 'round',
-    strokeLinejoin: 'round',
-    'aria-hidden': 'true',
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true as const,
     style: { display: 'block', flexShrink: 0 },
 });
 

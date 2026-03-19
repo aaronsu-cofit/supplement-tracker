@@ -40,7 +40,7 @@ export default function IntimacyResultClient({ initialData }) {
                 <button onClick={() => router.push('/intimacy')} style={{ background: '#ffffff', border: '1px solid #F1F5F9', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', borderRadius: '12px', padding: '8px 12px', color: '#64748B', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
                     <span style={{ fontSize: '16px' }}>←</span> 返回主控台
                 </button>
-                <div style={{ color: '#E11D48', fontSize: '12px', tracking: 'widest', textTransform: 'uppercase', fontWeight: '800' }}>
+                <div style={{ color: '#E11D48', fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: '800' }}>
                     ● 專屬顧問報告
                 </div>
             </div>

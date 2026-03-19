@@ -9,7 +9,7 @@ export function getApiUrl() {
  * 1. Prepends NEXT_PUBLIC_API_URL to relative paths
  * 2. Sends credentials (cookies) — auth_token cookie handles auth automatically
  */
-export function apiFetch(path, options = {}) {
+export function apiFetch(path: string, options: RequestInit = {}) {
   const baseUrl = getApiUrl();
 
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;

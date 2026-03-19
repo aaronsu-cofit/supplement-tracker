@@ -5,7 +5,7 @@ import zhTW from './zh-TW.json';
 import en from './en.json';
 
 const languages = { 'zh-TW': zhTW, en };
-const LanguageContext = createContext();
+const LanguageContext = createContext<{ locale: string; t: (key: string, params?: Record<string, string>) => string; switchLanguage: (lang: string) => void } | undefined>(undefined);
 
 export function LanguageProvider({ children }) {
   const [locale, setLocale] = useState(() => {
@@ -16,14 +16,14 @@ export function LanguageProvider({ children }) {
   });
 
   const t = useCallback(
-    (key, params = {}) => {
+    (key: string, params: Record<string, string> = {}) => {
       const keys = key.split('.');
-      let value = languages[locale];
-      for (const k of keys) value = value?.[k];
+      let value: unknown = languages[locale];
+      for (const k of keys) value = (value as Record<string, unknown>)?.[k];
       if (typeof value === 'string' && Object.keys(params).length > 0) {
         return Object.entries(params).reduce((str, [k, v]) => str.replace(`{${k}}`, v), value);
       }
-      return value || key;
+      return (value as string) || key;
     },
     [locale]
   );

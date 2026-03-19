@@ -1,7 +1,7 @@
 'use client';
 import { apiFetch } from '@vitera/lib';
 import { useState, useEffect, useCallback } from 'react';
-import type { LineOA, LineTemplate, Zone, ActionStatus } from '../../../types';
+import type { LineOA, LineTemplate, Zone, ActionStatus } from '../../types';
 
 interface OAEditForm {
   name: string;

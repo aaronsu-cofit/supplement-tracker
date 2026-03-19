@@ -176,7 +176,7 @@ function AssessContent() {
                                     <span className="text-[24px]">😌</span>
                                     <input
                                         type="range" min="1" max="10" value={stressLevel}
-                                        onChange={(e) => setStressLevel(e.target.value)}
+                                        onChange={(e) => setStressLevel(Number(e.target.value))}
                                         className="flex-1"
                                         style={{ accentColor: '#E11D48' }}
                                     />
@@ -194,7 +194,7 @@ function AssessContent() {
                                     <span className="text-[24px]">🥀</span>
                                     <input
                                         type="range" min="1" max="10" value={intimacySatisfaction}
-                                        onChange={(e) => setIntimacySatisfaction(e.target.value)}
+                                        onChange={(e) => setIntimacySatisfaction(Number(e.target.value))}
                                         className="flex-1"
                                         style={{ accentColor: '#E11D48' }}
                                     />
@@ -212,7 +212,7 @@ function AssessContent() {
                                     <span className="text-[24px]">🥱</span>
                                     <input
                                         type="range" min="3" max="12" value={sleepHours}
-                                        onChange={(e) => setSleepHours(e.target.value)}
+                                        onChange={(e) => setSleepHours(Number(e.target.value))}
                                         className="flex-1"
                                         style={{ accentColor: '#E11D48' }}
                                     />
