@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch, WOUND_TYPES, BODY_LOCATIONS } from '@vitera/lib';
+import type { Wound, PhaseKey, PhaseInfo } from '../../../types';
 
-const PHASE_CLASSES = {
+const PHASE_CLASSES: Record<PhaseKey, string> = {
     inflammation:  'phase-inflammation',
     proliferation: 'phase-proliferation',
     remodeling:    'phase-remodeling',
@@ -15,7 +16,7 @@ const PHASE_CLASSES = {
 export default function WoundDetailPage() {
     const { id } = useParams();
     const router = useRouter();
-    const [wound, setWound] = useState(null);
+    const [wound, setWound] = useState<Wound | null>(null);
     const [loading, setLoading] = useState(true);
     const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
@@ -44,7 +45,7 @@ export default function WoundDetailPage() {
     const loc = BODY_LOCATIONS.find(l => l.code === wound.body_location);
     const days = wound.date_of_injury ? Math.floor((Date.now() - new Date(wound.date_of_injury).getTime()) / 86400000) : 0;
 
-    const getPhase = (d) => {
+    const getPhase = (d: number): PhaseInfo => {
         if (d <= 3)  return { label: '炎症期', key: 'inflammation', color: '#ff6b6b' };
         if (d <= 14) return { label: '增生期', key: 'proliferation', color: '#ffa502' };
         if (d <= 28) return { label: '重塑期', key: 'remodeling',    color: '#2ed573' };

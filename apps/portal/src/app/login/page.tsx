@@ -37,7 +37,7 @@ function getSafeRedirectUrl() {
 export default function LoginPage() {
     const { login, register, isLoading } = useAuth();
     const { liff, isInitialized } = useLiff();
-    const [mode, setMode] = useState('login'); // 'login' | 'register'
+    const [mode, setMode] = useState<'login' | 'register'>('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [displayName, setDisplayName] = useState('');
@@ -52,7 +52,7 @@ export default function LoginPage() {
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError('');
         setSubmitting(true);
@@ -64,7 +64,7 @@ export default function LoginPage() {
             }
             window.location.href = getSafeRedirectUrl();
         } catch (err) {
-            setError(err.message);
+            setError((err as Error).message);
         } finally {
             setSubmitting(false);
         }

@@ -3,27 +3,30 @@ import { apiFetch } from "@vitera/lib";
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import type { Wound, WoundLog } from "../../../types";
 
-const getConcern = (label) => {
+type ConcernKey = 'true' | 'false' | 'unknown';
+
+const getConcern = (label: string | null | undefined): ConcernKey => {
   if (!label) return "unknown";
   if (label.includes("穩定") || label.includes("符合")) return "false";
   return "true";
 };
 
-const STATUS_CLASSES = {
+const STATUS_CLASSES: Record<ConcernKey, string> = {
   true: "bg-w-orange/[0.12] text-w-orange",
   false: "bg-w-green/[0.12] text-w-green",
   unknown: "bg-white/[0.06] text-white/40",
 };
 
-const getNrsMiniClass = (s) =>
+const getNrsMiniClass = (s: number): string =>
   s <= 3 ? "text-w-green" : s <= 6 ? "text-w-orange" : "text-w-red";
 
 export default function WoundHistoryPage() {
   const params = useParams();
   const id = params?.id;
-  const [logs, setLogs] = useState([]);
-  const [wound, setWound] = useState(null);
+  const [logs, setLogs] = useState<WoundLog[]>([]);
+  const [wound, setWound] = useState<Wound | null>(null);
   const [loading, setLoading] = useState(true);
   const fetchedRef = useRef(false);
 
@@ -43,7 +46,7 @@ export default function WoundHistoryPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const daysSince = (dateStr, refDate) => {
+  const daysSince = (dateStr: string | null | undefined, refDate: string | null | undefined): string => {
     if (!dateStr || !refDate) return "";
     const diff = Math.floor(
       (new Date(dateStr).getTime() - new Date(refDate).getTime()) / 86400000,

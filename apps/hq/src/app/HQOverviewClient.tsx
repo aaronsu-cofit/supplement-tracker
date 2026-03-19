@@ -1,4 +1,5 @@
 'use client';
+import type { HQMetric } from '../../types';
 
 export default function HQOverviewClient() {
     return (
@@ -10,12 +11,12 @@ export default function HQOverviewClient() {
 
             <div className="hq-grid-4">
                 {/* Metric Cards */}
-                {[
+                {([
                     { label: '本週活躍用戶', value: '1,204', trend: '+14%', color: 'var(--hq-success)' },
                     { label: '上傳圖片總數', value: '45,892', trend: '+5%', color: 'var(--hq-cyan)' },
                     { label: 'AI 分析次數', value: '12,050', trend: '+22%', color: 'var(--hq-purple)' },
                     { label: '系統異常回報', value: '0', trend: 'Healthy', color: 'var(--hq-text-muted)' },
-                ].map((metric, i) => (
+                ] as HQMetric[]).map((metric, i) => (
                     <div key={i} className="hq-card">
                         <div className="hq-metric-label">{metric.label}</div>
                         <div className="hq-metric-value-row">

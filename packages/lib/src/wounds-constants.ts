@@ -1,4 +1,17 @@
-export const WOUND_TYPES = [
+export interface WoundType {
+  code: string;
+  label: string;
+  emoji: string;
+  careNote: string;
+}
+
+export interface BodyLocation {
+  code: string;
+  label: string;
+  emoji: string;
+}
+
+export const WOUND_TYPES: WoundType[] = [
   { code: 'surgical', label: '手術傷口', emoji: '🏥', careNote: '注意拆線時間與防水' },
   { code: 'pressure', label: '壓瘡', emoji: '🛏️', careNote: '翻身頻率與減壓墊' },
   { code: 'burn', label: '燒燙傷', emoji: '🔥', careNote: '降溫處理與除疤' },
@@ -7,7 +20,7 @@ export const WOUND_TYPES = [
   { code: 'other', label: '其他', emoji: '📋', careNote: '一般照護' },
 ];
 
-export const BODY_LOCATIONS = [
+export const BODY_LOCATIONS: BodyLocation[] = [
   { code: 'head', label: '頭部', emoji: '🧠' },
   { code: 'chest', label: '胸腹', emoji: '🫁' },
   { code: 'left_arm', label: '左上肢', emoji: '💪' },
@@ -18,13 +31,13 @@ export const BODY_LOCATIONS = [
   { code: 'other', label: '其他 (自行輸入)', emoji: '📍' },
 ];
 
-export function getWoundType(code) {
-  return WOUND_TYPES.find(t => t.code === code) || WOUND_TYPES.find(t => t.code === 'other');
+export function getWoundType(code: string): WoundType {
+  return WOUND_TYPES.find(t => t.code === code) || WOUND_TYPES.find(t => t.code === 'other')!;
 }
 
-export function getBodyLocation(code) {
+export function getBodyLocation(code: string | null | undefined): BodyLocation | null {
+  if (!code) return null;
   const loc = BODY_LOCATIONS.find(l => l.code === code);
   if (loc) return loc;
-  if (code) return { code, label: code, emoji: '📍' };
-  return null;
+  return { code, label: code, emoji: '📍' };
 }

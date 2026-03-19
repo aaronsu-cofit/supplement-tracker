@@ -5,30 +5,35 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth, apiFetch, WOUND_TYPES, BODY_LOCATIONS } from '@vitera/lib';
 import { AppHeader } from '@vitera/ui';
+import type { Wound, PhaseInfo, PhaseKey } from '../types';
 
-const PHASE_CLASSES = {
+const PHASE_CLASSES: Record<PhaseKey, string> = {
     inflammation:  'phase-inflammation',
     proliferation: 'phase-proliferation',
     remodeling:    'phase-remodeling',
     mature:        'phase-mature',
 };
 
-export default function WoundsClientDashboard({ initialWounds = [] }) {
+interface Props {
+    initialWounds?: Wound[];
+}
+
+export default function WoundsClientDashboard({ initialWounds = [] }: Props) {
     const { user, isLoading: authLoading } = useAuth();
     const router = useRouter();
-    const [wounds, setWounds] = useState(initialWounds);
-    const [currentWound, setCurrentWound] = useState(null);
+    const [wounds, setWounds] = useState<Wound[]>(initialWounds);
+    const [currentWound, setCurrentWound] = useState<Wound | null>(null);
     const [showSwitcher, setShowSwitcher] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
     const [dataLoading, setDataLoading] = useState(true);
-    const switcherRef = useRef(null);
+    const switcherRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const fetchWounds = async () => {
             try {
                 const res = await apiFetch('/api/wounds');
                 if (res.ok) {
-                    const data = await res.json();
+                    const data: Wound[] = await res.json();
                     setWounds(data);
                     const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
                     const newId = urlParams?.get('new_id');
@@ -48,24 +53,24 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
     }, []);
 
     useEffect(() => {
-        const handler = (e) => {
-            if (switcherRef.current && !switcherRef.current.contains(e.target)) setShowSwitcher(false);
+        const handler = (e: MouseEvent) => {
+            if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) setShowSwitcher(false);
         };
         if (showSwitcher) document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, [showSwitcher]);
 
-    const getType = (code) => WOUND_TYPES.find(t => t.code === code) || WOUND_TYPES[5];
-    const getLoc = (code) => BODY_LOCATIONS.find(l => l.code === code) || (code ? { code, label: code, emoji: '📍' } : null);
-    const daysSince = (d) => d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : 0;
-    const getPhase = (d) => {
+    const getType = (code: string) => WOUND_TYPES.find(t => t.code === code) || WOUND_TYPES[5];
+    const getLoc = (code: string | null) => BODY_LOCATIONS.find(l => l.code === code) || (code ? { code, label: code, emoji: '📍' } : null);
+    const daysSince = (d: string | null | undefined) => d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : 0;
+    const getPhase = (d: number): PhaseInfo => {
         if (d <= 3)  return { label: '炎症期', key: 'inflammation', color: '#ff6b6b' };
         if (d <= 14) return { label: '增生期', key: 'proliferation', color: '#ffa502' };
         if (d <= 28) return { label: '重塑期', key: 'remodeling',    color: '#2ed573' };
         return           { label: '成熟期', key: 'mature',        color: '#5d9cec' };
     };
 
-    const switchWound = (w) => { setCurrentWound(w); setShowSwitcher(false); };
+    const switchWound = (w: Wound) => { setCurrentWound(w); setShowSwitcher(false); };
 
     if (authLoading) {
         return (
@@ -218,7 +223,12 @@ export default function WoundsClientDashboard({ initialWounds = [] }) {
 }
 
 /* Archive Button */
-function ArchiveButton({ woundId, onArchived }) {
+interface ArchiveButtonProps {
+    woundId: number;
+    onArchived: () => void;
+}
+
+function ArchiveButton({ woundId, onArchived }: ArchiveButtonProps) {
     const [confirm, setConfirm] = useState(false);
     const handleArchive = async () => {
         await apiFetch(`/api/wounds/${woundId}`, { method: 'DELETE' });
@@ -248,12 +258,18 @@ function ArchiveButton({ woundId, onArchived }) {
 }
 
 /* Edit Wound Modal */
-function EditWoundModal({ wound, onClose, onSaved }) {
+interface EditWoundModalProps {
+    wound: Wound;
+    onClose: () => void;
+    onSaved: (updated: Partial<Wound>) => void;
+}
+
+function EditWoundModal({ wound, onClose, onSaved }: EditWoundModalProps) {
     const [name, setName] = useState(wound.name || '');
     const [woundType, setWoundType] = useState(wound.wound_type || 'other');
     const isCustomLoc = wound.body_location && !BODY_LOCATIONS.some(l => l.code === wound.body_location);
     const [bodyLocation, setBodyLocation] = useState(isCustomLoc ? 'other' : (wound.body_location || ''));
-    const [customLocation, setCustomLocation] = useState(isCustomLoc ? wound.body_location : '');
+    const [customLocation, setCustomLocation] = useState(isCustomLoc ? wound.body_location ?? '' : '');
     const [dateOfInjury, setDateOfInjury] = useState(wound.date_of_injury || '');
     const [saving, setSaving] = useState(false);
 

@@ -4,14 +4,15 @@ import { apiFetch } from '@vitera/lib';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@vitera/lib';
 import { useRouter } from 'next/navigation';
+import type { HQModule } from '../../../types';
 
 export default function HQModulesClient() {
     const { user, isLoading: authLoading } = useAuth();
     const router = useRouter();
-    const [modules, setModules] = useState([]);
+    const [modules, setModules] = useState<HQModule[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [savingId, setSavingId] = useState(null);
+    const [error, setError] = useState<string | null>(null);
+    const [savingId, setSavingId] = useState<string | null>(null);
 
     useEffect(() => {
         if (!authLoading && (!user || (user.role !== 'super_admin' && user.role !== 'admin'))) {
@@ -31,13 +32,13 @@ export default function HQModulesClient() {
             const data = await res.json();
             setModules(data.modules || []);
         } catch (err) {
-            setError(err.message);
+            setError((err as Error).message);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleUpdate = async (id, field, value) => {
+    const handleUpdate = async (id: string, field: string, value: string | boolean) => {
         setSavingId(id);
         setError(null);
         try {
@@ -53,7 +54,7 @@ export default function HQModulesClient() {
             // Update local state
             setModules(modules.map(m => m.id === id ? { ...m, [field]: value } : m));
         } catch (err) {
-            setError(err.message);
+            setError((err as Error).message);
         } finally {
             setSavingId(null);
         }

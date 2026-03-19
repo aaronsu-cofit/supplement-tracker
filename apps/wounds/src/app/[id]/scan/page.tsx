@@ -3,20 +3,20 @@ import { apiFetch } from '@vitera/lib';
 import { useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 
-const getNrsColor = (s) => s <= 3 ? '#2ed573' : s <= 6 ? '#ffa502' : '#ff4757';
+const getNrsColor = (s: number): string => s <= 3 ? '#2ed573' : s <= 6 ? '#ffa502' : '#ff4757';
 
 export default function WoundScanPage() {
     const router = useRouter();
     const { id: woundId } = useParams();
-    const fileInputRef = useRef(null);
-    const [imagePreview, setImagePreview] = useState(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [nrsScore, setNrsScore] = useState(0);
-    const [symptoms, setSymptoms] = useState([]);
+    const [symptoms, setSymptoms] = useState<string[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const symptomOptions = ['局部發熱', '有異味', '滲出液增加', '邊緣紅腫', '皆無'];
 
-    const compressImage = (file, maxWidth = 800, quality = 0.7) => {
+    const compressImage = (file: File, maxWidth = 800, quality = 0.7): Promise<string> => {
         return new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -26,21 +26,21 @@ export default function WoundScanPage() {
                     let { width, height } = img;
                     if (width > maxWidth) { height = (height * maxWidth) / width; width = maxWidth; }
                     canvas.width = width; canvas.height = height;
-                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                    canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
                     resolve(canvas.toDataURL('image/jpeg', quality));
                 };
-                img.src = e.target.result;
+                img.src = e.target?.result as string;
             };
             reader.readAsDataURL(file);
         });
     };
 
-    const handleImageCapture = async (e) => {
+    const handleImageCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) { setImagePreview(await compressImage(file)); }
     };
 
-    const toggleSymptom = (symptom) => {
+    const toggleSymptom = (symptom: string) => {
         if (symptom === '皆無') { setSymptoms(['皆無']); return; }
         setSymptoms(prev => {
             const c = prev.filter(s => s !== '皆無');
@@ -52,7 +52,7 @@ export default function WoundScanPage() {
         if (!imagePreview) return alert('請先拍攝或上傳傷口照片');
         setIsAnalyzing(true);
         try {
-            let woundInfo = {};
+            let woundInfo: { wound_type?: string } = {};
             try {
                 const wr = await apiFetch(`/api/wounds/${woundId}`);
                 if (wr.ok) woundInfo = await wr.json();
@@ -70,7 +70,7 @@ export default function WoundScanPage() {
 請勿給出絕對醫療診斷，請使用情境描述。`
                 })
             });
-            const data = await response.json();
+            const data: { success: boolean; analysis?: string; ai_status_label?: string; error?: string } = await response.json();
             if (!response.ok || !data.success) throw new Error(data.error || 'AI Analysis failed');
 
             await apiFetch(`/api/wounds/${woundId}/logs`, {
@@ -98,7 +98,7 @@ export default function WoundScanPage() {
 
             router.push(`/${woundId}/result?analysis=${encodeURIComponent(data.analysis || '')}&status=${encodeURIComponent(data.ai_status_label || '')}&nrs=${nrsScore}&symptoms=${encodeURIComponent(symptoms.join(','))}`);
         } catch (error) {
-            alert('發生錯誤: ' + (error.message || ''));
+            alert('發生錯誤: ' + ((error as Error).message || ''));
         } finally { setIsAnalyzing(false); }
     };
 
@@ -144,6 +144,7 @@ export default function WoundScanPage() {
                     </div>
                 )}
                 <input type="file" accept="image/*" capture="environment" ref={fileInputRef} onChange={handleImageCapture} className="hidden" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
             </div>
 
             {/* 2. NRS */}

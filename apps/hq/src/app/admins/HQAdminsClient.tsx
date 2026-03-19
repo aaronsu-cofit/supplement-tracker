@@ -2,12 +2,13 @@
 import { apiFetch } from '@vitera/lib';
 
 import { useState, useEffect } from 'react';
+import type { HQUser } from '../../../types';
 
 export default function HQAdminsClient() {
-    const [users, setUsers] = useState([]);
+    const [users, setUsers] = useState<HQUser[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [roleChangeError, setRoleChangeError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
+    const [roleChangeError, setRoleChangeError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchUsers();
@@ -22,13 +23,13 @@ export default function HQAdminsClient() {
                 setUsers(data.users);
             }
         } catch (err) {
-            setError(err.message);
+            setError((err as Error).message);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleRoleChange = async (userId, newRole) => {
+    const handleRoleChange = async (userId: string, newRole: string) => {
         setRoleChangeError(null);
         try {
             const res = await apiFetch('/api/hq/admins', {
@@ -47,7 +48,7 @@ export default function HQAdminsClient() {
         }
     };
 
-    const getRoleBadge = (role) => {
+    const getRoleBadge = (role: string) => {
         switch (role) {
             case 'superadmin':
                 return <span className="hq-badge hq-badge-purple">Super Admin</span>;
@@ -98,11 +99,11 @@ export default function HQAdminsClient() {
                     <tbody>
                         {isLoading ? (
                             <tr>
-                                <td colSpan="4" className="hq-table-empty">載入中...</td>
+                                <td colSpan={4} className="hq-table-empty">載入中...</td>
                             </tr>
                         ) : users.length === 0 ? (
                             <tr>
-                                <td colSpan="4" className="hq-table-empty">目前沒有使用者資料</td>
+                                <td colSpan={4} className="hq-table-empty">目前沒有使用者資料</td>
                             </tr>
                         ) : (
                             users.map((user) => (

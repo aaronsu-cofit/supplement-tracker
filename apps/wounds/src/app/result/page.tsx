@@ -2,12 +2,13 @@
 import { apiFetch } from '@vitera/lib';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import type { WoundLog } from '../../types';
 
 function WoundsResultContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const woundId = searchParams.get('woundId');
-    const [logData, setLogData] = useState(null);
+    const [logData, setLogData] = useState<WoundLog | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

@@ -2,11 +2,12 @@
 import { apiFetch } from '@vitera/lib';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import type { Wound, WoundLog } from '../../types';
 
 export default function WoundHistoryPage() {
     const router = useRouter();
-    const [logs, setLogs] = useState([]);
-    const [wound, setWound] = useState(null);
+    const [logs, setLogs] = useState<WoundLog[]>([]);
+    const [wound, setWound] = useState<Wound | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -14,7 +15,7 @@ export default function WoundHistoryPage() {
             try {
                 const woundsRes = await apiFetch('/api/wounds');
                 if (!woundsRes.ok) throw new Error('Failed to fetch wounds');
-                const woundsData = await woundsRes.json();
+                const woundsData: Wound[] = await woundsRes.json();
                 if (woundsData.length === 0) { setLoading(false); return; }
                 const activeWound = woundsData[0];
                 setWound(activeWound);
@@ -48,7 +49,7 @@ export default function WoundHistoryPage() {
         );
     }
 
-    const startDate = new Date(wound.date_of_injury);
+    const startDate = new Date(wound.date_of_injury!);
 
     return (
         <div className="p-[1.2rem] pb-20">
@@ -74,7 +75,7 @@ export default function WoundHistoryPage() {
 
                 {logs.map((log) => {
                     const logDate = new Date(log.logged_at);
-                    const dayNum = Math.max(1, Math.ceil((logDate - startDate) / (1000 * 60 * 60 * 24)));
+                    const dayNum = Math.max(1, Math.ceil((logDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
                     const isConcern = log.ai_status_label?.includes('留意') || log.ai_status_label?.includes('諮詢');
 
                     return (
@@ -100,6 +101,7 @@ export default function WoundHistoryPage() {
 
                                 {log.image_data && (
                                     <div className="mb-[0.8rem] rounded-[10px] overflow-hidden border border-white/[0.06]">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img src={log.image_data} alt={`Day ${dayNum} wound`} className="w-full h-[140px] object-cover block" />
                                     </div>
                                 )}

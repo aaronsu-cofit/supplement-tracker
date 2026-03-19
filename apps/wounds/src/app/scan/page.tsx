@@ -4,20 +4,20 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@vitera/lib';
 
-const getNrsColor = (s) => s <= 3 ? '#2ed573' : s <= 6 ? '#ffa502' : '#ff4757';
+const getNrsColor = (s: number) => s <= 3 ? '#2ed573' : s <= 6 ? '#ffa502' : '#ff4757';
 
 export default function WoundScanPage() {
     const router = useRouter();
     const { user } = useAuth();
-    const fileInputRef = useRef(null);
-    const [imagePreview, setImagePreview] = useState(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [nrsScore, setNrsScore] = useState(0);
-    const [symptoms, setSymptoms] = useState([]);
+    const [symptoms, setSymptoms] = useState<string[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const symptomOptions = ['局部發熱', '有異味', '滲出液增加', '邊緣紅腫', '皆無'];
 
-    const compressImage = (file, maxWidth = 800, quality = 0.7) => {
+    const compressImage = (file: File, maxWidth = 800, quality = 0.7): Promise<string> => {
         return new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -27,21 +27,21 @@ export default function WoundScanPage() {
                     let { width, height } = img;
                     if (width > maxWidth) { height = (height * maxWidth) / width; width = maxWidth; }
                     canvas.width = width; canvas.height = height;
-                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                    canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
                     resolve(canvas.toDataURL('image/jpeg', quality));
                 };
-                img.src = e.target.result;
+                img.src = e.target?.result as string;
             };
             reader.readAsDataURL(file);
         });
     };
 
-    const handleImageCapture = async (e) => {
+    const handleImageCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) { setImagePreview(await compressImage(file)); }
     };
 
-    const toggleSymptom = (symptom) => {
+    const toggleSymptom = (symptom: string) => {
         if (symptom === '皆無') { setSymptoms(['皆無']); return; }
         setSymptoms(prev => {
             const c = prev.filter(s => s !== '皆無');
@@ -64,14 +64,14 @@ export default function WoundScanPage() {
                 請勿給出絕對醫療診斷，請使用情境描述。`
                 })
             });
-            const data = await response.json();
+            const data: { success: boolean; analysis?: string; ai_status_label?: string; error?: string } = await response.json();
             if (!response.ok || !data.success) throw new Error(data.error || 'AI Analysis failed');
 
             const woundsRes = await apiFetch('/api/wounds');
-            let woundsData = [];
+            let woundsData: { id: number }[] = [];
             if (woundsRes.ok) woundsData = await woundsRes.json();
 
-            let woundId;
+            let woundId: number;
             if (woundsData.length === 0) {
                 const newWoundRes = await apiFetch('/api/wounds', {
                     method: 'POST',
@@ -82,7 +82,7 @@ export default function WoundScanPage() {
                         picture_url: user?.pictureUrl || null,
                     })
                 });
-                const newWound = await newWoundRes.json();
+                const newWound: { id: number } = await newWoundRes.json();
                 woundId = newWound.id;
             } else {
                 woundId = woundsData[0].id;
@@ -111,12 +111,12 @@ export default function WoundScanPage() {
                     })
                 });
             } catch (notifyErr) {
-                console.log('LINE notification skipped:', notifyErr.message);
+                console.log('LINE notification skipped:', (notifyErr as Error).message);
             }
 
             router.push(`/result?logId=latest&woundId=${woundId}`);
         } catch (error) {
-            alert('發生錯誤: ' + (error.message || JSON.stringify(error)));
+            alert('發生錯誤: ' + ((error as Error).message || JSON.stringify(error)));
         } finally {
             setIsAnalyzing(false);
         }
@@ -147,7 +147,7 @@ export default function WoundScanPage() {
                 </div>
                 {!imagePreview ? (
                     <div
-                        onClick={() => fileInputRef.current.click()}
+                        onClick={() => fileInputRef.current?.click()}
                         className="bg-white/[0.03] border-2 border-dashed border-w-pink/25 rounded-[18px] py-12 px-4 text-center cursor-pointer transition-all duration-200"
                     >
                         <div className="text-[2.5rem] mb-2 drop-shadow-[0_2px_10px_rgba(255,154,158,0.3)]">📸</div>
@@ -156,6 +156,7 @@ export default function WoundScanPage() {
                     </div>
                 ) : (
                     <div className="relative rounded-2xl overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={imagePreview} alt="Wound Preview" className="w-full rounded-2xl max-h-[280px] object-cover border border-white/10" />
                         <button
                             onClick={() => setImagePreview(null)}

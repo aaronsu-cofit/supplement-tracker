@@ -3,8 +3,9 @@ import { apiFetch } from '@vitera/lib';
 
 import { useState } from 'react';
 import Link from 'next/link';
+import type { ModuleInfo, MenuMapping, ActionStatus } from '../../types';
 
-const MODULES = [
+const MODULES: ModuleInfo[] = [
     {
         id: 'supplements',
         name: '保健品追蹤 (Supplements)',
@@ -43,7 +44,7 @@ const MODULES = [
     }
 ];
 
-const MENU_MAPPING = [
+const MENU_MAPPING: MenuMapping[] = [
     { label: 'A 區塊: 傷口照護', route: '/wounds' },
     { label: 'B 區塊: 足踝照護', route: '/bones' },
     { label: 'C 區塊: 保健追蹤', route: '/supplements' },
@@ -51,10 +52,10 @@ const MENU_MAPPING = [
 ];
 
 export default function HQClientDashboard() {
-    const [imageFile, setImageFile] = useState(null);
+    const [imageFile, setImageFile] = useState<File | null>(null);
     const [isDeploying, setIsDeploying] = useState(false);
-    const [deployStatus, setDeployStatus] = useState(null);
-    const [deployError, setDeployError] = useState(null);
+    const [deployStatus, setDeployStatus] = useState<ActionStatus | null>(null);
+    const [deployError, setDeployError] = useState<string | null>(null);
 
     const handleDeploy = async () => {
         if (!imageFile) {
@@ -84,7 +85,7 @@ export default function HQClientDashboard() {
             }
         } catch (error) {
             setDeployStatus({ type: 'error', message: '網路連線錯誤。' });
-            console.error(error);
+            console.error((error as Error).message);
         } finally {
             setIsDeploying(false);
         }
@@ -178,7 +179,7 @@ export default function HQClientDashboard() {
                         <input
                             type="file"
                             accept="image/jpeg, image/png"
-                            onChange={(e) => { setImageFile(e.target.files[0]); setDeployError(null); }}
+                            onChange={(e) => { setImageFile(e.target.files?.[0] ?? null); setDeployError(null); }}
                             className="hq-file-input"
                         />
                     </label>

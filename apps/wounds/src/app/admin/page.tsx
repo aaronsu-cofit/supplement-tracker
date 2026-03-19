@@ -2,14 +2,15 @@
 import { apiFetch } from '@vitera/lib';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import type { AdminPatient, WoundLog } from '../../../types';
 
 export default function WoundsAdminDashboard() {
-    const [patients, setPatients] = useState([]);
+    const [patients, setPatients] = useState<AdminPatient[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedPatient, setSelectedPatient] = useState(null);
+    const [selectedPatient, setSelectedPatient] = useState<AdminPatient | null>(null);
     const [generatingSoap, setGeneratingSoap] = useState(false);
-    const [soapNote, setSoapNote] = useState(null);
-    const [editingId, setEditingId] = useState(null);
+    const [soapNote, setSoapNote] = useState<string | null>(null);
+    const [editingId, setEditingId] = useState<string | number | null>(null);
     const [editingName, setEditingName] = useState('');
 
     useEffect(() => {
@@ -19,7 +20,7 @@ export default function WoundsAdminDashboard() {
                 if (res.ok) {
                     const woundsList = await res.json();
                     const surnames = ['李', '王', '陳', '林', '黃', '周', '吳', '謝', '趙', '劉'];
-                    const mappedPatients = woundsList.map((w, idx) => {
+                    const mappedPatients: AdminPatient[] = woundsList.map((w: { id: string | number; display_name?: string | null; name?: string | null; picture_url?: string | null; date_of_injury?: string | null; logs?: WoundLog[] }, idx: number) => {
                         const dateLabel = w.date_of_injury
                             ? new Date(w.date_of_injury).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })
                             : '';
@@ -62,7 +63,7 @@ export default function WoundsAdminDashboard() {
                     if (finalPatients.length > 0) setSelectedPatient(finalPatients[0]);
                 }
             } catch (err) {
-                console.error(err);
+                console.error((err as Error).message);
             } finally {
                 setLoading(false);
             }
@@ -70,11 +71,11 @@ export default function WoundsAdminDashboard() {
         fetchAllData();
     }, []);
 
-    const handleSelectPatient = (p) => { setSelectedPatient(p); setSoapNote(null); };
+    const handleSelectPatient = (p: AdminPatient) => { setSelectedPatient(p); setSoapNote(null); };
 
-    const handleStartEdit = (p, e) => { e.stopPropagation(); setEditingId(p.id); setEditingName(p.name); };
+    const handleStartEdit = (p: AdminPatient, e: React.MouseEvent) => { e.stopPropagation(); setEditingId(p.id); setEditingName(p.name); };
 
-    const handleSaveRename = async (p) => {
+    const handleSaveRename = async (p: AdminPatient) => {
         const newName = editingName.trim();
         setEditingId(null);
         if (!newName || newName === p.name) return;
@@ -88,7 +89,7 @@ export default function WoundsAdminDashboard() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name: newName })
                 });
-            } catch (err) { console.error('Failed to save name:', err); }
+            } catch (err) { console.error('Failed to save name:', (err as Error).message); }
         }
     };
 
@@ -122,7 +123,7 @@ P (Plan - 計畫):
                 alert('SOAP 生成失敗');
             }
         } catch (err) {
-            console.error(err);
+            console.error((err as Error).message);
             alert('發生錯誤');
         } finally {
             setGeneratingSoap(false);

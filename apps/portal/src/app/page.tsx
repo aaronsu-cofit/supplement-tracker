@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useModules, useAuth } from '@vitera/lib';
+import type { ModuleStyleConfig } from '../types';
 
-const MODULE_STYLES = {
+const MODULE_STYLES: Record<string, ModuleStyleConfig> = {
   wounds:      { bg: 'linear-gradient(135deg, #BDE0FE 0%, #A7F3D0 100%)', emoji: '🩹', color: '#065F46' },
   bones:       { bg: 'linear-gradient(135deg, #FFC8DD 0%, #FFD6A5 100%)', emoji: '🦴', color: '#9A3412' },
   intimacy:    { bg: 'linear-gradient(135deg, #FFAFCC 0%, #FFB5A7 100%)', emoji: '💖', color: '#BE123C' },
@@ -20,9 +21,9 @@ export default function PortalPage() {
   const router = useRouter();
   const [isNavigating, setIsNavigating] = useState(false);
   const [isLiffRouting, setIsLiffRouting] = useState(true);
-  const [imageErrors, setImageErrors] = useState({});
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
-  const handleImageError = (moduleId) => setImageErrors(prev => ({ ...prev, [moduleId]: true }));
+  const handleImageError = (moduleId: string) => setImageErrors(prev => ({ ...prev, [moduleId]: true }));
 
   useEffect(() => {
     try {
@@ -38,7 +39,7 @@ export default function PortalPage() {
     }
   }, []);
 
-  const handleNavigation = (e, url) => {
+  const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
     e.preventDefault();
     setIsNavigating(true);
     setTimeout(() => {

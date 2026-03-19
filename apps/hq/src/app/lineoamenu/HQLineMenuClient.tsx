@@ -1,43 +1,50 @@
 'use client';
 import { apiFetch } from '@vitera/lib';
 import { useState, useEffect, useCallback } from 'react';
+import type { LineOA, LineTemplate, Zone, ActionStatus } from '../../../types';
 
-const DEFAULT_ZONES = [
+interface OAEditForm {
+  name: string;
+  description: string;
+  channel_access_token: string;
+}
+
+const DEFAULT_ZONES: Zone[] = [
   { id: 'A', position: '左上', label: '', uri: '' },
   { id: 'B', position: '右上', label: '', uri: '' },
   { id: 'C', position: '左下', label: '', uri: '' },
   { id: 'D', position: '右下', label: '', uri: '' },
 ];
-const EMPTY_ADD_FORM = { name: '', description: '', channel_access_token: '' };
+const EMPTY_ADD_FORM: OAEditForm = { name: '', description: '', channel_access_token: '' };
 
 export default function HQLineMenuClient() {
   // ── OA list state ──────────────────────────────────────────────────────────
-  const [oaList, setOaList] = useState([]);
+  const [oaList, setOaList] = useState<LineOA[]>([]);
   const [isLoadingOAs, setIsLoadingOAs] = useState(true);
-  const [loadError, setLoadError] = useState(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [addForm, setAddForm] = useState(EMPTY_ADD_FORM);
+  const [addForm, setAddForm] = useState<OAEditForm>(EMPTY_ADD_FORM);
   const [isAdding, setIsAdding] = useState(false);
-  const [addError, setAddError] = useState(null);
-  const [editingOAId, setEditingOAId] = useState(null);
-  const [editOAForm, setEditOAForm] = useState({});
+  const [addError, setAddError] = useState<string | null>(null);
+  const [editingOAId, setEditingOAId] = useState<string | null>(null);
+  const [editOAForm, setEditOAForm] = useState<OAEditForm>({ name: '', description: '', channel_access_token: '' });
   const [isSavingOA, setIsSavingOA] = useState(false);
-  const [selectedOA, setSelectedOA] = useState(null);
+  const [selectedOA, setSelectedOA] = useState<LineOA | null>(null);
 
   // ── Template list state ────────────────────────────────────────────────────
-  const [templates, setTemplates] = useState([]);
+  const [templates, setTemplates] = useState<LineTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [showNewTemplateForm, setShowNewTemplateForm] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
 
   // ── Template editor state ──────────────────────────────────────────────────
-  const [editingTemplate, setEditingTemplate] = useState(null); // { id, name, zones }
+  const [editingTemplate, setEditingTemplate] = useState<LineTemplate | null>(null);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
-  const [templateImageFile, setTemplateImageFile] = useState(null);
+  const [templateImageFile, setTemplateImageFile] = useState<File | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
-  const [isActivating, setIsActivating] = useState(null); // templateId being activated
-  const [actionStatus, setActionStatus] = useState(null); // { type, message }
+  const [isActivating, setIsActivating] = useState<string | null>(null);
+  const [actionStatus, setActionStatus] = useState<ActionStatus | null>(null);
 
   // ── Load OAs ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -60,7 +67,7 @@ export default function HQLineMenuClient() {
   }, []);
 
   // ── Load templates when OA selected ───────────────────────────────────────
-  const fetchTemplates = useCallback(async (oaId) => {
+  const fetchTemplates = useCallback(async (oaId: string) => {
     setIsLoadingTemplates(true);
     try {
       const res = await apiFetch(`/api/line/oa/${oaId}/templates`);
@@ -73,7 +80,7 @@ export default function HQLineMenuClient() {
     }
   }, []);
 
-  const handleSelectOA = (oa) => {
+  const handleSelectOA = (oa: LineOA) => {
     setSelectedOA(oa);
     setEditingOAId(null);
     setEditingTemplate(null);
@@ -110,14 +117,14 @@ export default function HQLineMenuClient() {
     }
   };
 
-  const startEditOA = (oa) => {
+  const startEditOA = (oa: LineOA) => {
     setEditingOAId(oa.id);
     setEditOAForm({ name: oa.name, description: oa.description || '', channel_access_token: '' });
     setSelectedOA(null);
     setEditingTemplate(null);
   };
 
-  const handleSaveOAEdit = async (id) => {
+  const handleSaveOAEdit = async (id: string) => {
     setIsSavingOA(true);
     try {
       const payload = {
@@ -139,7 +146,7 @@ export default function HQLineMenuClient() {
     }
   };
 
-  const handleToggleActive = async (oa) => {
+  const handleToggleActive = async (oa: LineOA) => {
     const res = await apiFetch(`/api/line/oa/${oa.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -148,11 +155,11 @@ export default function HQLineMenuClient() {
     const data = await res.json();
     if (res.ok) {
       setOaList(prev => prev.map(o => o.id === oa.id ? { ...o, ...data.oa } : o));
-      if (selectedOA?.id === oa.id) setSelectedOA(prev => ({ ...prev, ...data.oa }));
+      if (selectedOA?.id === oa.id) setSelectedOA(prev => prev ? { ...prev, ...data.oa } : null);
     }
   };
 
-  const handleDeleteOA = async (id) => {
+  const handleDeleteOA = async (id: string) => {
     if (!confirm('確定要刪除此 LINE OA 設定？此操作無法復原。')) return;
     await apiFetch(`/api/line/oa/${id}`, { method: 'DELETE' });
     setOaList(prev => prev.filter(o => o.id !== id));
@@ -161,7 +168,7 @@ export default function HQLineMenuClient() {
 
   // ── Template CRUD ──────────────────────────────────────────────────────────
   const handleCreateTemplate = async () => {
-    if (!newTemplateName.trim()) return;
+    if (!newTemplateName.trim() || !selectedOA) return;
     setIsCreatingTemplate(true);
     try {
       const res = await apiFetch(`/api/line/oa/${selectedOA.id}/templates`, {
@@ -183,14 +190,14 @@ export default function HQLineMenuClient() {
     }
   };
 
-  const handleEditTemplate = (template) => {
+  const handleEditTemplate = (template: LineTemplate) => {
     setEditingTemplate({ ...template, zones: template.zones?.map(z => ({ ...z })) ?? DEFAULT_ZONES.map(z => ({ ...z })) });
     setTemplateImageFile(null);
     setActionStatus(null);
   };
 
   const handleSaveTemplate = async () => {
-    if (!editingTemplate) return;
+    if (!editingTemplate || !selectedOA) return;
     setIsSavingTemplate(true);
     try {
       const res = await apiFetch(`/api/line/oa/${selectedOA.id}/templates/${editingTemplate.id}`, {
@@ -211,6 +218,7 @@ export default function HQLineMenuClient() {
   };
 
   const handleDeployTemplate = async () => {
+    if (!editingTemplate || !selectedOA) return;
     if (!templateImageFile) {
       setActionStatus({ type: 'error', message: '請先上傳選單圖片（2500×1686）' });
       return;
@@ -257,7 +265,8 @@ export default function HQLineMenuClient() {
     }
   };
 
-  const handleActivateTemplate = async (template) => {
+  const handleActivateTemplate = async (template: LineTemplate) => {
+    if (!selectedOA) return;
     setIsActivating(template.id);
     setActionStatus(null);
     try {
@@ -281,8 +290,8 @@ export default function HQLineMenuClient() {
     }
   };
 
-  const handleDeleteTemplate = async (template) => {
-    if (!confirm(`確定要刪除模板「${template.name}」？`)) return;
+  const handleDeleteTemplate = async (template: LineTemplate) => {
+    if (!selectedOA || !confirm(`確定要刪除模板「${template.name}」？`)) return;
     await apiFetch(`/api/line/oa/${selectedOA.id}/templates/${template.id}`, { method: 'DELETE' });
     setTemplates(prev => prev.filter(t => t.id !== template.id));
     if (editingTemplate?.id === template.id) setEditingTemplate(null);
@@ -465,12 +474,12 @@ export default function HQLineMenuClient() {
                   isDeploying={isDeploying}
                   isSaving={isSavingTemplate}
                   actionStatus={actionStatus}
-                  onChangeName={name => setEditingTemplate(prev => ({ ...prev, name }))}
+                  onChangeName={name => setEditingTemplate(prev => prev ? { ...prev, name } : null)}
                   onChangeZone={(idx, field, value) =>
-                    setEditingTemplate(prev => ({
+                    setEditingTemplate(prev => prev ? ({
                       ...prev,
                       zones: prev.zones.map((z, i) => i === idx ? { ...z, [field]: value } : z),
-                    }))
+                    }) : null)
                   }
                   onImageChange={file => { setTemplateImageFile(file); setActionStatus(null); }}
                   onSave={handleSaveTemplate}
@@ -487,7 +496,17 @@ export default function HQLineMenuClient() {
 }
 
 // ── Template Card ──────────────────────────────────────────────────────────
-function TemplateCard({ template, isEditing, isActivating, oaActive, onEdit, onActivate, onDelete }) {
+interface TemplateCardProps {
+  template: LineTemplate;
+  isEditing: boolean;
+  isActivating: boolean;
+  oaActive: boolean;
+  onEdit: () => void;
+  onActivate: () => void;
+  onDelete: () => void;
+}
+
+function TemplateCard({ template, isEditing, isActivating, oaActive, onEdit, onActivate, onDelete }: TemplateCardProps) {
   const zones = template.zones || DEFAULT_ZONES;
   return (
     <div className={`rounded-lg border transition-all ${isEditing ? 'border-[var(--hq-cyan)] bg-[var(--hq-bg-main)]' : 'border-white/10 bg-[var(--hq-bg-main)]'} p-3 flex flex-col gap-2`}>
@@ -533,7 +552,22 @@ function TemplateCard({ template, isEditing, isActivating, oaActive, onEdit, onA
 }
 
 // ── Template Editor ────────────────────────────────────────────────────────
-function TemplateEditor({ template, oaActive, imageFile, isDeploying, isSaving, actionStatus, onChangeName, onChangeZone, onImageChange, onSave, onDeploy, onClose }) {
+interface TemplateEditorProps {
+  template: LineTemplate;
+  oaActive: boolean;
+  imageFile: File | null;
+  isDeploying: boolean;
+  isSaving: boolean;
+  actionStatus: ActionStatus | null;
+  onChangeName: (name: string) => void;
+  onChangeZone: (idx: number, field: string, value: string) => void;
+  onImageChange: (file: File | null) => void;
+  onSave: () => void;
+  onDeploy: () => void;
+  onClose: () => void;
+}
+
+function TemplateEditor({ template, oaActive, imageFile, isDeploying, isSaving, actionStatus, onChangeName, onChangeZone, onImageChange, onSave, onDeploy, onClose }: TemplateEditorProps) {
   const zones = template.zones || DEFAULT_ZONES;
   return (
     <div className="hq-card flex flex-col gap-4 border-2 border-[var(--hq-cyan)]/40">
@@ -610,7 +644,7 @@ function TemplateEditor({ template, oaActive, imageFile, isDeploying, isSaving, 
               type="file"
               accept="image/jpeg,image/png"
               className="hq-file-input"
-              onChange={e => onImageChange(e.target.files[0])}
+              onChange={e => onImageChange(e.target.files?.[0] ?? null)}
             />
           </label>
         </div>
