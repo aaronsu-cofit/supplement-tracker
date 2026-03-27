@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import {
   getAllLineOAs, getLineOAById, createLineOA, updateLineOA, deleteLineOA,
-  getTemplatesForOA, getTemplateById, createTemplate, updateTemplate, deleteTemplate, setActiveTemplate,
+  getTemplatesForOA, getTemplateById, createTemplate, updateTemplate, deleteTemplate, setActiveTemplate, deactivateAllTemplates,
 } from '../lib/db.js';
 
 const lineoa = new Hono();
@@ -120,6 +120,25 @@ lineoa.post('/:id/richmenu', async (c) => {
     console.error('Rich menu deploy error:', error);
     return c.json({ success: false, error: '部署失敗', details: error?.message || String(error) }, 500);
   }
+});
+
+// DELETE /api/line/oa/:id/richmenu  — remove default rich menu from LINE
+lineoa.delete('/:id/richmenu', async (c) => {
+  const id = Number(c.req.param('id'));
+  const oa = await getLineOAById(id);
+  if (!oa) return c.json({ error: '找不到此 LINE OA 設定' }, 404);
+
+  const { Client } = await import('@line/bot-sdk');
+  const client = new Client({ channelAccessToken: oa.channel_access_token });
+
+  try {
+    await client.deleteDefaultRichMenu();
+  } catch (error) {
+    console.warn('移除預設選單失敗（可能已無選單）:', error?.message);
+  }
+
+  await deactivateAllTemplates(String(id));
+  return c.json({ success: true });
 });
 
 // ─── Rich Menu Templates ─────────────────────────────────────────────────────

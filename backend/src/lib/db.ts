@@ -514,3 +514,10 @@ export async function setActiveTemplate(oaId: string, templateId: string, richMe
     },
   });
 }
+
+export async function deactivateAllTemplates(oaId: string) {
+  await db().lineOARichMenuTemplate.updateMany({
+    where: { oa_id: oaId },
+    data: { is_active: false },
+  });
+}
