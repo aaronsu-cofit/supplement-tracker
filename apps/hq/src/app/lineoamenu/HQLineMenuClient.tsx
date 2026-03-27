@@ -44,6 +44,7 @@ export default function HQLineMenuClient() {
   const [templateImageFile, setTemplateImageFile] = useState<File | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
   const [isActivating, setIsActivating] = useState<string | null>(null);
+  const [isRemovingMenu, setIsRemovingMenu] = useState(false);
   const [actionStatus, setActionStatus] = useState<ActionStatus | null>(null);
 
   // ── Load OAs ───────────────────────────────────────────────────────────────
@@ -290,6 +291,27 @@ export default function HQLineMenuClient() {
     }
   };
 
+  const handleRemoveRichMenu = async () => {
+    if (!selectedOA || !confirm('確定要移除此 LINE OA 的預設 Rich Menu？使用者將看不到任何選單。')) return;
+    setIsRemovingMenu(true);
+    setActionStatus(null);
+    try {
+      const res = await apiFetch(`/api/line/oa/${selectedOA.id}/richmenu`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setTemplates(prev => prev.map(t => ({ ...t, is_active: false })));
+        if (editingTemplate) setEditingTemplate(prev => prev ? { ...prev, is_active: false } : null);
+        setActionStatus({ type: 'success', message: 'Rich Menu 已移除，使用者目前看不到任何選單' });
+      } else {
+        setActionStatus({ type: 'error', message: data.error || '移除失敗' });
+      }
+    } catch {
+      setActionStatus({ type: 'error', message: '網路連線錯誤' });
+    } finally {
+      setIsRemovingMenu(false);
+    }
+  };
+
   const handleDeleteTemplate = async (template: LineTemplate) => {
     if (!selectedOA || !confirm(`確定要刪除模板「${template.name}」？`)) return;
     await apiFetch(`/api/line/oa/${selectedOA.id}/templates/${template.id}`, { method: 'DELETE' });
@@ -402,9 +424,20 @@ export default function HQLineMenuClient() {
                   <h3 className="font-bold">{selectedOA.name}</h3>
                   {selectedOA.description && <p className="hq-muted-text text-xs mt-0.5">{selectedOA.description}</p>}
                 </div>
-                <span className={`hq-badge hq-badge-${selectedOA.is_active ? 'green' : 'gray'}`}>
-                  {selectedOA.is_active ? '啟用中' : '已停用'}
-                </span>
+                <div className="flex items-center gap-3">
+                  {templates.some(t => t.is_active) && selectedOA.is_active && (
+                    <button
+                      onClick={handleRemoveRichMenu}
+                      disabled={isRemovingMenu}
+                      className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
+                    >
+                      {isRemovingMenu ? '移除中...' : '移除 Rich Menu'}
+                    </button>
+                  )}
+                  <span className={`hq-badge hq-badge-${selectedOA.is_active ? 'green' : 'gray'}`}>
+                    {selectedOA.is_active ? '啟用中' : '已停用'}
+                  </span>
+                </div>
               </div>
 
               {/* Global action status */}
