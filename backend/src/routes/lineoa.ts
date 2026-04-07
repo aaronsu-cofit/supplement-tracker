@@ -27,7 +27,7 @@ lineoa.post('/', async (c) => {
 
 // PATCH /api/line/oa/:id
 lineoa.patch('/:id', async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = c.req.param('id');
   const body = await c.req.json();
   try {
     const oa = await updateLineOA(id, body);
@@ -40,7 +40,7 @@ lineoa.patch('/:id', async (c) => {
 
 // DELETE /api/line/oa/:id
 lineoa.delete('/:id', async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = c.req.param('id');
   try {
     await deleteLineOA(id);
     return c.json({ success: true });
@@ -55,7 +55,7 @@ lineoa.delete('/:id', async (c) => {
 //   image  — JPG/PNG 2500x1686
 //   zones  — JSON array of 4 objects: [{ label, uri }, ...]
 lineoa.post('/:id/richmenu', async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = c.req.param('id');
   const oa = await getLineOAById(id);
   if (!oa) return c.json({ error: '找不到此 LINE OA 設定' }, 404);
   if (!oa.is_active) return c.json({ error: '此 LINE OA 已停用' }, 400);
@@ -124,7 +124,7 @@ lineoa.post('/:id/richmenu', async (c) => {
 
 // DELETE /api/line/oa/:id/richmenu  — remove default rich menu from LINE
 lineoa.delete('/:id/richmenu', async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = c.req.param('id');
   const oa = await getLineOAById(id);
   if (!oa) return c.json({ error: '找不到此 LINE OA 設定' }, 404);
 
@@ -137,7 +137,7 @@ lineoa.delete('/:id/richmenu', async (c) => {
     console.warn('移除預設選單失敗（可能已無選單）:', error?.message);
   }
 
-  await deactivateAllTemplates(String(id));
+  await deactivateAllTemplates(id);
   return c.json({ success: true });
 });
 
@@ -152,14 +152,14 @@ const BOUNDS = [
 
 // GET /api/line/oa/:id/templates
 lineoa.get('/:id/templates', async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = c.req.param('id');
   const templates = await getTemplatesForOA(id);
   return c.json({ templates });
 });
 
 // POST /api/line/oa/:id/templates  — create template (zones only, no image)
 lineoa.post('/:id/templates', async (c) => {
-  const id = Number(c.req.param('id'));
+  const id = c.req.param('id');
   const oa = await getLineOAById(id);
   if (!oa) return c.json({ error: '找不到此 LINE OA 設定' }, 404);
 
@@ -179,7 +179,7 @@ lineoa.post('/:id/templates', async (c) => {
 
 // PATCH /api/line/oa/:id/templates/:tid
 lineoa.patch('/:id/templates/:tid', async (c) => {
-  const tid = Number(c.req.param('tid'));
+  const tid = c.req.param('tid');
   const body = await c.req.json();
   try {
     const template = await updateTemplate(tid, { name: body.name, zones: body.zones });
@@ -192,7 +192,7 @@ lineoa.patch('/:id/templates/:tid', async (c) => {
 
 // DELETE /api/line/oa/:id/templates/:tid
 lineoa.delete('/:id/templates/:tid', async (c) => {
-  const tid = Number(c.req.param('tid'));
+  const tid = c.req.param('tid');
   try {
     await deleteTemplate(tid);
     return c.json({ success: true });
@@ -204,8 +204,8 @@ lineoa.delete('/:id/templates/:tid', async (c) => {
 
 // POST /api/line/oa/:id/templates/:tid/deploy  — upload image + deploy to LINE
 lineoa.post('/:id/templates/:tid/deploy', async (c) => {
-  const id = Number(c.req.param('id'));
-  const tid = Number(c.req.param('tid'));
+  const id = c.req.param('id');
+  const tid = c.req.param('tid');
 
   const oa = await getLineOAById(id);
   if (!oa) return c.json({ error: '找不到此 LINE OA 設定' }, 404);
@@ -265,8 +265,8 @@ lineoa.post('/:id/templates/:tid/deploy', async (c) => {
 
 // POST /api/line/oa/:id/templates/:tid/activate  — re-activate without re-upload
 lineoa.post('/:id/templates/:tid/activate', async (c) => {
-  const id = Number(c.req.param('id'));
-  const tid = Number(c.req.param('tid'));
+  const id = c.req.param('id');
+  const tid = c.req.param('tid');
 
   const oa = await getLineOAById(id);
   if (!oa) return c.json({ error: '找不到此 LINE OA 設定' }, 404);

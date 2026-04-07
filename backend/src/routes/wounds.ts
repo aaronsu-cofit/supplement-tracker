@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { softAuthMiddleware } from "../middleware/authMiddleware.js";
+import type { HonoEnv, UpdateWoundInput } from "../types.js";
 import {
   initializeDatabase,
   getWounds,
@@ -14,7 +15,7 @@ import {
 } from "../lib/db.js";
 import { callGeminiText } from "../lib/ai.js";
 
-const wounds = new Hono();
+const wounds = new Hono<HonoEnv>();
 wounds.use("*", softAuthMiddleware);
 
 // GET /api/wounds
@@ -76,7 +77,7 @@ wounds.patch("/:woundId", async (c) => {
     const parsedId = parseInt(c.req.param("woundId"), 10);
     if (isNaN(parsedId)) return c.json({ error: "Invalid wound ID" }, 400);
     const data = await c.req.json();
-    const updates = {};
+    const updates: UpdateWoundInput = {};
     if (data.name !== undefined) updates.name = data.name;
     if (data.wound_type !== undefined) updates.wound_type = data.wound_type;
     if (data.body_location !== undefined)
