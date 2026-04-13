@@ -1,0 +1,120 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 20px;
+  background: var(--color-dark-blue-gray);
+  color: var(--color-white);
+}
+
+.header {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.closeButton {
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+}
+
+.mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 60px;
+}
+
+.animationArea {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+
+.circle {
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 4s ease-in-out;
+}
+
+.breatheIn {
+  width: 260px;
+  height: 260px;
+  background: rgba(212, 241, 238, 0.2);
+  border: 2px solid var(--color-pale-green);
+  transition-duration: 4s;
+}
+
+.hold {
+  width: 260px;
+  height: 260px;
+  background: rgba(212, 241, 238, 0.4);
+  border: 2px solid var(--color-mist-blue);
+  transition-duration: 7s;
+}
+
+.breatheOut {
+  width: 140px;
+  height: 140px;
+  background: rgba(212, 241, 238, 0.1);
+  border: 2px solid rgba(255,255,255,0.5);
+  transition-duration: 8s;
+}
+
+.phaseText {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  z-index: 10;
+}
+
+.timerText {
+  font-size: 40px;
+  font-weight: 700;
+  font-family: monospace;
+  z-index: 10;
+}
+
+.instruction {
+  font-size: 16px;
+  line-height: 1.5;
+  margin-bottom: 24px;
+  min-height: 48px;
+}
+
+.cycleText {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.skipBtn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  padding: 16px;
+  text-decoration: underline;
+  margin-top: auto;
+}

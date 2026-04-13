@@ -1,0 +1,112 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 24px 20px 60px;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 1s ease;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: flex-end;
+  z-index: 10;
+}
+
+.backButton {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 14px;
+  text-decoration: none;
+  font-weight: 300;
+  padding: 8px 0 8px 16px;
+}
+
+.visualArea {
+  height: 240px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.moon {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: #FEF3C7;
+  box-shadow: 0 0 40px rgba(254, 243, 199, 0.4), inset -12px -12px rgba(0,0,0,0.1);
+  position: relative;
+  z-index: 2;
+}
+
+.pulsingGlow {
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(238,242,255,0.1) 0%, rgba(238,242,255,0) 70%);
+  animation: breathe 5s infinite ease-in-out;
+  z-index: 1;
+}
+
+.textArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 300;
+  text-align: center;
+  margin-bottom: 40px;
+  letter-spacing: 2px;
+  color: #E2E8F0;
+}
+
+.paragraphGroup {
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: slideUpFadeIn 1s ease forwards;
+}
+
+.paragraphGroup:nth-child(2) {
+  animation-delay: 1s;
+}
+
+.paragraphGroup:nth-child(3) {
+  animation-delay: 3s;
+}
+
+.paragraphGroup:nth-child(4) {
+  animation-delay: 5s;
+}
+
+.content {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #94A3B8;
+  margin-bottom: 16px;
+  font-weight: 300;
+  text-align: justify;
+}
+
+@keyframes breathe {
+  0% { transform: scale(0.9); opacity: 0.5; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.5; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUpFadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}

@@ -1,0 +1,91 @@
+.container {
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-dark-blue-gray);
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.card {
+  background: var(--color-white);
+  border-radius: var(--border-radius-md);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  min-height: 140px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.card:hover, .card:active {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Card Variants based on brand colors */
+.cardPrimary {
+  background: linear-gradient(135deg, #E0EBF5 0%, #C8DCEE 100%); /* 淺霧藍 */
+}
+
+.cardSecondary {
+  background: linear-gradient(135deg, #E1F4F5 0%, #C3EAEB 100%); /* 淡青綠 */
+}
+
+.cardTertiary {
+  background: linear-gradient(135deg, #F0F6FA 0%, #E8F7F8 100%); /* 混色/輕盈白 */
+}
+
+.iconWrapper {
+  font-size: 32px;
+  margin-bottom: 12px;
+  /* Use filter/opacity or SVGs to make Icons fit */
+  opacity: 0.8;
+}
+
+.cardTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-dark-blue-gray);
+  margin-bottom: 4px;
+}
+
+.cardSubtitle {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
