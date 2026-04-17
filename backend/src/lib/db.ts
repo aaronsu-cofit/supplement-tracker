@@ -547,7 +547,12 @@ export async function updateScenario(
 ) {
   return db().coBlocksScenario.update({
     where: { id },
-    data,
+    data: {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.flow_nodes !== undefined && { flow_nodes: data.flow_nodes }),
+      ...(data.flow_edges !== undefined && { flow_edges: data.flow_edges }),
+      ...(data.is_active !== undefined && { is_active: data.is_active }),
+    },
   });
 }
 

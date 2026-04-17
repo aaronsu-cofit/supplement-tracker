@@ -5,6 +5,10 @@ import {
   createScenario, updateScenario, deleteScenario,
 } from '../lib/db.js'
 
+// TODO(security): PATCH/DELETE/GET single-scenario routes do not verify OA ownership.
+// Any authenticated user can access any scenario by ID. A user-OA membership model
+// is needed before multi-tenant production use.
+
 const wizard = new Hono()
 wizard.use('*', authMiddleware)
 
@@ -14,15 +18,20 @@ wizard.get('/oa/:oaId/scenarios', async (c) => {
 })
 
 wizard.post('/oa/:oaId/scenarios', async (c) => {
-  let body: { name: string }
+  let body: { name: string; flow_nodes?: unknown; flow_edges?: unknown }
   try {
-    body = await c.req.json<{ name: string }>()
+    body = await c.req.json<{ name: string; flow_nodes?: unknown; flow_edges?: unknown }>()
   } catch {
     return c.json({ error: 'invalid JSON' }, 400)
   }
-  const { name } = body
+  const { name, flow_nodes, flow_edges } = body
   if (!name?.trim()) return c.json({ error: 'name required' }, 400)
   const scenario = await createScenario(c.req.param('oaId'), name.trim())
+  // If flow data provided, update immediately (atomic first-save)
+  if (flow_nodes !== undefined || flow_edges !== undefined) {
+    const updated = await updateScenario(scenario.id, { flow_nodes, flow_edges })
+    return c.json({ scenario: updated }, 201)
+  }
   return c.json({ scenario }, 201)
 })
 

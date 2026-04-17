@@ -44,6 +44,7 @@ function EditorInner() {
   const [scenarioName, setScenarioName] = useState('New Scenario')
   const [saving, setSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const onConnect: OnConnect = useCallback(
     (connection) => setEdges((eds) => addEdge(connection, eds)),
@@ -82,21 +83,18 @@ function EditorInner() {
 
   const handleSave = useCallback(async () => {
     if (!scenarioName.trim()) return
+    setSaveError(null)
     setSaving(true)
     try {
       if (!scenarioId) {
+        // TODO: replace 'default' with real OA ID when OA selector is added
         const createRes = await apiFetch('/api/wizard/oa/default/scenarios', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: scenarioName }),
+          body: JSON.stringify({ name: scenarioName, flow_nodes: nodes, flow_edges: edges }),
         })
         const { scenario } = await createRes.json() as { scenario: { id: string } }
         setScenarioId(scenario.id)
-        await apiFetch(`/api/wizard/scenarios/${scenario.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ flow_nodes: nodes, flow_edges: edges }),
-        })
       } else {
         await apiFetch(`/api/wizard/scenarios/${scenarioId}`, {
           method: 'PATCH',
@@ -107,6 +105,7 @@ function EditorInner() {
       setLastSaved(new Date())
     } catch (err) {
       console.error('[wizard] save error:', err)
+      setSaveError('Save failed. Try again.')
     } finally {
       setSaving(false)
     }
@@ -128,6 +127,11 @@ function EditorInner() {
           saving={saving}
           lastSaved={lastSaved}
         />
+        {saveError && (
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10 bg-red-900/80 border border-red-500/50 text-red-200 text-xs px-3 py-1.5 rounded-lg">
+            {saveError}
+          </div>
+        )}
         <ReactFlow
           nodes={nodes}
           edges={edges}
