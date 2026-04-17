@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { verifyLineSignature, replyText } from '../lib/line.js'
 import { adkRun } from '../lib/adk.js'
 import { findOrCreateLineUser } from '../lib/db.js'
+import { evaluateAndAssignMenu } from '../lib/menuEvaluator.js'
 
 const webhook = new Hono()
 
@@ -37,6 +38,15 @@ async function handleLineEvent(event: LineWebhookEvent): Promise<void> {
     } catch (err) {
       console.error('[webhook/line] follow findOrCreateLineUser error:', err)
     }
+
+    const oaId = parseInt(process.env.LINE_OA_ID || '0')
+    const channelToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || ''
+    if (oaId > 0 && channelToken) {
+      evaluateAndAssignMenu(oaId, lineUserId, channelToken).catch(err =>
+        console.error('[webhook/line] follow menu evaluation error:', err)
+      )
+    }
+
     if (event.replyToken) {
       try {
         await replyText(event.replyToken, '您好！我是您的 AI 健康顧問，有任何問題都可以直接傳訊問我 😊')
