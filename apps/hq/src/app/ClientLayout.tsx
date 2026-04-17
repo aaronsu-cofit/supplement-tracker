@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: "/modules", label: "模組管理 Modules" },
   { href: "/admins", label: "管理員 Admins" },
   { href: "/lineoamenu", label: "LINE OA 選單" },
+  { href: "/wizard", label: "CoBlocks Wizard" },
 ];
 
 function AppShell({ children }) {
