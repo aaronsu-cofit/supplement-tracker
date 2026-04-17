@@ -12,7 +12,8 @@ export async function aiRun(agentId: string): Promise<AiRunResult> {
   })
 
   if (!res.ok) {
-    throw new Error(`AI run failed: ${res.status}`)
+    const body = await res.text().catch(() => '')
+    throw new Error(`AI run failed: ${res.status}${body ? ` — ${body}` : ''}`)
   }
 
   return res.json()
@@ -29,33 +30,42 @@ export async function aiStream(
   })
 
   if (!res.ok || !res.body) {
-    throw new Error(`AI stream failed: ${res.status}`)
+    const body = await res.text().catch(() => '')
+    throw new Error(`AI stream failed: ${res.status}${body ? ` — ${body}` : ''}`)
   }
 
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
+  let buffer = ''
 
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
 
-    const text = decoder.decode(value, { stream: true })
-    const lines = text.split('\n')
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
+      buffer += decoder.decode(value, { stream: true })
+
+      const lines = buffer.split('\n')
+      // Keep the last (potentially incomplete) line in the buffer
+      buffer = lines.pop() ?? ''
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
         const payload = line.slice(6).trim()
         if (payload === '[DONE]') {
           onDone()
           return
         }
         try {
-          const { chunk } = JSON.parse(payload)
-          if (chunk) onChunk(chunk)
+          const parsed = JSON.parse(payload) as { chunk?: string }
+          if (typeof parsed.chunk === 'string') onChunk(parsed.chunk)
         } catch {
           // ignore malformed SSE lines
         }
       }
     }
+  } finally {
+    reader.cancel().catch(() => {})
   }
 
   onDone()
