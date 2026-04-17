@@ -16,6 +16,7 @@ import notifyRoutes from './routes/notify.js';
 import modulesRoutes from './routes/modules.js';
 import richmenuRoutes from './routes/richmenu.js';
 import lineoaRoutes from './routes/lineoa.js';
+import aiRoutes from './routes/ai.js';
 
 const app = new Hono();
 
@@ -51,6 +52,7 @@ app.route('/api/footcare', bonesRoutes);
 app.route('/api/intimacy', intimacyRoutes);
 app.route('/api/hq', hqRoutes);
 app.route('/api/analyze', analyzeRoutes);
+app.route('/api/ai', aiRoutes);
 app.route('/api/notify', notifyRoutes);
 app.route('/api/modules', modulesRoutes);
 app.route('/api/line/richmenu', richmenuRoutes);
