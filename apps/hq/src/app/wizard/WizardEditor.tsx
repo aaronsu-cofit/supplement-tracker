@@ -73,14 +73,14 @@ function EditorInner() {
   }, [])
 
   return (
-    <div style={{ display: 'flex', flex: 1, background: '#0d0d0d', color: '#fff', minHeight: 0 }}>
+    <div className="flex flex-1 bg-[#0d0d0d] text-white min-h-0">
       {/* Block Palette */}
-      <div style={{ width: 240, borderRight: '1px solid rgba(255,255,255,0.08)', padding: 16, overflowY: 'auto', flexShrink: 0 }}>
+      <div className="w-60 border-r border-white/[0.08] p-4 overflow-y-auto shrink-0">
         <BlockPalette />
       </div>
 
       {/* Canvas */}
-      <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
+      <div className="flex-1 relative min-w-0">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -104,9 +104,9 @@ function EditorInner() {
       </div>
 
       {/* Config Panel placeholder — wired in Task 4 */}
-      <div style={{ width: 280, borderLeft: '1px solid rgba(255,255,255,0.08)', padding: 16, overflowY: 'auto', flexShrink: 0 }}>
-        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Config</p>
-        <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13 }}>
+      <div className="w-[280px] border-l border-white/[0.08] p-4 overflow-y-auto shrink-0">
+        <p className="text-[10px] text-white/30 uppercase tracking-[0.1em] mb-3">Config</p>
+        <p className="text-white/20 text-[13px]">
           {selectedNode ? `Selected: ${selectedNode.type}` : 'Select a node to configure it.'}
         </p>
       </div>
