@@ -1,5 +1,5 @@
-import WizardEditor from './WizardEditor'
+import WizardPageClient from './WizardPageClient'
 
 export default function WizardPage() {
-  return <WizardEditor />
+  return <WizardPageClient />
 }
