@@ -16,11 +16,19 @@ export interface AdkRunResult {
 }
 
 // 同步呼叫 ADK Service，等待完整結果（用於 LINE 聊天室）
-export async function adkRun(agentId: string, clientId: string): Promise<AdkRunResult> {
+export async function adkRun(
+  agentId: string,
+  clientId: string,
+  options?: { message?: string }
+): Promise<AdkRunResult> {
   const res = await fetch(`${ADK_URL}/run`, {
     method: 'POST',
     headers: ADK_HEADERS,
-    body: JSON.stringify({ agent_id: agentId, client_id: clientId }),
+    body: JSON.stringify({
+      agent_id: agentId,
+      client_id: clientId,
+      ...(options?.message !== undefined && { message: options.message }),
+    }),
     signal: AbortSignal.timeout(9000),
   })
 
