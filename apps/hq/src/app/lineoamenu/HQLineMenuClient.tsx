@@ -47,6 +47,17 @@ export default function HQLineMenuClient() {
   const [isRemovingMenu, setIsRemovingMenu] = useState(false);
   const [actionStatus, setActionStatus] = useState<ActionStatus | null>(null);
 
+  // ── User menu assignment state ─────────────────────────────────────────────
+  const [assignments, setAssignments] = useState<{
+    id: number;
+    user_id: string;
+    template_id: number | null;
+    source: string;
+    assigned_at: string;
+  }[]>([]);
+  const [evalUserId, setEvalUserId] = useState('');
+  const [isEvaluating, setIsEvaluating] = useState(false);
+
   // ── Load OAs ───────────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -81,6 +92,16 @@ export default function HQLineMenuClient() {
     }
   }, []);
 
+  const loadAssignments = useCallback(async (oaId: string) => {
+    try {
+      const res = await apiFetch(`/api/menu/assignments/${oaId}`);
+      const data = await res.json();
+      setAssignments(Array.isArray(data) ? data : []);
+    } catch {
+      setAssignments([]);
+    }
+  }, []);
+
   const handleSelectOA = (oa: LineOA) => {
     setSelectedOA(oa);
     setEditingOAId(null);
@@ -89,7 +110,33 @@ export default function HQLineMenuClient() {
     setActionStatus(null);
     setShowNewTemplateForm(false);
     setNewTemplateName('');
+    setAssignments([]);
+    setEvalUserId('');
     fetchTemplates(oa.id);
+    loadAssignments(oa.id);
+  };
+
+  const handleEvaluate = async () => {
+    if (!selectedOA || !evalUserId.trim()) return;
+    setIsEvaluating(true);
+    try {
+      const res = await apiFetch('/api/menu/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oa_id: selectedOA.id, user_line_id: evalUserId.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setActionStatus({ type: 'error', message: data.error || '評估失敗' });
+        return;
+      }
+      setActionStatus({ type: 'success', message: '已評估並分配選單' });
+      await loadAssignments(selectedOA.id);
+    } catch {
+      setActionStatus({ type: 'error', message: '評估失敗，請確認 OA ID 設定正確' });
+    } finally {
+      setIsEvaluating(false);
+    }
   };
 
   // ── OA CRUD ────────────────────────────────────────────────────────────────
@@ -520,6 +567,49 @@ export default function HQLineMenuClient() {
                   onClose={() => { setEditingTemplate(null); setActionStatus(null); }}
                 />
               )}
+
+              {/* User Menu Assignments */}
+              <div className="hq-card flex flex-col gap-4">
+                <h4 className="font-semibold text-sm">用戶選單分配</h4>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="輸入 LINE User ID（U開頭）"
+                    value={evalUserId}
+                    onChange={e => setEvalUserId(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleEvaluate()}
+                    className="hq-input text-sm flex-1"
+                  />
+                  <button
+                    onClick={handleEvaluate}
+                    disabled={isEvaluating || !evalUserId.trim()}
+                    className="hq-btn-primary text-sm px-3"
+                  >
+                    {isEvaluating ? <><span className="hq-spinner"></span> 評估中...</> : '手動評估'}
+                  </button>
+                </div>
+
+                {assignments.length === 0 ? (
+                  <p className="hq-muted-text text-sm text-center py-2">尚無分配紀錄</p>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {assignments.map(a => (
+                      <div
+                        key={a.id}
+                        className="flex items-center justify-between bg-[var(--hq-bg-main)] rounded-lg px-3 py-2 text-xs"
+                      >
+                        <span className="font-mono text-white/70 truncate max-w-[180px]">{a.user_id}</span>
+                        <span className={`hq-badge ${
+                          a.source === 'rule' ? 'hq-badge-green' :
+                          a.source === 'ai' ? 'hq-badge-purple' : 'hq-badge-gray'
+                        }`}>{a.source}</span>
+                        <span className="hq-muted-text">{a.template_id ?? '無選單'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
