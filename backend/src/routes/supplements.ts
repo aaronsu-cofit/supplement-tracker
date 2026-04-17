@@ -33,7 +33,7 @@ supplements.post('/', async (c) => {
 supplements.put('/:id', async (c) => {
   try {
     const userId = (c as any).get('userId') as string;
-    const id = parseInt(c.req.param('id'), 10);
+    const id = c.req.param('id');
     const data = await c.req.json();
     if (!data.name?.trim()) return c.json({ error: 'Name is required' }, 400);
     const supplement = await updateSupplement(userId, id, data);
@@ -48,7 +48,7 @@ supplements.put('/:id', async (c) => {
 supplements.delete('/:id', async (c) => {
   try {
     const userId = (c as any).get('userId') as string;
-    const id = parseInt(c.req.param('id'), 10);
+    const id = c.req.param('id');
     await deleteSupplement(userId, id);
     return c.json({ success: true });
   } catch (error) {
