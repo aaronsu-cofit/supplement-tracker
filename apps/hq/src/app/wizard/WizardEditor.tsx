@@ -29,19 +29,24 @@ const DEFAULT_NODE_DATA: Record<string, Record<string, unknown>> = {
   'menu-change-node':  { menuName: '',      label: 'Switch Menu' },
 }
 
-const initialNodes: Node[] = [
-  { id: 'day-0', type: 'day-node', position: { x: 80, y: 180 }, data: { day: 0, label: 'Follow' } },
-]
+interface WizardEditorProps {
+  oaId: string
+  scenarioId: string | null
+  scenarioName: string
+  initialNodes: Node[]
+  initialEdges: Edge[]
+  onSaved: (id: string, name: string) => void
+}
 
-function EditorInner() {
+function EditorInner({ oaId, scenarioId, scenarioName: initialScenarioName, initialNodes, initialEdges, onSaved }: WizardEditorProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initialEdges)
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const { screenToFlowPosition } = useReactFlow()
   const idCounter = useRef(1)
 
-  const [scenarioId, setScenarioId] = useState<string | null>(null)
-  const [scenarioName, setScenarioName] = useState('New Scenario')
+  const [currentScenarioId, setCurrentScenarioId] = useState<string | null>(scenarioId)
+  const [scenarioName, setScenarioName] = useState(initialScenarioName)
   const [saving, setSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -86,21 +91,22 @@ function EditorInner() {
     setSaveError(null)
     setSaving(true)
     try {
-      if (!scenarioId) {
-        // TODO: replace 'default' with real OA ID when OA selector is added
-        const createRes = await apiFetch('/api/wizard/oa/default/scenarios', {
+      if (!currentScenarioId) {
+        const createRes = await apiFetch(`/api/wizard/oa/${oaId}/scenarios`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: scenarioName, flow_nodes: nodes, flow_edges: edges }),
         })
         const { scenario } = await createRes.json() as { scenario: { id: string } }
-        setScenarioId(scenario.id)
+        setCurrentScenarioId(scenario.id)
+        onSaved(scenario.id, scenarioName)
       } else {
-        await apiFetch(`/api/wizard/scenarios/${scenarioId}`, {
+        await apiFetch(`/api/wizard/scenarios/${currentScenarioId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: scenarioName, flow_nodes: nodes, flow_edges: edges }),
         })
+        onSaved(currentScenarioId, scenarioName)
       }
       setLastSaved(new Date())
     } catch (err) {
@@ -109,16 +115,13 @@ function EditorInner() {
     } finally {
       setSaving(false)
     }
-  }, [scenarioId, scenarioName, nodes, edges])
+  }, [currentScenarioId, scenarioName, nodes, edges, oaId, onSaved])
 
   return (
     <div className="flex flex-1 bg-[#0d0d0d] text-white min-h-0">
-      {/* Block Palette */}
       <div className="w-60 border-r border-white/[0.08] p-4 overflow-y-auto shrink-0">
         <BlockPalette />
       </div>
-
-      {/* Canvas */}
       <div className="flex-1 relative min-w-0">
         <ScenarioToolbar
           name={scenarioName}
@@ -153,8 +156,6 @@ function EditorInner() {
           />
         </ReactFlow>
       </div>
-
-      {/* Config Panel */}
       <div className="w-[280px] border-l border-white/[0.08] p-4 overflow-y-auto shrink-0">
         <p className="text-[10px] text-white/30 uppercase tracking-[0.1em] mb-3">Config</p>
         <ConfigPanel node={selectedNode} />
@@ -163,10 +164,10 @@ function EditorInner() {
   )
 }
 
-export default function WizardEditor() {
+export default function WizardEditor(props: WizardEditorProps) {
   return (
     <ReactFlowProvider>
-      <EditorInner />
+      <EditorInner {...props} />
     </ReactFlowProvider>
   )
 }
