@@ -1,3 +1,5 @@
+import React from 'react'
+
 const BLOCKS = [
   { type: 'day-node',          icon: '📅', label: 'Day Marker',   desc: 'Timeline day milestone' },
   { type: 'ai-skill-node',     icon: '🤖', label: 'AI Skill',     desc: 'Run AI agent' },
@@ -12,27 +14,20 @@ export default function BlockPalette() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Drag to canvas</p>
+    <div className="flex flex-col gap-2">
+      <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Drag to canvas</p>
       {BLOCKS.map((b) => (
         <div
           key={b.type}
           draggable
           onDragStart={(e) => onDragStart(e, b.type)}
-          style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 8,
-            padding: 12,
-            cursor: 'grab',
-            userSelect: 'none',
-          }}
+          className="bg-white/5 border border-white/10 rounded-lg p-3 cursor-grab active:cursor-grabbing hover:bg-white/8 hover:border-white/20 transition-colors select-none"
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 20 }}>{b.icon}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{b.icon}</span>
             <div>
-              <div style={{ color: '#fff', fontSize: 13, fontWeight: 500 }}>{b.label}</div>
-              <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10 }}>{b.desc}</div>
+              <div className="text-white text-sm font-medium">{b.label}</div>
+              <div className="text-white/30 text-[10px]">{b.desc}</div>
             </div>
           </div>
         </div>

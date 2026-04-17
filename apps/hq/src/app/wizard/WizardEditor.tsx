@@ -54,18 +54,19 @@ function EditorInner() {
 
     const position = screenToFlowPosition({ x: e.clientX, y: e.clientY })
     const id = `${type}-${idCounter.current++}`
-    const data = { ...(DEFAULT_NODE_DATA[type] ?? {}) }
 
-    if (type === 'day-node') {
-      const maxDay = nodes
-        .filter((n) => n.type === 'day-node')
-        .reduce((m, n) => Math.max(m, (n.data as { day: number }).day), 0)
-      data.day = maxDay + 1
-      data.label = `Day ${maxDay + 1}`
-    }
-
-    setNodes((nds) => nds.concat({ id, type, position, data }))
-  }, [screenToFlowPosition, setNodes, nodes])
+    setNodes((nds) => {
+      const data = { ...(DEFAULT_NODE_DATA[type] ?? {}) }
+      if (type === 'day-node') {
+        const maxDay = nds
+          .filter((n) => n.type === 'day-node')
+          .reduce((m, n) => Math.max(m, (n.data as { day: number }).day), 0)
+        data.day = maxDay + 1
+        data.label = `Day ${maxDay + 1}`
+      }
+      return nds.concat({ id, type, position, data })
+    })
+  }, [screenToFlowPosition, setNodes])
 
   const onSelectionChange = useCallback(({ nodes: sel }: { nodes: Node[] }) => {
     setSelectedNode(sel[0] ?? null)
@@ -116,9 +117,7 @@ function EditorInner() {
 export default function WizardEditor() {
   return (
     <ReactFlowProvider>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1 }}>
-        <EditorInner />
-      </div>
+      <EditorInner />
     </ReactFlowProvider>
   )
 }

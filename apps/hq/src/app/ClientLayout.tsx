@@ -40,7 +40,7 @@ function AppShell({ children }) {
           </a>
         </nav>
       </aside>
-      <main className="hq-main" style={pathname === '/wizard' ? { overflow: 'hidden', display: 'flex', flexDirection: 'column' } : undefined}>
+      <main className={`hq-main${pathname === '/wizard' ? ' overflow-hidden flex flex-col' : ''}`}>
         {pathname === '/wizard' ? children : <div className="hq-content">{children}</div>}
       </main>
     </div>
