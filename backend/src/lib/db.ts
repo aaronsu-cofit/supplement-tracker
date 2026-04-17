@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import type {
   CreateSupplementInput,
   CreateWoundInput,
@@ -51,10 +51,10 @@ export async function createSupplement(userId: string, data: CreateSupplementInp
 }
 
 export async function updateSupplement(userId: string, id: string, data: CreateSupplementInput) {
-  const existing = await db().supplement.findFirst({ where: { id, user_id: userId } });
+  const existing = await db().supplement.findFirst({ where: { id: parseInt(id, 10), user_id: userId } });
   if (!existing) return null;
   return db().supplement.update({
-    where: { id },
+    where: { id: parseInt(id, 10) },
     data: {
       name: data.name,
       dosage: data.dosage || null,
@@ -66,7 +66,7 @@ export async function updateSupplement(userId: string, id: string, data: CreateS
 }
 
 export async function deleteSupplement(userId: string, id: string): Promise<{ success: boolean }> {
-  await db().supplement.deleteMany({ where: { id, user_id: userId } });
+  await db().supplement.deleteMany({ where: { id: parseInt(id, 10), user_id: userId } });
   return { success: true };
 }
 
@@ -110,7 +110,7 @@ export async function createCheckIn(userId: string, supplementId: string) {
   ` as unknown[];
   if (existing.length > 0) return { already_checked: true };
   return db().checkIn.create({
-    data: { user_id: userId, supplement_id: supplementId },
+    data: { user_id: userId, supplement_id: parseInt(supplementId, 10) },
   });
 }
 
@@ -433,7 +433,7 @@ export async function getAllLineOAs() {
 }
 
 export async function getLineOAById(id: string) {
-  return db().lineOA.findUnique({ where: { id } });
+  return db().lineOA.findUnique({ where: { id: parseInt(id, 10) } });
 }
 
 export async function createLineOA(data: CreateLineOAInput) {
@@ -450,7 +450,7 @@ export async function createLineOA(data: CreateLineOAInput) {
 
 export async function updateLineOA(id: string, data: UpdateLineOAInput) {
   const oa = await db().lineOA.update({
-    where: { id },
+    where: { id: parseInt(id, 10) },
     data: {
       ...(data.name != null && { name: data.name }),
       ...(data.description !== undefined && { description: data.description }),
@@ -463,7 +463,7 @@ export async function updateLineOA(id: string, data: UpdateLineOAInput) {
 }
 
 export async function deleteLineOA(id: string): Promise<{ success: boolean }> {
-  await db().lineOA.delete({ where: { id } });
+  await db().lineOA.delete({ where: { id: parseInt(id, 10) } });
   return { success: true };
 }
 
@@ -471,43 +471,43 @@ export async function deleteLineOA(id: string): Promise<{ success: boolean }> {
 
 export async function getTemplatesForOA(oaId: string) {
   return db().lineOARichMenuTemplate.findMany({
-    where: { oa_id: oaId },
+    where: { oa_id: parseInt(oaId, 10) },
     orderBy: { created_at: 'desc' },
   });
 }
 
 export async function getTemplateById(id: string) {
-  return db().lineOARichMenuTemplate.findUnique({ where: { id } });
+  return db().lineOARichMenuTemplate.findUnique({ where: { id: parseInt(id, 10) } });
 }
 
 export async function createTemplate(oaId: string, data: CreateTemplateInput) {
   return db().lineOARichMenuTemplate.create({
-    data: { oa_id: oaId, name: data.name, zones: data.zones },
+    data: { oa_id: parseInt(oaId, 10), name: data.name, zones: data.zones as Prisma.InputJsonValue },
   });
 }
 
 export async function updateTemplate(id: string, data: UpdateTemplateInput) {
   return db().lineOARichMenuTemplate.update({
-    where: { id },
+    where: { id: parseInt(id, 10) },
     data: {
       ...(data.name != null && { name: data.name }),
-      ...(data.zones != null && { zones: data.zones }),
+      ...(data.zones != null && { zones: data.zones as Prisma.InputJsonValue }),
     },
   });
 }
 
 export async function deleteTemplate(id: string): Promise<{ success: boolean }> {
-  await db().lineOARichMenuTemplate.delete({ where: { id } });
+  await db().lineOARichMenuTemplate.delete({ where: { id: parseInt(id, 10) } });
   return { success: true };
 }
 
 export async function setActiveTemplate(oaId: string, templateId: string, richMenuId: string | null = null) {
   await db().lineOARichMenuTemplate.updateMany({
-    where: { oa_id: oaId },
+    where: { oa_id: parseInt(oaId, 10) },
     data: { is_active: false },
   });
   return db().lineOARichMenuTemplate.update({
-    where: { id: templateId },
+    where: { id: parseInt(templateId, 10) },
     data: {
       is_active: true,
       ...(richMenuId != null && { line_rich_menu_id: richMenuId }),
@@ -517,7 +517,7 @@ export async function setActiveTemplate(oaId: string, templateId: string, richMe
 
 export async function deactivateAllTemplates(oaId: string) {
   await db().lineOARichMenuTemplate.updateMany({
-    where: { oa_id: oaId },
+    where: { oa_id: parseInt(oaId, 10) },
     data: { is_active: false },
   });
 }
@@ -549,8 +549,8 @@ export async function updateScenario(
     where: { id },
     data: {
       ...(data.name !== undefined && { name: data.name }),
-      ...(data.flow_nodes !== undefined && { flow_nodes: data.flow_nodes }),
-      ...(data.flow_edges !== undefined && { flow_edges: data.flow_edges }),
+      ...(data.flow_nodes !== undefined && { flow_nodes: data.flow_nodes as Prisma.InputJsonValue }),
+      ...(data.flow_edges !== undefined && { flow_edges: data.flow_edges as Prisma.InputJsonValue }),
       ...(data.is_active !== undefined && { is_active: data.is_active }),
     },
   });
