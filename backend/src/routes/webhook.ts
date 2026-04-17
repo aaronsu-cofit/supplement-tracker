@@ -34,7 +34,11 @@ async function handleLineEvent(event: LineWebhookEvent): Promise<void> {
   if (event.type === 'follow') {
     await findOrCreateLineUser(lineUserId)
     if (event.replyToken) {
-      await replyText(event.replyToken, '您好！我是您的 AI 健康顧問，有任何問題都可以直接傳訊問我 😊')
+      try {
+        await replyText(event.replyToken, '您好！我是您的 AI 健康顧問，有任何問題都可以直接傳訊問我 😊')
+      } catch (err) {
+        console.error('[webhook/line] follow reply error:', err)
+      }
     }
     return
   }
@@ -42,7 +46,11 @@ async function handleLineEvent(event: LineWebhookEvent): Promise<void> {
   if (event.type === 'postback' && event.replyToken) {
     const liffUrl = process.env.LIFF_URL_MAIN || process.env.LIFF_URL_WOUNDS || ''
     if (liffUrl) {
-      await replyText(event.replyToken, `點這裡開啟健康紀錄：${liffUrl}`)
+      try {
+        await replyText(event.replyToken, `點這裡開啟健康紀錄：${liffUrl}`)
+      } catch (err) {
+        console.error('[webhook/line] postback reply error:', err)
+      }
     }
     return
   }
@@ -53,7 +61,8 @@ async function handleLineEvent(event: LineWebhookEvent): Promise<void> {
 
     try {
       const result = await adkRun('ai-expert', lineUserId, { message: messageText })
-      await replyText(event.replyToken, result.result)
+      const replyMessage = result.result || '很抱歉，AI 顧問無法提供回應，請稍後再試 🙏'
+      await replyText(event.replyToken, replyMessage)
     } catch (err) {
       console.error('[webhook/line] AI Expert error:', err)
       await replyText(event.replyToken, '很抱歉，AI 顧問暫時無法回應，請稍後再試 🙏')
@@ -72,7 +81,11 @@ webhook.post('/line', async (c) => {
 
   let payload: LineWebhookPayload
   try {
-    payload = JSON.parse(body) as LineWebhookPayload
+    const parsed = JSON.parse(body)
+    if (!parsed || !Array.isArray(parsed.events)) {
+      return c.json({ error: 'Invalid payload' }, 400)
+    }
+    payload = parsed as LineWebhookPayload
   } catch {
     return c.json({ error: 'Invalid JSON' }, 400)
   }

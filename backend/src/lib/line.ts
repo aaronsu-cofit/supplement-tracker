@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 
 const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN
 const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET
@@ -10,8 +10,15 @@ if (!LINE_CHANNEL_ACCESS_TOKEN || !LINE_CHANNEL_SECRET) {
 export function verifyLineSignature(body: string, signature: string): boolean {
   const expected = createHmac('sha256', LINE_CHANNEL_SECRET!)
     .update(body)
-    .digest('base64')
-  return expected === signature
+    .digest()
+  let sigBuffer: Buffer
+  try {
+    sigBuffer = Buffer.from(signature, 'base64')
+  } catch {
+    return false
+  }
+  if (expected.length !== sigBuffer.length) return false
+  return timingSafeEqual(expected, sigBuffer)
 }
 
 export async function replyText(replyToken: string, text: string): Promise<void> {
