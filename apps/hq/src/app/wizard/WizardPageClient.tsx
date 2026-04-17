@@ -61,6 +61,34 @@ export default function WizardPageClient() {
     })
   }, [])
 
+  const handleToggleActive = useCallback(async (scenario: Scenario) => {
+    const newValue = !scenario.is_active
+    try {
+      await apiFetch(`/api/wizard/scenarios/${scenario.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: newValue }),
+      })
+      setScenarios(prev => prev.map(s => s.id === scenario.id ? { ...s, is_active: newValue } : s))
+    } catch (err) {
+      console.error('[wizard] toggle active error:', err)
+    }
+  }, [])
+
+  const handleDeleteScenario = useCallback(async (scenario: Scenario) => {
+    if (!window.confirm(`Delete scenario "${scenario.name}"?`)) return
+    try {
+      await apiFetch(`/api/wizard/scenarios/${scenario.id}`, { method: 'DELETE' })
+      setScenarios(prev => prev.filter(s => s.id !== scenario.id))
+      if (selectedScenarioId === scenario.id) {
+        setSelectedScenarioId(null)
+        setEditorKey(`new-${Date.now()}`)
+      }
+    } catch (err) {
+      console.error('[wizard] delete error:', err)
+    }
+  }, [selectedScenarioId])
+
   const selectedScenario = scenarios.find(s => s.id === selectedScenarioId)
 
   return (
@@ -88,20 +116,46 @@ export default function WizardPageClient() {
           {loadingScenarios && (
             <span className="text-xs text-white/30 shrink-0">Loading...</span>
           )}
-          {scenarios.map(s => (
-            <button
-              key={s.id}
-              onClick={() => handleScenarioSelect(s)}
-              className={`shrink-0 text-xs px-2.5 py-1 rounded-md border transition-colors cursor-pointer whitespace-nowrap ${
-                s.id === selectedScenarioId
-                  ? 'bg-white/10 text-white border-white/20'
-                  : 'bg-transparent text-white/50 border-white/10 hover:text-white/80 hover:border-white/20'
-              }`}
-            >
-              {s.name}
-              {s.is_active && <span className="ml-1 text-[#5ce0d8]">●</span>}
-            </button>
-          ))}
+          {scenarios.map(s => {
+            const isSelected = s.id === selectedScenarioId
+            return (
+              <div key={s.id} className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => handleScenarioSelect(s)}
+                  className={`text-xs px-2.5 py-1 rounded-md border transition-colors cursor-pointer whitespace-nowrap ${
+                    isSelected
+                      ? 'bg-white/10 text-white border-white/20'
+                      : 'bg-transparent text-white/50 border-white/10 hover:text-white/80 hover:border-white/20'
+                  }`}
+                >
+                  {s.name}
+                  {s.is_active && <span className="ml-1 text-[#5ce0d8]">●</span>}
+                </button>
+                {isSelected && (
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      onClick={() => handleToggleActive(s)}
+                      title={s.is_active ? 'Deactivate' : 'Activate'}
+                      className={`text-[11px] w-6 h-6 flex items-center justify-center rounded-md border transition-colors cursor-pointer ${
+                        s.is_active
+                          ? 'text-[#5ce0d8] border-[#5ce0d8]/30 bg-[#5ce0d8]/10 hover:bg-[#5ce0d8]/20'
+                          : 'text-white/30 border-white/10 bg-white/5 hover:text-[#5ce0d8] hover:border-[#5ce0d8]/20'
+                      }`}
+                    >
+                      ●
+                    </button>
+                    <button
+                      onClick={() => handleDeleteScenario(s)}
+                      title="Delete scenario"
+                      className="text-[11px] w-6 h-6 flex items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/30 hover:text-red-400 hover:border-red-500/30 transition-colors cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
 
