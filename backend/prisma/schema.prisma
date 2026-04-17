@@ -206,3 +206,16 @@ model LineOARichMenuTemplate {
   @@index([oa_id], name: "idx_rich_menu_templates_oa")
   @@map("line_oa_rich_menu_template")
 }
+
+model CoBlocksScenario {
+  id         String   @id @default(cuid())
+  oa_id      String
+  name       String
+  flow_nodes Json     @default("[]")
+  flow_edges Json     @default("[]")
+  is_active  Boolean  @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("coblocks_scenarios")
+}

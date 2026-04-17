@@ -521,3 +521,36 @@ export async function deactivateAllTemplates(oaId: string) {
     data: { is_active: false },
   });
 }
+
+// ─── CoBlocks Scenarios ──────────────────────────────────────────────────────
+
+export async function getScenariosForOA(oaId: string) {
+  return db().coBlocksScenario.findMany({
+    where: { oa_id: oaId },
+    orderBy: { created_at: 'desc' },
+  });
+}
+
+export async function getScenarioById(id: string) {
+  return db().coBlocksScenario.findUnique({ where: { id } });
+}
+
+export async function createScenario(oaId: string, name: string) {
+  return db().coBlocksScenario.create({
+    data: { oa_id: oaId, name },
+  });
+}
+
+export async function updateScenario(
+  id: string,
+  data: { name?: string; flow_nodes?: unknown; flow_edges?: unknown; is_active?: boolean }
+) {
+  return db().coBlocksScenario.update({
+    where: { id },
+    data,
+  });
+}
+
+export async function deleteScenario(id: string) {
+  return db().coBlocksScenario.delete({ where: { id } });
+}

@@ -18,6 +18,7 @@ import richmenuRoutes from './routes/richmenu.js';
 import lineoaRoutes from './routes/lineoa.js';
 import aiRoutes from './routes/ai.js';
 import webhookRoutes from './routes/webhook.js';
+import wizardRoutes from './routes/wizard.js';
 
 const app = new Hono();
 
@@ -58,6 +59,7 @@ app.route('/api/notify', notifyRoutes);
 app.route('/api/modules', modulesRoutes);
 app.route('/api/line/richmenu', richmenuRoutes);
 app.route('/api/line/oa', lineoaRoutes);
+app.route('/api/wizard', wizardRoutes);
 app.route('/webhook', webhookRoutes);
 
 // 404 fallback
