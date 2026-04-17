@@ -1,5 +1,5 @@
 'use client';
-import { apiFetch } from '@vitera/lib';
+import { apiFetch, aiStream } from '@vitera/lib';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@vitera/lib';
@@ -14,6 +14,8 @@ export default function WoundScanPage() {
     const [nrsScore, setNrsScore] = useState(0);
     const [symptoms, setSymptoms] = useState<string[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [streamingResult, setStreamingResult] = useState('');
+    const [isStreaming, setIsStreaming] = useState(false);
 
     const symptomOptions = ['局部發熱', '有異味', '滲出液增加', '邊緣紅腫', '皆無'];
 
@@ -53,19 +55,18 @@ export default function WoundScanPage() {
         if (!imagePreview) return alert('請先拍攝或上傳傷口照片');
         setIsAnalyzing(true);
         try {
-            const response = await apiFetch('/api/analyze', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    image: imagePreview.split(',')[1],
-                    prompt: `這是一張傷口照片。請分析傷口的復原狀況。
-                患者回報的疼痛指數 (NRS): ${nrsScore}/10。
-                患者回報的症狀: ${symptoms.join(', ')}。
-                請勿給出絕對醫療診斷，請使用情境描述。`
-                })
-            });
-            const data: { success: boolean; analysis?: string; ai_status_label?: string; error?: string } = await response.json();
-            if (!response.ok || !data.success) throw new Error(data.error || 'AI Analysis failed');
+            let analysisText = '';
+            setIsStreaming(true);
+            setStreamingResult('');
+            await aiStream(
+                'wound-analysis',
+                (chunk) => {
+                    analysisText += chunk;
+                    setStreamingResult(prev => prev + chunk);
+                },
+                () => setIsStreaming(false)
+            );
+            const data = { analysis: analysisText, ai_status_label: '需多加留意觀察' };
 
             const woundsRes = await apiFetch('/api/wounds');
             let woundsData: { id: number }[] = [];
@@ -119,18 +120,31 @@ export default function WoundScanPage() {
             alert('發生錯誤: ' + ((error as Error).message || JSON.stringify(error)));
         } finally {
             setIsAnalyzing(false);
+            setIsStreaming(false);
         }
     };
 
     if (isAnalyzing) {
         return (
-            <div className="p-8 text-center mt-[25vh]">
-                <div className="text-[3.5rem] animate-float drop-shadow-[0_0_20px_rgba(255,154,158,0.4)]">🪄</div>
-                <h3 className="mt-6 text-w-pink text-[1.1rem]">AI 正在分析傷口狀態...</h3>
-                <p className="text-white/40 text-[0.9rem]">正在綜合評估客觀影像與您的感受</p>
-                <div className="w-[200px] h-1 bg-white/[0.06] rounded mx-auto mt-6 overflow-hidden">
-                    <div className="w-[40%] h-full bg-w-gradient rounded animate-shimmer" />
+            <div className="p-8 mt-[15vh]">
+                <div className="text-center mb-4">
+                    <div className="text-[3.5rem] animate-float drop-shadow-[0_0_20px_rgba(255,154,158,0.4)]">🪄</div>
                 </div>
+                {streamingResult ? (
+                    <div className="bg-white/[0.04] border border-w-pink/20 rounded-2xl p-4 max-h-[55vh] overflow-y-auto">
+                        <p className="text-w-pink text-[0.85rem] font-semibold mb-3">AI 分析結果</p>
+                        <p className="text-white/80 text-[0.9rem] whitespace-pre-wrap leading-relaxed">{streamingResult}</p>
+                        {isStreaming && <span className="inline-block w-1 h-4 bg-w-pink animate-pulse ml-1 rounded" />}
+                    </div>
+                ) : (
+                    <div className="text-center">
+                        <h3 className="text-w-pink text-[1.1rem]">AI 正在分析傷口狀態...</h3>
+                        <p className="text-white/40 text-[0.9rem] mt-1">正在綜合評估客觀影像與您的感受</p>
+                        <div className="w-[200px] h-1 bg-white/[0.06] rounded mx-auto mt-6 overflow-hidden">
+                            <div className="w-[40%] h-full bg-w-gradient rounded animate-shimmer" />
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
