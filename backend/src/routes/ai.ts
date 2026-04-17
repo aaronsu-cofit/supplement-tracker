@@ -12,7 +12,7 @@ ai.post('/run', async (c) => {
   const userId = c.get('userId')
   const { agent_id } = await c.req.json<{ agent_id: string }>()
 
-  if (!agent_id) {
+  if (!agent_id || typeof agent_id !== 'string') {
     return c.json({ error: 'agent_id is required' }, 400)
   }
 
@@ -30,7 +30,7 @@ ai.post('/stream', async (c) => {
   const userId = c.get('userId')
   const { agent_id } = await c.req.json<{ agent_id: string }>()
 
-  if (!agent_id) {
+  if (!agent_id || typeof agent_id !== 'string') {
     return c.json({ error: 'agent_id is required' }, 400)
   }
 
