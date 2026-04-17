@@ -73,13 +73,13 @@ async function findRuleMatch(
     if (!activeScenario) return null;
 
     const flowNodes = Array.isArray(activeScenario.flow_nodes)
-      ? (activeScenario.flow_nodes as Array<{ type?: string; data?: { targetMenu?: string } }>)
+      ? (activeScenario.flow_nodes as Array<{ type?: string; data?: { menuName?: string } }>)
       : [];
 
-    const menuNode = flowNodes.find(n => n.type === 'menuChange' && n.data?.targetMenu);
-    if (!menuNode?.data?.targetMenu) return null;
+    const menuNode = flowNodes.find(n => n.type === 'menu-change-node' && n.data?.menuName);
+    if (!menuNode?.data?.menuName) return null;
 
-    const targetName = menuNode.data.targetMenu;
+    const targetName = menuNode.data.menuName;
     return deployed.find(t => t.name === targetName) ?? null;
   } catch {
     return null;
