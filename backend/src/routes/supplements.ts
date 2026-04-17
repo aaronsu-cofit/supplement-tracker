@@ -8,7 +8,7 @@ supplements.use('*', softAuthMiddleware);
 // GET /api/supplements
 supplements.get('/', async (c) => {
   try {
-    const userId = c.get('userId');
+    const userId = (c as any).get('userId') as string;
     const data = await getSupplements(userId);
     return c.json(data);
   } catch (error) {
@@ -19,7 +19,7 @@ supplements.get('/', async (c) => {
 // POST /api/supplements
 supplements.post('/', async (c) => {
   try {
-    const userId = c.get('userId');
+    const userId = (c as any).get('userId') as string;
     const data = await c.req.json();
     if (!data.name?.trim()) return c.json({ error: 'Name is required' }, 400);
     const supplement = await createSupplement(userId, data);
@@ -32,7 +32,7 @@ supplements.post('/', async (c) => {
 // PUT /api/supplements/:id
 supplements.put('/:id', async (c) => {
   try {
-    const userId = c.get('userId');
+    const userId = (c as any).get('userId') as string;
     const id = parseInt(c.req.param('id'), 10);
     const data = await c.req.json();
     if (!data.name?.trim()) return c.json({ error: 'Name is required' }, 400);
@@ -47,7 +47,7 @@ supplements.put('/:id', async (c) => {
 // DELETE /api/supplements/:id
 supplements.delete('/:id', async (c) => {
   try {
-    const userId = c.get('userId');
+    const userId = (c as any).get('userId') as string;
     const id = parseInt(c.req.param('id'), 10);
     await deleteSupplement(userId, id);
     return c.json({ success: true });

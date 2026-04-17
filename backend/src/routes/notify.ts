@@ -13,7 +13,7 @@ const getLineClient = async () => {
 
 notify.post('/', async (c) => {
   try {
-    const userId = c.get('userId');
+    const userId = (c as any).get('userId') as string;
     if (!userId) return c.json({ error: 'User not authenticated' }, 401);
 
     const { type } = await c.req.json();
