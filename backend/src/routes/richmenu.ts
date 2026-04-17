@@ -55,10 +55,10 @@ richmenu.post('/deploy', async (c) => {
     name: 'Vitera Main Menu',
     chatBarText: '開啟健康選單',
     areas: [
-      { bounds: { x: 0,    y: 0,   width: 1250, height: 843 }, action: { type: 'uri', uri: liffUrls.wounds      } },
-      { bounds: { x: 1250, y: 0,   width: 1250, height: 843 }, action: { type: 'uri', uri: liffUrls.bones       } },
-      { bounds: { x: 0,    y: 843, width: 1250, height: 843 }, action: { type: 'uri', uri: liffUrls.supplements } },
-      { bounds: { x: 1250, y: 843, width: 1250, height: 843 }, action: { type: 'uri', uri: liffUrls.intimacy    } },
+      { bounds: { x: 0,    y: 0,   width: 1250, height: 843 }, action: { type: 'uri' as const, uri: liffUrls.wounds      } },
+      { bounds: { x: 1250, y: 0,   width: 1250, height: 843 }, action: { type: 'uri' as const, uri: liffUrls.bones       } },
+      { bounds: { x: 0,    y: 843, width: 1250, height: 843 }, action: { type: 'uri' as const, uri: liffUrls.supplements } },
+      { bounds: { x: 1250, y: 843, width: 1250, height: 843 }, action: { type: 'uri' as const, uri: liffUrls.intimacy    } },
     ],
   };
 
@@ -142,10 +142,10 @@ richmenu.post('/deploy/wounds', async (c) => {
     name: 'Wounds Care Menu',
     chatBarText: '開啟傷口照護選單',
     areas: [
-      { bounds: { x: 0,    y: 0,   width: 1250, height: 843 }, action: { type: 'uri', uri: liffUrls.record   } },
-      { bounds: { x: 1250, y: 0,   width: 1250, height: 843 }, action: { type: 'uri', uri: liffUrls.history  } },
-      { bounds: { x: 0,    y: 843, width: 1250, height: 843 }, action: { type: 'uri', uri: liffUrls.reminder } },
-      { bounds: { x: 1250, y: 843, width: 1250, height: 843 }, action: { type: 'uri', uri: liffUrls.guide    } },
+      { bounds: { x: 0,    y: 0,   width: 1250, height: 843 }, action: { type: 'uri' as const, uri: liffUrls.record   } },
+      { bounds: { x: 1250, y: 0,   width: 1250, height: 843 }, action: { type: 'uri' as const, uri: liffUrls.history  } },
+      { bounds: { x: 0,    y: 843, width: 1250, height: 843 }, action: { type: 'uri' as const, uri: liffUrls.reminder } },
+      { bounds: { x: 1250, y: 843, width: 1250, height: 843 }, action: { type: 'uri' as const, uri: liffUrls.guide    } },
     ],
   };
 

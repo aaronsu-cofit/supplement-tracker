@@ -96,7 +96,7 @@ lineoa.post('/:id/richmenu', async (c) => {
     chatBarText: '開啟選單',
     areas: zones.map((z, i) => ({
       bounds: BOUNDS[i],
-      action: { type: 'uri', uri: z.uri },
+      action: { type: 'uri' as const, uri: z.uri },
     })),
   };
 
@@ -212,7 +212,7 @@ lineoa.post('/:id/templates/:tid/deploy', async (c) => {
   if (!oa.is_active) return c.json({ error: '此 LINE OA 已停用' }, 400);
 
   const template = await getTemplateById(tid);
-  if (!template || template.oa_id !== id) return c.json({ error: '找不到模板' }, 404);
+  if (!template || template.oa_id !== parseInt(id, 10)) return c.json({ error: '找不到模板' }, 404);
 
   let formData;
   try { formData = await c.req.formData(); } catch {
@@ -222,7 +222,7 @@ lineoa.post('/:id/templates/:tid/deploy', async (c) => {
   const imageFile = formData.get('image');
   if (!imageFile || typeof imageFile === 'string') return c.json({ error: '未提供圖片檔案' }, 400);
 
-  const zones = template.zones;
+  const zones = template.zones as Array<{ uri?: string }>;
   if (!Array.isArray(zones) || zones.length !== 4) return c.json({ error: 'zones 格式錯誤' }, 400);
   for (const z of zones) {
     if (!z.uri) return c.json({ error: `請先填入所有區塊的 LIFF URI 再部署` }, 400);
@@ -238,7 +238,7 @@ lineoa.post('/:id/templates/:tid/deploy', async (c) => {
     chatBarText: '開啟選單',
     areas: zones.map((z, i) => ({
       bounds: BOUNDS[i],
-      action: { type: 'uri', uri: z.uri },
+      action: { type: 'uri' as const, uri: z.uri },
     })),
   };
 
@@ -273,7 +273,7 @@ lineoa.post('/:id/templates/:tid/activate', async (c) => {
   if (!oa.is_active) return c.json({ error: '此 LINE OA 已停用' }, 400);
 
   const template = await getTemplateById(tid);
-  if (!template || template.oa_id !== id) return c.json({ error: '找不到模板' }, 404);
+  if (!template || template.oa_id !== parseInt(id, 10)) return c.json({ error: '找不到模板' }, 404);
   if (!template.line_rich_menu_id) return c.json({ error: '此模板尚未部署，請先上傳圖片並部署' }, 400);
 
   const { Client } = await import('@line/bot-sdk');
