@@ -32,7 +32,11 @@ async function handleLineEvent(event: LineWebhookEvent): Promise<void> {
   if (!lineUserId) return
 
   if (event.type === 'follow') {
-    await findOrCreateLineUser(lineUserId)
+    try {
+      await findOrCreateLineUser(lineUserId)
+    } catch (err) {
+      console.error('[webhook/line] follow findOrCreateLineUser error:', err)
+    }
     if (event.replyToken) {
       try {
         await replyText(event.replyToken, '您好！我是您的 AI 健康顧問，有任何問題都可以直接傳訊問我 😊')
@@ -45,19 +49,24 @@ async function handleLineEvent(event: LineWebhookEvent): Promise<void> {
 
   if (event.type === 'postback' && event.replyToken) {
     const liffUrl = process.env.LIFF_URL_MAIN || process.env.LIFF_URL_WOUNDS || ''
-    if (liffUrl) {
-      try {
-        await replyText(event.replyToken, `點這裡開啟健康紀錄：${liffUrl}`)
-      } catch (err) {
-        console.error('[webhook/line] postback reply error:', err)
-      }
+    try {
+      await replyText(
+        event.replyToken,
+        liffUrl ? `點這裡開啟健康紀錄：${liffUrl}` : '健康紀錄功能即將開放，敬請期待 😊'
+      )
+    } catch (err) {
+      console.error('[webhook/line] postback reply error:', err)
     }
     return
   }
 
   if (event.type === 'message' && event.message?.type === 'text' && event.replyToken) {
     const messageText = event.message.text
-    await findOrCreateLineUser(lineUserId)
+    try {
+      await findOrCreateLineUser(lineUserId)
+    } catch (err) {
+      console.error('[webhook/line] message findOrCreateLineUser error:', err)
+    }
 
     try {
       const result = await adkRun('ai-expert', lineUserId, { message: messageText })
