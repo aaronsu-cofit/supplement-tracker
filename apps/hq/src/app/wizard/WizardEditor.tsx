@@ -6,12 +6,14 @@ import {
   type Node, type Edge, type OnConnect, type NodeTypes,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { apiFetch } from '@vitera/lib'
 import BlockPalette from './BlockPalette'
 import ConfigPanel from './ConfigPanel'
 import DayNode from './nodes/DayNode'
 import AiSkillNode from './nodes/AiSkillNode'
 import PushMessageNode from './nodes/PushMessageNode'
 import MenuChangeNode from './nodes/MenuChangeNode'
+import ScenarioToolbar from './ScenarioToolbar'
 
 const nodeTypes: NodeTypes = {
   'day-node': DayNode,
@@ -37,6 +39,11 @@ function EditorInner() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const { screenToFlowPosition } = useReactFlow()
   const idCounter = useRef(1)
+
+  const [scenarioId, setScenarioId] = useState<string | null>(null)
+  const [scenarioName, setScenarioName] = useState('New Scenario')
+  const [saving, setSaving] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
   const onConnect: OnConnect = useCallback(
     (connection) => setEdges((eds) => addEdge(connection, eds)),
@@ -73,6 +80,38 @@ function EditorInner() {
     setSelectedNode(sel[0] ?? null)
   }, [])
 
+  const handleSave = useCallback(async () => {
+    if (!scenarioName.trim()) return
+    setSaving(true)
+    try {
+      if (!scenarioId) {
+        const createRes = await apiFetch('/api/wizard/oa/default/scenarios', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: scenarioName }),
+        })
+        const { scenario } = await createRes.json() as { scenario: { id: string } }
+        setScenarioId(scenario.id)
+        await apiFetch(`/api/wizard/scenarios/${scenario.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ flow_nodes: nodes, flow_edges: edges }),
+        })
+      } else {
+        await apiFetch(`/api/wizard/scenarios/${scenarioId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: scenarioName, flow_nodes: nodes, flow_edges: edges }),
+        })
+      }
+      setLastSaved(new Date())
+    } catch (err) {
+      console.error('[wizard] save error:', err)
+    } finally {
+      setSaving(false)
+    }
+  }, [scenarioId, scenarioName, nodes, edges])
+
   return (
     <div className="flex flex-1 bg-[#0d0d0d] text-white min-h-0">
       {/* Block Palette */}
@@ -82,6 +121,13 @@ function EditorInner() {
 
       {/* Canvas */}
       <div className="flex-1 relative min-w-0">
+        <ScenarioToolbar
+          name={scenarioName}
+          onNameChange={setScenarioName}
+          onSave={handleSave}
+          saving={saving}
+          lastSaved={lastSaved}
+        />
         <ReactFlow
           nodes={nodes}
           edges={edges}
