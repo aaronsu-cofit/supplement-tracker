@@ -85,7 +85,7 @@ Return valid JSON only (no markdown, no code fences):
 }`;
       const text = await callGemini(apiKey, base64Data, mimeType, prompt);
       try {
-        const parsed = parseGeminiJson(text);
+        const parsed = parseGeminiJson<Record<string, unknown>>(text);
         return c.json({ success: true, ...parsed });
       } catch {
         return c.json({ error: 'Could not parse AI response', raw: text }, 422);
@@ -106,7 +106,7 @@ Return valid JSON only (no markdown, no code fences):
 - Return ONLY the JSON object.`;
       const text = await callGemini(apiKey, base64Data, mimeType, prompt);
       try {
-        const parsed = parseGeminiJson(text);
+        const parsed = parseGeminiJson<Record<string, unknown>>(text);
         return c.json({ success: true, ...parsed });
       } catch {
         return c.json({ error: 'Could not parse AI response', raw: text }, 422);
@@ -130,7 +130,7 @@ Return valid JSON only (no markdown, no code fences):
 }`;
       const text = await callGemini(apiKey, base64Data, mimeType, prompt);
       try {
-        const parsed = parseGeminiJson(text);
+        const parsed = parseGeminiJson<Record<string, unknown>>(text);
         return c.json({ success: true, ...parsed });
       } catch {
         return c.json({ error: 'Could not parse AI response', raw: text }, 422);
@@ -152,7 +152,7 @@ Return valid JSON only (no markdown, no code fences):
 - Return ONLY the JSON object.`;
       const text = await callGemini(apiKey, base64Data, mimeType, prompt);
       try {
-        const parsed = parseGeminiJson(text);
+        const parsed = parseGeminiJson<Record<string, unknown>>(text);
         return c.json({ success: true, ...parsed });
       } catch {
         return c.json({ error: 'Could not parse AI response', raw: text }, 422);
