@@ -219,3 +219,16 @@ model CoBlocksScenario {
 
   @@map("coblocks_scenarios")
 }
+
+model UserMenuAssignment {
+  id          Int      @id @default(autoincrement())
+  user_id     String   @db.VarChar(64)
+  oa_id       Int
+  template_id Int?
+  source      String   @db.VarChar(20)
+  assigned_at DateTime @default(now())
+
+  @@unique([user_id, oa_id])
+  @@index([oa_id], name: "idx_user_menu_oa")
+  @@map("user_menu_assignments")
+}
