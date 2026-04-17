@@ -6,6 +6,9 @@ import type { HonoEnv } from '../types.js'
 const ai = new Hono<HonoEnv>()
 
 ai.use('*', authMiddleware)
+// Note: /run uses hard authMiddleware (JWT required). The LINE Bot Handler (Plan 2)
+// must acquire a server-side JWT before calling /run — it cannot call this directly
+// from a LINE webhook without auth credentials.
 
 // 同步執行 AI Skill（LINE 聊天室用）
 ai.post('/run', async (c) => {

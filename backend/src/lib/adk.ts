@@ -33,6 +33,8 @@ export async function adkRun(agentId: string, clientId: string): Promise<AdkRunR
 }
 
 // 取得 ADK Service 的 SSE stream（用於 LIFF 串流顯示）
+// Known limitation: timeout(30000) only covers header delivery — a stalled stream body
+// after headers arrive has no per-chunk timeout. Acceptable for POC.
 export async function adkStream(agentId: string, clientId: string): Promise<Response> {
   const res = await fetch(`${ADK_URL}/run_sse`, {
     method: 'POST',

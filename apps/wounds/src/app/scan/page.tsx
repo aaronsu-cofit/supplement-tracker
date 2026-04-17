@@ -66,6 +66,8 @@ export default function WoundScanPage() {
                 },
                 () => setIsStreaming(false)
             );
+            // POC: ai_status_label hardcoded — ADK stream only delivers text chunks,
+            // not structured output. Needs ADK skill to emit a final structured event before prod.
             const data = { analysis: analysisText, ai_status_label: '需多加留意觀察' };
 
             const woundsRes = await apiFetch('/api/wounds');

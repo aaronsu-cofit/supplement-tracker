@@ -68,5 +68,7 @@ export async function aiStream(
     reader.cancel().catch(() => {})
   }
 
+  // Only reached when the stream closes without a [DONE] frame.
+  // The [DONE] path calls onDone() and returns early above.
   onDone()
 }
