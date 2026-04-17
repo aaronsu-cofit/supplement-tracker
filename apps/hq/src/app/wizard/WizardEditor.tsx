@@ -7,6 +7,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import BlockPalette from './BlockPalette'
+import ConfigPanel from './ConfigPanel'
 import DayNode from './nodes/DayNode'
 import AiSkillNode from './nodes/AiSkillNode'
 import PushMessageNode from './nodes/PushMessageNode'
@@ -103,12 +104,10 @@ function EditorInner() {
         </ReactFlow>
       </div>
 
-      {/* Config Panel placeholder — wired in Task 4 */}
+      {/* Config Panel */}
       <div className="w-[280px] border-l border-white/[0.08] p-4 overflow-y-auto shrink-0">
         <p className="text-[10px] text-white/30 uppercase tracking-[0.1em] mb-3">Config</p>
-        <p className="text-white/20 text-[13px]">
-          {selectedNode ? `Selected: ${selectedNode.type}` : 'Select a node to configure it.'}
-        </p>
+        <ConfigPanel node={selectedNode} />
       </div>
     </div>
   )
