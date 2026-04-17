@@ -8,7 +8,7 @@ checkins.use('*', softAuthMiddleware);
 // GET /api/checkins
 checkins.get('/', async (c) => {
   try {
-    const userId = c.get('userId');
+    const userId = (c as any).get('userId') as string;
     const { date, startDate, endDate, type } = c.req.query();
 
     if (type === 'streak') {
@@ -30,7 +30,7 @@ checkins.get('/', async (c) => {
 // POST /api/checkins
 checkins.post('/', async (c) => {
   try {
-    const userId = c.get('userId');
+    const userId = (c as any).get('userId') as string;
     const { supplementId } = await c.req.json();
     if (!supplementId) return c.json({ error: 'supplementId is required' }, 400);
     const checkIn = await createCheckIn(userId, supplementId);
@@ -43,7 +43,7 @@ checkins.post('/', async (c) => {
 // DELETE /api/checkins
 checkins.delete('/', async (c) => {
   try {
-    const userId = c.get('userId');
+    const userId = (c as any).get('userId') as string;
     const { supplementId, date } = await c.req.json();
     await removeCheckIn(userId, supplementId, date);
     return c.json({ success: true });
