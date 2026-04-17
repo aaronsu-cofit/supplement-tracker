@@ -559,3 +559,38 @@ export async function updateScenario(
 export async function deleteScenario(id: string) {
   return db().coBlocksScenario.delete({ where: { id } });
 }
+
+// ─── User Menu Assignments ────────────────────────────────────────────────────
+
+export async function upsertUserMenuAssignment(
+  userId: string,
+  oaId: number,
+  templateId: number | null,
+  source: 'rule' | 'ai' | 'fallback' | 'manual'
+) {
+  return db().userMenuAssignment.upsert({
+    where: { user_id_oa_id: { user_id: userId, oa_id: oaId } },
+    create: { user_id: userId, oa_id: oaId, template_id: templateId, source, assigned_at: new Date() },
+    update: { template_id: templateId, source, assigned_at: new Date() },
+  });
+}
+
+export async function getUserMenuAssignment(userId: string, oaId: number) {
+  return db().userMenuAssignment.findUnique({
+    where: { user_id_oa_id: { user_id: userId, oa_id: oaId } },
+  });
+}
+
+export async function getActiveTemplateForOA(oaId: number) {
+  return db().lineOARichMenuTemplate.findFirst({
+    where: { oa_id: oaId, is_active: true, line_rich_menu_id: { not: null } },
+  });
+}
+
+export async function getRecentMenuAssignments(oaId: number, limit = 20) {
+  return db().userMenuAssignment.findMany({
+    where: { oa_id: oaId },
+    orderBy: { assigned_at: 'desc' },
+    take: limit,
+  });
+}
