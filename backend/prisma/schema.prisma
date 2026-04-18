@@ -266,3 +266,15 @@ model MessageDelivery {
   @@index([user_id], name: "idx_message_delivery_user")
   @@map("message_deliveries")
 }
+
+model EngagementEvent {
+  id          Int      @id @default(autoincrement())
+  user_id     String   @db.VarChar(64)
+  event_type  String   @db.VarChar(30)
+  payload     String?
+  occurred_at DateTime @default(now())
+
+  @@index([user_id, occurred_at], name: "idx_engagement_user_time")
+  @@index([event_type, occurred_at], name: "idx_engagement_type_time")
+  @@map("engagement_events")
+}

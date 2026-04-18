@@ -616,6 +616,8 @@ export async function getHQStats() {
     templateCount,
     deployedTemplateCount,
     recentAssignmentCount,
+    enrollmentCount,
+    recentEngagementCount,
   ] = await Promise.all([
     db().lineOA.count(),
     db().coBlocksScenario.count(),
@@ -623,6 +625,8 @@ export async function getHQStats() {
     db().lineOARichMenuTemplate.count(),
     db().lineOARichMenuTemplate.count({ where: { line_rich_menu_id: { not: null } } }),
     db().userMenuAssignment.count({ where: { assigned_at: { gte: sevenDaysAgo } } }),
+    db().enrollment.count({ where: { status: 'active' } }),
+    db().engagementEvent.count({ where: { occurred_at: { gte: sevenDaysAgo } } }),
   ]);
   return {
     oaCount,
@@ -631,6 +635,8 @@ export async function getHQStats() {
     templateCount,
     deployedTemplateCount,
     recentAssignmentCount,
+    enrollmentCount,
+    recentEngagementCount,
   };
 }
 
@@ -695,6 +701,12 @@ export async function enrollAllLineUsersInScenario(scenarioId: string): Promise<
  * (b) belong to the given OA (or to legacy oa_id='default'). Includes user
  * timezone and the scenario's flow JSON for scheduler consumption.
  */
+export async function logEngagementEvent(userId: string, eventType: string, payload?: string) {
+  return db().engagementEvent.create({
+    data: { user_id: userId, event_type: eventType, payload: payload ?? null },
+  });
+}
+
 export async function getActiveEnrollmentsForOA(oaId: number) {
   return db().enrollment.findMany({
     where: {

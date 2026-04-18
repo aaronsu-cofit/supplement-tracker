@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { verifyLineSignature, replyText } from '../lib/line.js'
 import { adkRun } from '../lib/adk.js'
-import { findOrCreateLineUser, getActiveScenariosForOA, enrollUserInScenario } from '../lib/db.js'
+import { findOrCreateLineUser, getActiveScenariosForOA, enrollUserInScenario, logEngagementEvent } from '../lib/db.js'
 import { evaluateAndAssignMenu } from '../lib/menuEvaluator.js'
 
 const webhook = new Hono()
@@ -16,11 +16,16 @@ interface LineTextMessage {
   text: string
 }
 
+interface LinePostback {
+  data: string
+}
+
 interface LineWebhookEvent {
   type: string
   replyToken?: string
   source: LineSource
   message?: LineTextMessage
+  postback?: LinePostback
 }
 
 interface LineWebhookPayload {
@@ -66,6 +71,10 @@ async function handleLineEvent(event: LineWebhookEvent): Promise<void> {
   }
 
   if (event.type === 'postback' && event.replyToken) {
+    logEngagementEvent(lineUserId, 'postback', event.postback?.data).catch(err =>
+      console.error('[webhook/line] log postback engagement error:', err)
+    )
+
     const liffUrl = process.env.LIFF_URL_MAIN || process.env.LIFF_URL_WOUNDS || ''
     try {
       await replyText(
@@ -85,6 +94,10 @@ async function handleLineEvent(event: LineWebhookEvent): Promise<void> {
     } catch (err) {
       console.error('[webhook/line] message findOrCreateLineUser error:', err)
     }
+
+    logEngagementEvent(lineUserId, 'text_reply', messageText.slice(0, 500)).catch(err =>
+      console.error('[webhook/line] log text engagement error:', err)
+    )
 
     try {
       const result = await adkRun('ai-expert', lineUserId, { message: messageText })

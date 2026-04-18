@@ -9,6 +9,8 @@ interface HQStats {
   templateCount: number;
   deployedTemplateCount: number;
   recentAssignmentCount: number;
+  enrollmentCount: number;
+  recentEngagementCount: number;
 }
 
 interface SchedulerResult {
@@ -57,9 +59,9 @@ export default function HQOverviewClient() {
 
   const cards = stats ? [
     { label: 'LINE OA 數量', value: String(stats.oaCount), trend: '', color: 'var(--hq-cyan)' },
-    { label: '劇本總數', value: String(stats.scenarioCount), trend: `${stats.activeScenarioCount} active`, color: 'var(--hq-purple)' },
+    { label: '劇本 / 活躍 enrollment', value: `${stats.activeScenarioCount} / ${stats.enrollmentCount}`, trend: `${stats.scenarioCount} total`, color: 'var(--hq-purple)' },
     { label: '選單模板', value: String(stats.templateCount), trend: `${stats.deployedTemplateCount} deployed`, color: 'var(--hq-success)' },
-    { label: '近 7 日選單分配', value: String(stats.recentAssignmentCount), trend: '', color: 'var(--hq-text-muted)' },
+    { label: '近 7 日分配 / 互動', value: `${stats.recentAssignmentCount} / ${stats.recentEngagementCount}`, trend: '', color: 'var(--hq-text-muted)' },
   ] : [];
 
   return (
