@@ -52,6 +52,7 @@ export default function HQLineMenuClient() {
     id: number;
     user_id: string;
     template_id: number | null;
+    template_name: string | null;
     source: string;
     assigned_at: string;
   }[]>([]);
@@ -597,14 +598,19 @@ export default function HQLineMenuClient() {
                     {assignments.map(a => (
                       <div
                         key={a.id}
-                        className="flex items-center justify-between bg-[var(--hq-bg-main)] rounded-lg px-3 py-2 text-xs"
+                        className="flex items-center justify-between gap-2 bg-[var(--hq-bg-main)] rounded-lg px-3 py-2 text-xs"
                       >
-                        <span className="font-mono text-white/70 truncate max-w-[180px]">{a.user_id}</span>
+                        <span className="font-mono text-white/70 truncate max-w-[180px]" title={a.user_id}>{a.user_id}</span>
                         <span className={`hq-badge ${
                           a.source === 'rule' ? 'hq-badge-green' :
                           a.source === 'ai' ? 'hq-badge-purple' : 'hq-badge-gray'
                         }`}>{a.source}</span>
-                        <span className="hq-muted-text">{a.template_id ?? '無選單'}</span>
+                        <span className="text-white/70 truncate max-w-[160px]" title={a.template_name ?? ''}>
+                          {a.template_name ?? (a.template_id != null ? `#${a.template_id}` : '無選單')}
+                        </span>
+                        <span className="hq-muted-text whitespace-nowrap">
+                          {new Date(a.assigned_at).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
                       </div>
                     ))}
                   </div>
