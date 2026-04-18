@@ -4,6 +4,7 @@ import {
   tryClaimDelivery,
   releaseDelivery,
 } from './db.js';
+import { withRetry } from './retry.js';
 
 interface FlowNode {
   id: string;
@@ -102,11 +103,15 @@ export async function runScheduler(now: Date = new Date()): Promise<SchedulerRun
           if (!claimed) { skipped++; continue; }
 
           try {
-            await client.pushMessage(user.id, { type: 'text', text: pushNode.data!.message! });
+            await withRetry(
+              () => client.pushMessage(user.id, { type: 'text', text: pushNode.data!.message! }),
+              `pushMessage user=${user.id} node=${pushNode.id}`,
+            );
             sent++;
           } catch (err) {
             await releaseDelivery(user.id, scenario.id, pushNode.id);
-            errors.push(`user=${user.id} node=${pushNode.id}: ${(err as Error).message}`);
+            const status = (err as { statusCode?: number })?.statusCode;
+            errors.push(`user=${user.id} node=${pushNode.id} status=${status ?? '?'}: ${(err as Error).message}`);
           }
         }
       }
