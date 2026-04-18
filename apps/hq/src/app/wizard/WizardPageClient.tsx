@@ -102,6 +102,26 @@ export default function WizardPageClient() {
     }
   }, [selectedScenarioId])
 
+  const handleDuplicateScenario = useCallback(async (scenario: Scenario) => {
+    try {
+      const res = await apiFetch(`/api/wizard/oa/${selectedOAId}/scenarios`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: `${scenario.name} (copy)`,
+          flow_nodes: scenario.flow_nodes,
+          flow_edges: scenario.flow_edges,
+        }),
+      })
+      const { scenario: created } = await res.json() as { scenario: Scenario }
+      setScenarios(prev => [created, ...prev])
+      setSelectedScenarioId(created.id)
+      setEditorKey(created.id)
+    } catch (err) {
+      console.error('[wizard] duplicate error:', err)
+    }
+  }, [selectedOAId])
+
   const selectedScenario = scenarios.find(s => s.id === selectedScenarioId)
 
   return (
@@ -156,6 +176,13 @@ export default function WizardPageClient() {
                       }`}
                     >
                       ●
+                    </button>
+                    <button
+                      onClick={() => handleDuplicateScenario(s)}
+                      title="Duplicate scenario"
+                      className="text-[11px] w-6 h-6 flex items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/30 hover:text-white/80 hover:border-white/20 transition-colors cursor-pointer"
+                    >
+                      ⎘
                     </button>
                     <button
                       onClick={() => handleDeleteScenario(s)}
