@@ -588,9 +588,21 @@ export async function getActiveTemplateForOA(oaId: number) {
 }
 
 export async function getRecentMenuAssignments(oaId: number, limit = 20) {
-  return db().userMenuAssignment.findMany({
+  const rows = await db().userMenuAssignment.findMany({
     where: { oa_id: oaId },
     orderBy: { assigned_at: 'desc' },
     take: limit,
   });
+  const templateIds = [...new Set(rows.map(r => r.template_id).filter((id): id is number => id !== null))];
+  const templates = templateIds.length
+    ? await db().lineOARichMenuTemplate.findMany({
+        where: { id: { in: templateIds } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const nameById = new Map(templates.map(t => [t.id, t.name]));
+  return rows.map(r => ({
+    ...r,
+    template_name: r.template_id != null ? nameById.get(r.template_id) ?? null : null,
+  }));
 }
