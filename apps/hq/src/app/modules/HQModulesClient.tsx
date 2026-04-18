@@ -42,7 +42,7 @@ export default function HQModulesClient() {
         setSavingId(id);
         setError(null);
         try {
-            const res = await fetch(`/api/hq/modules/${id}`, {
+            const res = await apiFetch(`/api/hq/modules/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ [field]: value }),

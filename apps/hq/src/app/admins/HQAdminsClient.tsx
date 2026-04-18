@@ -19,9 +19,7 @@ export default function HQAdminsClient() {
             const res = await apiFetch('/api/hq/admins');
             if (!res.ok) throw new Error('無法取得人員名單，請確認您的權限。');
             const data = await res.json();
-            if (data.success) {
-                setUsers(data.users);
-            }
+            setUsers(data.users || []);
         } catch (err) {
             setError((err as Error).message);
         } finally {
@@ -32,17 +30,17 @@ export default function HQAdminsClient() {
     const handleRoleChange = async (userId: string, newRole: string) => {
         setRoleChangeError(null);
         try {
-            const res = await apiFetch('/api/hq/admins', {
+            const res = await apiFetch(`/api/hq/admins/${userId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, newRole })
+                body: JSON.stringify({ role: newRole })
             });
             const data = await res.json();
-            if (data.success) {
-                setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
-            } else {
+            if (!res.ok) {
                 setRoleChangeError(data.error || '權限變更失敗');
+                return;
             }
+            setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
         } catch (err) {
             setRoleChangeError('網路錯誤，無法變更權限');
         }
