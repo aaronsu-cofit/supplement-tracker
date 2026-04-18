@@ -29,6 +29,8 @@ const DEFAULT_NODE_DATA: Record<string, Record<string, unknown>> = {
   'menu-change-node':  { menuName: '',      label: 'Switch Menu' },
 }
 
+export interface WizardTemplate { id: number; name: string; line_rich_menu_id: string | null; is_active: boolean }
+
 interface WizardEditorProps {
   oaId: string
   scenarioId: string | null
@@ -36,9 +38,10 @@ interface WizardEditorProps {
   initialNodes: Node[]
   initialEdges: Edge[]
   onSaved: (id: string, name: string) => void
+  templates: WizardTemplate[]
 }
 
-function EditorInner({ oaId, scenarioId, scenarioName: initialScenarioName, initialNodes, initialEdges, onSaved }: WizardEditorProps) {
+function EditorInner({ oaId, scenarioId, scenarioName: initialScenarioName, initialNodes, initialEdges, onSaved, templates }: WizardEditorProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initialEdges)
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
@@ -158,7 +161,7 @@ function EditorInner({ oaId, scenarioId, scenarioName: initialScenarioName, init
       </div>
       <div className="w-[280px] border-l border-white/[0.08] p-4 overflow-y-auto shrink-0">
         <p className="text-[10px] text-white/30 uppercase tracking-[0.1em] mb-3">Config</p>
-        <ConfigPanel node={selectedNode} />
+        <ConfigPanel node={selectedNode} templates={templates} />
       </div>
     </div>
   )
