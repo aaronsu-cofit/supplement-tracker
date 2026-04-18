@@ -48,13 +48,6 @@ export interface ActionStatus {
 
 // ─── UI ──────────────────────────────────────────────────────────────────────
 
-export interface HQMetric {
-  label: string;
-  value: string;
-  trend: string;
-  color: string;
-}
-
 export interface ModuleInfo {
   id: string;
   name: string;
