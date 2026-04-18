@@ -1,14 +1,15 @@
 import { Hono } from 'hono';
+import type { HonoEnv } from '../types.js';
 import { softAuthMiddleware } from '../middleware/authMiddleware.js';
 import { getSupplements, createSupplement, updateSupplement, deleteSupplement } from '../lib/db.js';
 
-const supplements = new Hono();
+const supplements = new Hono<HonoEnv>();
 supplements.use('*', softAuthMiddleware);
 
 // GET /api/supplements
 supplements.get('/', async (c) => {
   try {
-    const userId = (c as any).get('userId') as string;
+    const userId = c.get('userId');
     const data = await getSupplements(userId);
     return c.json(data);
   } catch (error) {
@@ -19,7 +20,7 @@ supplements.get('/', async (c) => {
 // POST /api/supplements
 supplements.post('/', async (c) => {
   try {
-    const userId = (c as any).get('userId') as string;
+    const userId = c.get('userId');
     const data = await c.req.json();
     if (!data.name?.trim()) return c.json({ error: 'Name is required' }, 400);
     const supplement = await createSupplement(userId, data);
@@ -32,7 +33,7 @@ supplements.post('/', async (c) => {
 // PUT /api/supplements/:id
 supplements.put('/:id', async (c) => {
   try {
-    const userId = (c as any).get('userId') as string;
+    const userId = c.get('userId');
     const id = c.req.param('id');
     const data = await c.req.json();
     if (!data.name?.trim()) return c.json({ error: 'Name is required' }, 400);
@@ -47,7 +48,7 @@ supplements.put('/:id', async (c) => {
 // DELETE /api/supplements/:id
 supplements.delete('/:id', async (c) => {
   try {
-    const userId = (c as any).get('userId') as string;
+    const userId = c.get('userId');
     const id = c.req.param('id');
     await deleteSupplement(userId, id);
     return c.json({ success: true });

@@ -1,14 +1,15 @@
 import { Hono } from 'hono';
+import type { HonoEnv } from '../types.js';
 import { softAuthMiddleware } from '../middleware/authMiddleware.js';
 import { getCheckIns, createCheckIn, removeCheckIn, getCheckInHistory, getStreak } from '../lib/db.js';
 
-const checkins = new Hono();
+const checkins = new Hono<HonoEnv>();
 checkins.use('*', softAuthMiddleware);
 
 // GET /api/checkins
 checkins.get('/', async (c) => {
   try {
-    const userId = (c as any).get('userId') as string;
+    const userId = c.get('userId');
     const { date, startDate, endDate, type } = c.req.query();
 
     if (type === 'streak') {
@@ -30,7 +31,7 @@ checkins.get('/', async (c) => {
 // POST /api/checkins
 checkins.post('/', async (c) => {
   try {
-    const userId = (c as any).get('userId') as string;
+    const userId = c.get('userId');
     const { supplementId } = await c.req.json();
     if (!supplementId) return c.json({ error: 'supplementId is required' }, 400);
     const checkIn = await createCheckIn(userId, supplementId);
@@ -43,7 +44,7 @@ checkins.post('/', async (c) => {
 // DELETE /api/checkins
 checkins.delete('/', async (c) => {
   try {
-    const userId = (c as any).get('userId') as string;
+    const userId = c.get('userId');
     const { supplementId, date } = await c.req.json();
     await removeCheckIn(userId, supplementId, date);
     return c.json({ success: true });

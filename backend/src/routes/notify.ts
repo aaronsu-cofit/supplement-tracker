@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
+import type { HonoEnv } from '../types.js';
 import { softAuthMiddleware } from '../middleware/authMiddleware.js';
 
-const notify = new Hono();
+const notify = new Hono<HonoEnv>();
 notify.use('*', softAuthMiddleware);
 
 const getLineClient = async () => {
@@ -13,7 +14,7 @@ const getLineClient = async () => {
 
 notify.post('/', async (c) => {
   try {
-    const userId = (c as any).get('userId') as string;
+    const userId = c.get('userId');
     if (!userId) return c.json({ error: 'User not authenticated' }, 401);
 
     const { type } = await c.req.json();

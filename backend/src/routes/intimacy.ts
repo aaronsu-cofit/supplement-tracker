@@ -1,14 +1,15 @@
 import { Hono } from 'hono';
+import type { HonoEnv } from '../types.js';
 import { softAuthMiddleware } from '../middleware/authMiddleware.js';
 import { getIntimacyAssessments, createIntimacyAssessment } from '../lib/db.js';
 
-const intimacy = new Hono();
+const intimacy = new Hono<HonoEnv>();
 intimacy.use('*', softAuthMiddleware);
 
 // GET /api/intimacy/assessments
 intimacy.get('/assessments', async (c) => {
   try {
-    const userId = (c as any).get('userId') as string;
+    const userId = c.get('userId');
     const assessments = await getIntimacyAssessments(userId);
     return c.json({ success: true, assessments });
   } catch (error) {
@@ -19,7 +20,7 @@ intimacy.get('/assessments', async (c) => {
 // POST /api/intimacy/assessments
 intimacy.post('/assessments', async (c) => {
   try {
-    const userId = (c as any).get('userId') as string;
+    const userId = c.get('userId');
     const body = await c.req.json();
     const assessment = await createIntimacyAssessment(userId, body);
     return c.json({ success: true, assessment });
