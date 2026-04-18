@@ -606,3 +606,30 @@ export async function getRecentMenuAssignments(oaId: number, limit = 20) {
     template_name: r.template_id != null ? nameById.get(r.template_id) ?? null : null,
   }));
 }
+
+export async function getHQStats() {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const [
+    oaCount,
+    scenarioCount,
+    activeScenarioCount,
+    templateCount,
+    deployedTemplateCount,
+    recentAssignmentCount,
+  ] = await Promise.all([
+    db().lineOA.count(),
+    db().coBlocksScenario.count(),
+    db().coBlocksScenario.count({ where: { is_active: true } }),
+    db().lineOARichMenuTemplate.count(),
+    db().lineOARichMenuTemplate.count({ where: { line_rich_menu_id: { not: null } } }),
+    db().userMenuAssignment.count({ where: { assigned_at: { gte: sevenDaysAgo } } }),
+  ]);
+  return {
+    oaCount,
+    scenarioCount,
+    activeScenarioCount,
+    templateCount,
+    deployedTemplateCount,
+    recentAssignmentCount,
+  };
+}

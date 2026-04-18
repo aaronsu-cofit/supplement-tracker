@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { softAuthMiddleware } from '../middleware/authMiddleware.js';
-import { getAllModules, updateModule, getAllUsers, updateUserRole } from '../lib/db.js';
+import { getAllModules, updateModule, getAllUsers, updateUserRole, getHQStats } from '../lib/db.js';
 
 const hq = new Hono();
 hq.use('*', softAuthMiddleware);
@@ -50,6 +50,17 @@ hq.patch('/admins/:userId', async (c) => {
     return c.json({ success: true, user });
   } catch (error) {
     return c.json({ error: 'Failed to update user role' }, 500);
+  }
+});
+
+// GET /api/hq/stats
+hq.get('/stats', async (c) => {
+  try {
+    const stats = await getHQStats();
+    return c.json(stats);
+  } catch (error) {
+    console.error('Failed to fetch HQ stats:', error);
+    return c.json({ error: 'Failed to fetch stats' }, 500);
   }
 });
 
