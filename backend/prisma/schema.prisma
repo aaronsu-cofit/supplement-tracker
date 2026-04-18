@@ -232,3 +232,15 @@ model UserMenuAssignment {
   @@index([oa_id], name: "idx_user_menu_oa")
   @@map("user_menu_assignments")
 }
+
+model MessageDelivery {
+  id           Int      @id @default(autoincrement())
+  user_id      String   @db.VarChar(64)
+  scenario_id  String   @db.VarChar(30)
+  node_id      String   @db.VarChar(100)
+  delivered_at DateTime @default(now())
+
+  @@unique([user_id, scenario_id, node_id])
+  @@index([user_id], name: "idx_message_delivery_user")
+  @@map("message_deliveries")
+}

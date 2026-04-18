@@ -641,3 +641,34 @@ export async function getUserRole(userId: string): Promise<string | null> {
   });
   return row?.role ?? null;
 }
+
+// ============================================
+// Scheduler (push message engine)
+// ============================================
+export async function getLineUsers() {
+  return db().user.findMany({
+    where: { auth_provider: 'line' },
+    select: { id: true, created_at: true },
+  });
+}
+
+export async function getActiveScenariosForOA(oaId: number) {
+  return db().coBlocksScenario.findMany({
+    where: {
+      is_active: true,
+      OR: [{ oa_id: oaId.toString() }, { oa_id: 'default' }],
+    },
+  });
+}
+
+export async function getMessageDelivery(userId: string, scenarioId: string, nodeId: string) {
+  return db().messageDelivery.findUnique({
+    where: { user_id_scenario_id_node_id: { user_id: userId, scenario_id: scenarioId, node_id: nodeId } },
+  });
+}
+
+export async function createMessageDelivery(userId: string, scenarioId: string, nodeId: string) {
+  return db().messageDelivery.create({
+    data: { user_id: userId, scenario_id: scenarioId, node_id: nodeId },
+  });
+}

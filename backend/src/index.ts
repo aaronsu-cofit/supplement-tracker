@@ -20,6 +20,7 @@ import aiRoutes from './routes/ai.js';
 import webhookRoutes from './routes/webhook.js';
 import wizardRoutes from './routes/wizard.js';
 import menuRoutes from './routes/menu.js';
+import schedulerRoutes from './routes/scheduler.js';
 
 const app = new Hono();
 
@@ -62,6 +63,7 @@ app.route('/api/line/richmenu', richmenuRoutes);
 app.route('/api/line/oa', lineoaRoutes);
 app.route('/api/wizard', wizardRoutes);
 app.route('/api/menu', menuRoutes);
+app.route('/api/scheduler', schedulerRoutes);
 app.route('/webhook', webhookRoutes);
 
 // 404 fallback
