@@ -25,7 +25,7 @@ const nodeTypes: NodeTypes = {
 const DEFAULT_NODE_DATA: Record<string, Record<string, unknown>> = {
   'day-node':          { day: 1,            label: 'Day 1' },
   'ai-skill-node':     { agentId: 'ai-expert', label: 'AI Expert' },
-  'push-message-node': { message: '',       label: 'Push Message' },
+  'push-message-node': { type: 'text', message: '', label: 'Push Message' },
   'menu-change-node':  { menuName: '',      label: 'Switch Menu' },
 }
 

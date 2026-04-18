@@ -9,12 +9,50 @@ import { daysBetweenInTz } from './time.js';
 interface FlowNode {
   id: string;
   type?: string;
-  data?: { day?: number; message?: string };
+  data?: {
+    day?: number;
+    // push-message-node payload fields:
+    type?: 'text' | 'image' | 'sticker';
+    message?: string;
+    imageUrl?: string;
+    previewUrl?: string;
+    stickerPackageId?: string;
+    stickerId?: string;
+  };
 }
 
 interface FlowEdge {
   source: string;
   target: string;
+}
+
+/**
+ * Build the LINE Messaging API message object from a push-message-node's
+ * data. Returns null if required fields are missing for the selected type.
+ */
+function buildLineMessage(data: FlowNode['data']): import('@line/bot-sdk').Message | null {
+  const t = data?.type || 'text';
+  if (t === 'text') {
+    if (!data?.message) return null;
+    return { type: 'text', text: data.message };
+  }
+  if (t === 'image') {
+    if (!data?.imageUrl) return null;
+    return {
+      type: 'image',
+      originalContentUrl: data.imageUrl,
+      previewImageUrl: data.previewUrl || data.imageUrl,
+    };
+  }
+  if (t === 'sticker') {
+    if (!data?.stickerPackageId || !data?.stickerId) return null;
+    return {
+      type: 'sticker',
+      packageId: data.stickerPackageId,
+      stickerId: data.stickerId,
+    };
+  }
+  return null;
 }
 
 export interface SchedulerRunResult {
@@ -72,17 +110,21 @@ export async function runScheduler(now: Date = new Date()): Promise<SchedulerRun
 
     for (const dayNode of dayNodes) {
       const targetIds = edges.filter(e => e.source === dayNode.id).map(e => e.target);
-      const pushNodes = nodes.filter(
-        n => targetIds.includes(n.id) && n.type === 'push-message-node' && n.data?.message,
-      );
+      const pushNodes = nodes.filter(n => targetIds.includes(n.id) && n.type === 'push-message-node');
 
       for (const pushNode of pushNodes) {
+        const message = buildLineMessage(pushNode.data);
+        if (!message) {
+          errors.push(`user=${userId} node=${pushNode.id}: skipped (missing required fields for type=${pushNode.data?.type || 'text'})`);
+          continue;
+        }
+
         const claimed = await tryClaimDelivery(userId, enr.scenario.id, pushNode.id);
         if (!claimed) { skipped++; continue; }
 
         try {
           await withRetry(
-            () => client.pushMessage(userId, { type: 'text', text: pushNode.data!.message! }),
+            () => client.pushMessage(userId, message),
             `pushMessage user=${userId} node=${pushNode.id}`,
           );
           sent++;
