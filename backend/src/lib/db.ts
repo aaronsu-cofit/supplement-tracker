@@ -633,3 +633,11 @@ export async function getHQStats() {
     recentAssignmentCount,
   };
 }
+
+export async function getUserRole(userId: string): Promise<string | null> {
+  const row = await db().user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  return row?.role ?? null;
+}
