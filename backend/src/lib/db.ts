@@ -661,6 +661,56 @@ export async function getActiveScenariosForOA(oaId: number) {
   });
 }
 
+/**
+ * Idempotently enroll a user in a scenario. If an enrollment already exists
+ * (regardless of its status), it is NOT overwritten — caller can explicitly
+ * update the status via updateEnrollmentStatus.
+ */
+export async function enrollUserInScenario(userId: string, scenarioId: string, enrolledAt?: Date) {
+  return db().enrollment.upsert({
+    where: { user_id_scenario_id: { user_id: userId, scenario_id: scenarioId } },
+    create: { user_id: userId, scenario_id: scenarioId, enrolled_at: enrolledAt ?? new Date() },
+    update: {},
+  });
+}
+
+/**
+ * Bulk-enroll every LINE user in the given scenario (e.g., when a scenario
+ * is newly activated). Uses createMany(skipDuplicates) so existing
+ * enrollments are preserved. Returns the count of LINE users considered.
+ */
+export async function enrollAllLineUsersInScenario(scenarioId: string): Promise<number> {
+  const users = await db().user.findMany({ where: { auth_provider: 'line' }, select: { id: true } });
+  if (users.length === 0) return 0;
+  const now = new Date();
+  await db().enrollment.createMany({
+    data: users.map(u => ({ user_id: u.id, scenario_id: scenarioId, enrolled_at: now })),
+    skipDuplicates: true,
+  });
+  return users.length;
+}
+
+/**
+ * Returns active enrollments for scenarios that (a) are is_active=true and
+ * (b) belong to the given OA (or to legacy oa_id='default'). Includes user
+ * timezone and the scenario's flow JSON for scheduler consumption.
+ */
+export async function getActiveEnrollmentsForOA(oaId: number) {
+  return db().enrollment.findMany({
+    where: {
+      status: 'active',
+      scenario: {
+        is_active: true,
+        OR: [{ oa_id: oaId.toString() }, { oa_id: 'default' }],
+      },
+    },
+    include: {
+      user: { select: { id: true, timezone: true } },
+      scenario: { select: { id: true, flow_nodes: true, flow_edges: true } },
+    },
+  });
+}
+
 export async function getMessageDelivery(userId: string, scenarioId: string, nodeId: string) {
   return db().messageDelivery.findUnique({
     where: { user_id_scenario_id_node_id: { user_id: userId, scenario_id: scenarioId, node_id: nodeId } },

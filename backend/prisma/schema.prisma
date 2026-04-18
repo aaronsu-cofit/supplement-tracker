@@ -26,6 +26,7 @@ model User {
   foot_images          FootImage[]
   shoe_images          ShoeImage[]
   intimacy_assessments IntimacyAssessment[]
+  enrollments          Enrollment[]
 
   @@map("users")
 }
@@ -218,7 +219,27 @@ model CoBlocksScenario {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
+  enrollments Enrollment[]
+
   @@map("coblocks_scenarios")
+}
+
+model Enrollment {
+  id          Int      @id @default(autoincrement())
+  user_id     String   @db.VarChar(64)
+  scenario_id String   @db.VarChar(30)
+  enrolled_at DateTime @default(now())
+  status      String   @default("active") @db.VarChar(20)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  user     User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  scenario CoBlocksScenario @relation(fields: [scenario_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, scenario_id])
+  @@index([user_id], name: "idx_enrollment_user")
+  @@index([scenario_id, status], name: "idx_enrollment_scenario_status")
+  @@map("enrollments")
 }
 
 model UserMenuAssignment {

@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { verifyLineSignature, replyText } from '../lib/line.js'
 import { adkRun } from '../lib/adk.js'
-import { findOrCreateLineUser } from '../lib/db.js'
+import { findOrCreateLineUser, getActiveScenariosForOA, enrollUserInScenario } from '../lib/db.js'
 import { evaluateAndAssignMenu } from '../lib/menuEvaluator.js'
 
 const webhook = new Hono()
@@ -44,6 +44,14 @@ async function handleLineEvent(event: LineWebhookEvent): Promise<void> {
     if (oaId > 0 && channelToken) {
       evaluateAndAssignMenu(oaId, lineUserId, channelToken).catch(err =>
         console.error('[webhook/line] follow menu evaluation error:', err)
+      )
+
+      // Auto-enroll the newly-followed user in every active scenario for this OA
+      ;(async () => {
+        const scenarios = await getActiveScenariosForOA(oaId)
+        await Promise.all(scenarios.map(s => enrollUserInScenario(lineUserId, s.id)))
+      })().catch(err =>
+        console.error('[webhook/line] follow auto-enroll error:', err)
       )
     }
 

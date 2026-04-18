@@ -15,8 +15,7 @@ interface SchedulerResult {
   sent: number;
   skipped: number;
   errors: string[];
-  usersConsidered: number;
-  scenariosConsidered: number;
+  enrollmentsConsidered: number;
 }
 
 export default function HQOverviewClient() {
@@ -118,7 +117,7 @@ export default function HQOverviewClient() {
           <div className="mt-3 text-xs text-white/70 space-y-1">
             <div>✅ 已送出：<span className="text-[#5ce0d8] font-semibold">{runResult.sent}</span> 則</div>
             <div>⏭ 已跳過（之前送過）：{runResult.skipped} 則</div>
-            <div>👥 評估使用者：{runResult.usersConsidered}；劇本：{runResult.scenariosConsidered}</div>
+            <div>👥 評估 enrollment 數：{runResult.enrollmentsConsidered}</div>
             {runResult.errors.length > 0 && (
               <details className="mt-2">
                 <summary className="cursor-pointer text-amber-400/80">錯誤 {runResult.errors.length} 則</summary>

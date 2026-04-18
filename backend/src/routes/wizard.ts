@@ -3,6 +3,7 @@ import { authMiddleware } from '../middleware/authMiddleware.js'
 import {
   getScenariosForOA, getScenarioById,
   createScenario, updateScenario, deleteScenario,
+  enrollAllLineUsersInScenario,
 } from '../lib/db.js'
 
 // TODO(security): PATCH/DELETE/GET single-scenario routes do not verify OA ownership.
@@ -50,6 +51,13 @@ wizard.patch('/scenarios/:id', async (c) => {
   }
   try {
     const scenario = await updateScenario(c.req.param('id'), body)
+    // When a scenario becomes active, enroll all existing LINE users so they
+    // can start receiving scheduled messages (new follows auto-enroll via webhook).
+    if (body.is_active === true) {
+      enrollAllLineUsersInScenario(scenario.id).catch(err =>
+        console.error('[wizard] enrollAllLineUsersInScenario error:', err)
+      )
+    }
     return c.json({ scenario })
   } catch (e: unknown) {
     if ((e as { code?: string })?.code === 'P2025') return c.json({ error: 'not found' }, 404)
