@@ -4,10 +4,11 @@ import type { DayNodeData } from './nodes/DayNode'
 import type { AiSkillNodeData } from './nodes/AiSkillNode'
 import type { PushMessageNodeData } from './nodes/PushMessageNode'
 import type { MenuChangeNodeData } from './nodes/MenuChangeNode'
+import type { WizardTemplate } from './WizardEditor'
 
-interface Props { node: Node | null }
+interface Props { node: Node | null; templates: WizardTemplate[] }
 
-export default function ConfigPanel({ node }: Props) {
+export default function ConfigPanel({ node, templates }: Props) {
   const { updateNodeData } = useReactFlow()
 
   if (!node) {
@@ -98,6 +99,8 @@ export default function ConfigPanel({ node }: Props) {
 
   if (node.type === 'menu-change-node') {
     const d = node.data as unknown as MenuChangeNodeData
+    const hasTemplates = templates.length > 0
+    const menuNameInvalid = hasTemplates && d.menuName !== '' && !templates.some(t => t.name === d.menuName)
     return (
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
@@ -111,13 +114,32 @@ export default function ConfigPanel({ node }: Props) {
         </div>
         <div className="flex flex-col gap-1">
           <span className="text-[10px] text-white/40 uppercase tracking-[0.08em]">Menu Name</span>
-          <input
-            type="text"
-            value={d.menuName}
-            placeholder="e.g. Recovery Menu"
-            onChange={(e) => upd({ menuName: e.target.value })}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30"
-          />
+          {hasTemplates ? (
+            <select
+              value={d.menuName}
+              onChange={(e) => upd({ menuName: e.target.value })}
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30 cursor-pointer"
+            >
+              <option value="">(select menu)</option>
+              {templates.map(t => (
+                <option key={t.id} value={t.name}>
+                  {t.name}{t.is_active ? ' (active)' : ''}{!t.line_rich_menu_id ? ' — not deployed' : ''}
+                </option>
+              ))}
+              {menuNameInvalid && <option value={d.menuName}>{d.menuName} (missing)</option>}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={d.menuName}
+              placeholder="e.g. Recovery Menu"
+              onChange={(e) => upd({ menuName: e.target.value })}
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30"
+            />
+          )}
+          {menuNameInvalid && (
+            <span className="text-[10px] text-amber-400/80">Template "{d.menuName}" not found in this OA.</span>
+          )}
         </div>
       </div>
     )
