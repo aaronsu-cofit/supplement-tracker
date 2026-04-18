@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ReactFlow, ReactFlowProvider, Background, Controls, MiniMap,
   addEdge, useNodesState, useEdgesState, useReactFlow,
@@ -119,6 +119,17 @@ function EditorInner({ oaId, scenarioId, scenarioName: initialScenarioName, init
       setSaving(false)
     }
   }, [currentScenarioId, scenarioName, nodes, edges, oaId, onSaved])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault()
+        handleSave()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [handleSave])
 
   return (
     <div className="flex flex-1 bg-[#0d0d0d] text-white min-h-0">
