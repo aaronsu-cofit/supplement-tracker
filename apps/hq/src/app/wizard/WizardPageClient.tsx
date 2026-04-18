@@ -6,6 +6,7 @@ import WizardEditor from './WizardEditor'
 
 interface OA { id: number; name: string; is_active: boolean }
 interface Scenario { id: string; name: string; flow_nodes: unknown; flow_edges: unknown; is_active: boolean }
+interface Template { id: number; name: string; line_rich_menu_id: string | null; is_active: boolean }
 
 const DEFAULT_NODES: Node[] = [
   { id: 'day-0', type: 'day-node', position: { x: 80, y: 180 }, data: { day: 0, label: 'Follow' } },
@@ -17,6 +18,7 @@ export default function WizardPageClient() {
   const [scenarios, setScenarios] = useState<Scenario[]>([])
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null)
   const [loadingScenarios, setLoadingScenarios] = useState(false)
+  const [templates, setTemplates] = useState<Template[]>([])
   const [editorKey, setEditorKey] = useState('new')
 
   useEffect(() => {
@@ -36,6 +38,17 @@ export default function WizardPageClient() {
       .then(({ scenarios: data }: { scenarios: Scenario[] }) => setScenarios(data ?? []))
       .catch(console.error)
       .finally(() => setLoadingScenarios(false))
+  }, [selectedOAId])
+
+  useEffect(() => {
+    if (selectedOAId === 'default') {
+      setTemplates([])
+      return
+    }
+    apiFetch(`/api/line/oa/${selectedOAId}/templates`)
+      .then(r => r.json())
+      .then(({ templates: data }: { templates: Template[] }) => setTemplates(data ?? []))
+      .catch(console.error)
   }, [selectedOAId])
 
   const handleOAChange = useCallback((oaId: string) => {
@@ -168,6 +181,7 @@ export default function WizardPageClient() {
         initialNodes={(selectedScenario?.flow_nodes as Node[] | undefined) ?? DEFAULT_NODES}
         initialEdges={(selectedScenario?.flow_edges as Edge[] | undefined) ?? []}
         onSaved={handleSaved}
+        templates={templates}
       />
     </div>
   )
