@@ -24,12 +24,29 @@ export interface SchedulerRunResult {
   scenariosConsidered: number;
 }
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+/**
+ * Compute calendar-day difference between `from` and `to` evaluated in the
+ * given IANA timezone. Example: if from=2026-01-01T23:00 UTC and
+ * to=2026-01-02T01:00 UTC with tz=Asia/Taipei (UTC+8), both are 2026-01-02
+ * local → returns 0. Robust against DST and offset edges.
+ */
+function daysBetweenInTz(from: Date, to: Date, tz: string): number {
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+  const toYmd = (d: Date) => {
+    const parts = fmt.formatToParts(d);
+    const y = parts.find(p => p.type === 'year')!.value;
+    const m = parts.find(p => p.type === 'month')!.value;
+    const day = parts.find(p => p.type === 'day')!.value;
+    return Date.UTC(parseInt(y), parseInt(m) - 1, parseInt(day));
+  };
+  return Math.floor((toYmd(to) - toYmd(from)) / (24 * 60 * 60 * 1000));
+}
 
 /**
  * Runs the push-message scheduler once. For each LINE user, computes days
- * since follow (User.created_at). For each active scenario matching the
- * configured LINE_OA_ID (or 'default'), finds day-nodes with data.day
+ * since follow — evaluated as calendar days in the user's timezone (not
+ * raw elapsed 24-hour periods in UTC). For each active scenario matching
+ * the configured LINE_OA_ID (or 'default'), finds day-nodes with data.day
  * equal to that user's day count, follows outgoing edges, and pushes any
  * connected push-message-nodes via the LINE Messaging API. Delivery is
  * recorded so the same (user, scenario, node) combination is never sent twice.
@@ -65,7 +82,7 @@ export async function runScheduler(now: Date = new Date()): Promise<SchedulerRun
   const errors: string[] = [];
 
   for (const user of users) {
-    const daysSinceFollow = Math.floor((now.getTime() - user.created_at.getTime()) / MS_PER_DAY);
+    const daysSinceFollow = daysBetweenInTz(user.created_at, now, user.timezone || 'Asia/Taipei');
 
     for (const scenario of scenarios) {
       const nodes: FlowNode[] = Array.isArray(scenario.flow_nodes) ? (scenario.flow_nodes as unknown as FlowNode[]) : [];

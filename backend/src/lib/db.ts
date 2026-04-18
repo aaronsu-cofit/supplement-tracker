@@ -648,7 +648,7 @@ export async function getUserRole(userId: string): Promise<string | null> {
 export async function getLineUsers() {
   return db().user.findMany({
     where: { auth_provider: 'line' },
-    select: { id: true, created_at: true },
+    select: { id: true, created_at: true, timezone: true },
   });
 }
 

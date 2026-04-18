@@ -15,6 +15,7 @@ model User {
   picture_url   String?
   auth_provider String   @db.VarChar(20)
   role          String   @default("user") @db.VarChar(20)
+  timezone      String   @default("Asia/Taipei") @db.VarChar(50)
   created_at    DateTime @default(now())
 
   supplements          Supplement[]
