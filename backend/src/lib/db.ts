@@ -667,8 +667,34 @@ export async function getMessageDelivery(userId: string, scenarioId: string, nod
   });
 }
 
-export async function createMessageDelivery(userId: string, scenarioId: string, nodeId: string) {
-  return db().messageDelivery.create({
-    data: { user_id: userId, scenario_id: scenarioId, node_id: nodeId },
-  });
+/**
+ * Atomically claim a (user, scenario, node) delivery slot. Returns true if
+ * this caller won the claim; false if another caller (or a previous run)
+ * already claimed it. The unique constraint makes this a safe compare-and-set.
+ */
+export async function tryClaimDelivery(userId: string, scenarioId: string, nodeId: string): Promise<boolean> {
+  try {
+    await db().messageDelivery.create({
+      data: { user_id: userId, scenario_id: scenarioId, node_id: nodeId },
+    });
+    return true;
+  } catch (err) {
+    if ((err as { code?: string })?.code === 'P2002') return false;
+    throw err;
+  }
+}
+
+/**
+ * Release a previously claimed delivery slot so a future run may retry.
+ * Called when the downstream push failed after the claim succeeded.
+ */
+export async function releaseDelivery(userId: string, scenarioId: string, nodeId: string): Promise<void> {
+  try {
+    await db().messageDelivery.delete({
+      where: { user_id_scenario_id_node_id: { user_id: userId, scenario_id: scenarioId, node_id: nodeId } },
+    });
+  } catch (err) {
+    if ((err as { code?: string })?.code === 'P2025') return;
+    throw err;
+  }
 }

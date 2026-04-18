@@ -1,8 +1,8 @@
 import {
   getLineUsers,
   getActiveScenariosForOA,
-  getMessageDelivery,
-  createMessageDelivery,
+  tryClaimDelivery,
+  releaseDelivery,
 } from './db.js';
 
 interface FlowNode {
@@ -81,14 +81,14 @@ export async function runScheduler(now: Date = new Date()): Promise<SchedulerRun
         );
 
         for (const pushNode of pushNodes) {
-          const existing = await getMessageDelivery(user.id, scenario.id, pushNode.id);
-          if (existing) { skipped++; continue; }
+          const claimed = await tryClaimDelivery(user.id, scenario.id, pushNode.id);
+          if (!claimed) { skipped++; continue; }
 
           try {
             await client.pushMessage(user.id, { type: 'text', text: pushNode.data!.message! });
-            await createMessageDelivery(user.id, scenario.id, pushNode.id);
             sent++;
           } catch (err) {
+            await releaseDelivery(user.id, scenario.id, pushNode.id);
             errors.push(`user=${user.id} node=${pushNode.id}: ${(err as Error).message}`);
           }
         }
