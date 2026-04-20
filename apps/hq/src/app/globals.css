@@ -1177,3 +1177,39 @@ textarea.form-input {
     opacity: 0.6;
   }
 }
+/* ─── React Flow (Wizard canvas) — readable on dark background ─────────── */
+
+.react-flow__controls {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: white !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  width: 28px !important;
+  height: 28px !important;
+}
+
+.react-flow__controls-button:hover {
+  background: rgba(255, 255, 255, 0.18) !important;
+}
+
+.react-flow__controls-button svg {
+  fill: white !important;
+}
+
+.react-flow__minimap {
+  border-radius: 8px;
+}
+
+.react-flow__attribution {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.react-flow__attribution a {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
