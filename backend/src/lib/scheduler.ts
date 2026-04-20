@@ -1,5 +1,6 @@
 import {
   getActiveEnrollmentsForOA,
+  getLineOAById,
   tryClaimDelivery,
   releaseDelivery,
 } from './db.js';
@@ -24,13 +25,31 @@ export interface SchedulerRunResult {
  */
 export async function runScheduler(now: Date = new Date()): Promise<SchedulerRunResult> {
   const oaId = parseInt(process.env.LINE_OA_ID || '0');
-  const channelToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
-
-  if (!oaId || !channelToken) {
+  if (!oaId) {
     return {
       sent: 0,
       skipped: 0,
-      errors: ['LINE_OA_ID or LINE_CHANNEL_ACCESS_TOKEN is not configured'],
+      errors: ['LINE_OA_ID env var is not set (should be the #id shown in /lineoamenu)'],
+      enrollmentsConsidered: 0,
+    };
+  }
+
+  const oa = await getLineOAById(oaId.toString());
+  if (!oa) {
+    return {
+      sent: 0,
+      skipped: 0,
+      errors: [`LINE OA #${oaId} not found in DB — check LINE_OA_ID matches /lineoamenu`],
+      enrollmentsConsidered: 0,
+    };
+  }
+
+  const channelToken = oa.channel_access_token;
+  if (!channelToken) {
+    return {
+      sent: 0,
+      skipped: 0,
+      errors: [`LINE OA #${oaId} has no channel_access_token — edit it in /lineoamenu`],
       enrollmentsConsidered: 0,
     };
   }
