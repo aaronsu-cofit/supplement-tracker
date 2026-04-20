@@ -40,8 +40,11 @@ router.post('/diary', async (c) => {
   const userId = c.get('userId');
   const body = await c.req.json<{ mood: number; sleep: number; diary?: string }>();
 
-  if (!body.mood || !body.sleep) {
-    return c.json({ error: '缺少 mood 或 sleep 欄位' }, 400);
+  if (
+    typeof body.mood !== 'number' || body.mood < 1 || body.mood > 5 ||
+    typeof body.sleep !== 'number' || body.sleep < 1 || body.sleep > 5
+  ) {
+    return c.json({ error: 'mood 和 sleep 必須為 1–5 的整數' }, 400);
   }
 
   const moodLabels = ['', '極差', '偏低', '普通', '不錯', '極佳'];
@@ -83,6 +86,9 @@ router.post('/diary', async (c) => {
 router.post('/assessment/scan', async (c) => {
   const _userId = c.get('userId');
   const body = await c.req.json<{ imageBase64?: string }>();
+  if (body.imageBase64 && body.imageBase64.length > 2_000_000) {
+    return c.json({ insight: '' }, 200);
+  }
 
   try {
     const prompt = `你是一位身心健康分析師，專門協助前更年期女性了解自身狀態。
@@ -110,7 +116,7 @@ router.post('/assessment/scan', async (c) => {
 
 // POST /api/women/assessment/analyze
 router.post('/assessment/analyze', async (c) => {
-  const _userId = c.get('userId');
+  const userId = c.get('userId');
   const body = await c.req.json<{
     scores: { A: number; B: number; C: number };
     scanInsight: string;
@@ -119,6 +125,7 @@ router.post('/assessment/analyze', async (c) => {
 
   const { scores, scanInsight, answers } = body;
 
+  // Ties default to A (anxiety type); B and C require a strict majority.
   function determineType(s: { A: number; B: number; C: number }): 'A' | 'B' | 'C' {
     if (s.B > s.A && s.B > s.C) return 'B';
     if (s.C > s.A && s.C > s.B) return 'C';
@@ -132,8 +139,10 @@ router.post('/assessment/analyze', async (c) => {
     C: '身心失衡型（生理不適明顯）',
   };
 
+  const sanitize = (s: string) => String(s).replace(/[<>]/g, '').slice(0, 200);
   const answersText = answers
-    .map((a, i) => `Q${i + 1}: ${a.question}\n→ ${a.selected}`)
+    .slice(0, 30)
+    .map((a, i) => `Q${i + 1}: ${sanitize(a.question)}\n→ ${sanitize(a.selected)}`)
     .join('\n\n');
 
   try {
@@ -167,7 +176,7 @@ ${scanInsight || '（本次未進行臉部掃描）'}
     const analysis = JSON.parse(result.response.text());
 
     // Save to DB (fire-and-forget)
-    saveAssessmentResult(_userId, {
+    saveAssessmentResult(userId, {
       resultType,
       scores,
       aiAnalysis: analysis,
