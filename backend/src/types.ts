@@ -118,6 +118,7 @@ export interface CreateLineOAInput {
   description?: string;
   channel_access_token: string;
   channel_secret?: string;
+  default_agent_id?: string;
 }
 
 export interface UpdateLineOAInput {
@@ -125,6 +126,7 @@ export interface UpdateLineOAInput {
   description?: string;
   channel_access_token?: string;
   channel_secret?: string;
+  default_agent_id?: string;
   is_active?: boolean;
 }
 

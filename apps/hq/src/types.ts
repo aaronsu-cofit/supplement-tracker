@@ -26,6 +26,7 @@ export interface LineOA {
   is_active: boolean;
   line_destination_id?: string | null;
   has_channel_secret?: boolean;
+  default_agent_id?: string;
 }
 
 export interface Zone {

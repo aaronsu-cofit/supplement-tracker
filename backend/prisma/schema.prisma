@@ -186,6 +186,7 @@ model LineOA {
   channel_access_token String   @db.VarChar(500)
   channel_secret       String?  @db.VarChar(200)
   line_destination_id  String?  @db.VarChar(64)
+  default_agent_id     String   @default("ai-expert") @db.VarChar(100)
   is_active            Boolean  @default(true)
   created_at           DateTime @default(now())
   updated_at           DateTime @updatedAt

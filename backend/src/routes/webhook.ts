@@ -42,6 +42,7 @@ interface LineWebhookPayload {
 interface OaContext {
   id: number
   channel_access_token: string
+  default_agent_id: string
 }
 
 async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<void> {
@@ -108,11 +109,11 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
     )
 
     try {
-      const result = await adkRun('ai-expert', lineUserId, { message: messageText })
+      const result = await adkRun(oa.default_agent_id, lineUserId, { message: messageText })
       const replyMessage = result.result || '很抱歉，AI 顧問無法提供回應，請稍後再試 🙏'
       await replyText(event.replyToken, replyMessage, oa.channel_access_token)
     } catch (err) {
-      console.error('[webhook/line] AI Expert error:', err)
+      console.error(`[webhook/line] agent=${oa.default_agent_id} error:`, err)
       await replyText(event.replyToken, '很抱歉，AI 顧問暫時無法回應，請稍後再試 🙏', oa.channel_access_token)
     }
   }
@@ -146,7 +147,11 @@ webhook.post('/line', async (c) => {
   }
 
   // 立即回 200，非同步處理 events（避免 LINE retry）
-  const oaCtx: OaContext = { id: oa.id, channel_access_token: oa.channel_access_token }
+  const oaCtx: OaContext = {
+    id: oa.id,
+    channel_access_token: oa.channel_access_token,
+    default_agent_id: oa.default_agent_id,
+  }
   for (const event of payload.events) {
     handleLineEvent(event, oaCtx).catch(err => console.error('[webhook/line] event error:', err))
   }

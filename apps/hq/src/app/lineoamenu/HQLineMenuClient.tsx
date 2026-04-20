@@ -8,6 +8,7 @@ interface OAEditForm {
   description: string;
   channel_access_token: string;
   channel_secret: string;
+  default_agent_id: string;
 }
 
 const DEFAULT_ZONES: Zone[] = [
@@ -16,7 +17,7 @@ const DEFAULT_ZONES: Zone[] = [
   { id: 'C', position: '左下', label: '', uri: '' },
   { id: 'D', position: '右下', label: '', uri: '' },
 ];
-const EMPTY_ADD_FORM: OAEditForm = { name: '', description: '', channel_access_token: '', channel_secret: '' };
+const EMPTY_ADD_FORM: OAEditForm = { name: '', description: '', channel_access_token: '', channel_secret: '', default_agent_id: 'ai-expert' };
 
 export default function HQLineMenuClient() {
   // ── OA list state ──────────────────────────────────────────────────────────
@@ -28,7 +29,7 @@ export default function HQLineMenuClient() {
   const [isAdding, setIsAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [editingOAId, setEditingOAId] = useState<string | null>(null);
-  const [editOAForm, setEditOAForm] = useState<OAEditForm>({ name: '', description: '', channel_access_token: '', channel_secret: '' });
+  const [editOAForm, setEditOAForm] = useState<OAEditForm>({ name: '', description: '', channel_access_token: '', channel_secret: '', default_agent_id: '' });
   const [isSavingOA, setIsSavingOA] = useState(false);
   const [selectedOA, setSelectedOA] = useState<LineOA | null>(null);
 
@@ -169,7 +170,7 @@ export default function HQLineMenuClient() {
 
   const startEditOA = (oa: LineOA) => {
     setEditingOAId(oa.id);
-    setEditOAForm({ name: oa.name, description: oa.description || '', channel_access_token: '', channel_secret: '' });
+    setEditOAForm({ name: oa.name, description: oa.description || '', channel_access_token: '', channel_secret: '', default_agent_id: oa.default_agent_id || '' });
     setSelectedOA(null);
     setEditingTemplate(null);
   };
@@ -182,6 +183,7 @@ export default function HQLineMenuClient() {
         description: editOAForm.description,
         ...(editOAForm.channel_access_token && { channel_access_token: editOAForm.channel_access_token }),
         ...(editOAForm.channel_secret && { channel_secret: editOAForm.channel_secret }),
+        ...(editOAForm.default_agent_id && { default_agent_id: editOAForm.default_agent_id }),
       };
       const res = await apiFetch(`/api/line/oa/${id}`, {
         method: 'PATCH',
@@ -401,8 +403,11 @@ export default function HQLineMenuClient() {
                 value={addForm.channel_access_token} onChange={e => setAddForm(p => ({ ...p, channel_access_token: e.target.value }))} />
               <input className="hq-input text-sm font-mono" placeholder="Channel Secret（webhook 簽章驗證用）" type="password"
                 value={addForm.channel_secret} onChange={e => setAddForm(p => ({ ...p, channel_secret: e.target.value }))} />
+              <input className="hq-input text-sm font-mono" placeholder="Default Agent ID (e.g. ai-expert / nutrition_analyst)"
+                value={addForm.default_agent_id} onChange={e => setAddForm(p => ({ ...p, default_agent_id: e.target.value }))} />
               <p className="text-[10px] text-white/40">
-                建立後系統會自動抓取這個 OA 的 bot user ID，存成 <code>line_destination_id</code> 供 webhook 路由用。
+                建立後系統會自動抓取這個 OA 的 bot user ID，存成 <code>line_destination_id</code> 供 webhook 路由用。<br />
+                Default Agent：使用者傳文字訊息時會打到 ADK 這個 agent（預設 <code>ai-expert</code>）。
               </p>
               {addError && <p className="text-xs text-red-400">{addError}</p>}
               <button onClick={handleAddOA} disabled={isAdding} className="hq-btn-primary text-sm">
@@ -436,6 +441,8 @@ export default function HQLineMenuClient() {
                       onChange={e => setEditOAForm(p => ({ ...p, channel_access_token: e.target.value }))} placeholder="新 Token（留空=不變）" />
                     <input className="hq-input text-sm font-mono" type="password" value={editOAForm.channel_secret}
                       onChange={e => setEditOAForm(p => ({ ...p, channel_secret: e.target.value }))} placeholder="新 Channel Secret（留空=不變）" />
+                    <input className="hq-input text-sm font-mono" value={editOAForm.default_agent_id}
+                      onChange={e => setEditOAForm(p => ({ ...p, default_agent_id: e.target.value }))} placeholder="Default Agent ID" />
                     <div className="flex gap-2">
                       <button onClick={() => handleSaveOAEdit(oa.id)} disabled={isSavingOA} className="hq-btn-primary text-xs px-2 py-1">
                         {isSavingOA ? '儲存中...' : '儲存'}
@@ -519,6 +526,10 @@ export default function HQLineMenuClient() {
                     <div>
                       Webhook URL 填:{' '}
                       <code className="bg-white/5 px-1 rounded font-mono">{getApiUrl()}/webhook/line</code>
+                    </div>
+                    <div>
+                      Default Agent:{' '}
+                      <code className="bg-white/5 px-1 rounded font-mono">{selectedOA.default_agent_id || 'ai-expert'}</code>
                     </div>
                   </div>
                 </div>
