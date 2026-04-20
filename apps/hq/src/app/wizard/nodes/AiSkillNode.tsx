@@ -3,7 +3,6 @@ import { Handle, Position, type NodeProps } from '@xyflow/react'
 export interface AiSkillNodeData {
   agentId: string
   label: string
-  prompt?: string
 }
 
 export default function AiSkillNode({ data, selected }: NodeProps) {
@@ -15,9 +14,6 @@ export default function AiSkillNode({ data, selected }: NodeProps) {
       <div className="text-[9px] text-[rgba(196,181,253,0.7)] uppercase tracking-[0.1em] mb-1">AI Skill</div>
       <div className="text-white font-semibold text-[13px]">{d.label || 'Untitled'}</div>
       <div className="text-[rgba(196,181,253,0.8)] text-[10px] mt-[3px] font-mono">{d.agentId}</div>
-      {d.prompt && (
-        <div className="text-[rgba(196,181,253,0.5)] text-[9px] mt-[2px] max-w-[160px] truncate italic">“{d.prompt}”</div>
-      )}
       <Handle type="target" position={Position.Left} style={{ background: '#a78bfa' }} />
       <Handle type="source" position={Position.Right} style={{ background: '#a78bfa' }} />
     </div>

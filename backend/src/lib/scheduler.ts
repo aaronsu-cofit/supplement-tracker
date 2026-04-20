@@ -149,15 +149,13 @@ async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
       }
     }
 
-    // AI-generated push: ai-skill-nodes with prompt, connected to this Day,
-    // run the agent and push the result. Same claim-first idempotency.
+    // AI-generated push: ai-skill-nodes connected to this Day fire the
+    // agent. The agent decides what to generate (using client_id for
+    // memory); we just push its result text. Same claim-first idempotency.
     const aiNodes = findAiSkillNodesForDay(nodes, edges, daysSinceEnrollment);
     for (const aiNode of aiNodes) {
       const agentId = aiNode.data?.agentId;
-      const prompt = aiNode.data?.prompt;
-      if (!agentId || !prompt) {
-        continue; // Only fires proactively when both are set.
-      }
+      if (!agentId) continue;
       if (!oa.ai_skill_platform_url || !oa.ai_skill_platform_api_key) {
         errors.push(`user=${userId} aiNode=${aiNode.id}: OA missing ai_skill_platform_url/api_key`);
         continue;
@@ -170,7 +168,7 @@ async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
         const result = await adkRun(
           agentId,
           userId,
-          { message: prompt },
+          undefined,
           { url: oa.ai_skill_platform_url, apiKey: oa.ai_skill_platform_api_key },
         );
         const text = result.result;

@@ -66,20 +66,10 @@ export default function ConfigPanel({ node, templates }: Props) {
             className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30"
           />
         </div>
-        <div className="flex flex-col gap-1">
-          <span className="text-[10px] text-white/40 uppercase tracking-[0.08em]">Prompt（排程推播時給 agent 的指令，留空則不主動推送）</span>
-          <textarea
-            value={d.prompt || ''}
-            placeholder="例如：根據使用者過去 7 天的紀錄，提供一段鼓勵訊息..."
-            rows={4}
-            onChange={(e) => upd({ prompt: e.target.value })}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30 resize-none"
-          />
-        </div>
         <p className="text-[10px] text-white/40">
           兩種用途：<br />
           1. <b>對話路由</b>：使用者傳訊息時，若 scenario 有連到此節點（Day 之前），會用此 <code>agent_id</code> 覆蓋 OA 預設。<br />
-          2. <b>排程推播</b>：填 prompt 後，scheduler 到該 Day 會呼叫 agent，把回應 push 給使用者。
+          2. <b>排程推播</b>：scheduler 到該 Day 會呼叫 agent，由 agent 自己決定要生什麼內容 push 給使用者。
         </p>
       </div>
     )

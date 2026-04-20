@@ -16,7 +16,6 @@ export interface FlowNode {
     stickerId?: string;
     // ai-skill-node fields
     agentId?: string;
-    prompt?: string;
   };
 }
 

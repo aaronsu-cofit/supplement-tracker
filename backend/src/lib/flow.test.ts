@@ -75,8 +75,8 @@ describe('findAiSkillNodesForDay', () => {
   const nodes: FlowNode[] = [
     { id: 'd0', type: 'day-node', data: { day: 0 } },
     { id: 'd3', type: 'day-node', data: { day: 3 } },
-    { id: 'ai1', type: 'ai-skill-node', data: { agentId: 'onboarding_bot', prompt: 'welcome' } },
-    { id: 'ai2', type: 'ai-skill-node', data: { agentId: 'nutrition_analyst', prompt: 'check in' } },
+    { id: 'ai1', type: 'ai-skill-node', data: { agentId: 'onboarding_bot' } },
+    { id: 'ai2', type: 'ai-skill-node', data: { agentId: 'nutrition_analyst' } },
     { id: 'p1', type: 'push-message-node', data: { type: 'text', message: 'hi' } },
   ];
   const edges: FlowEdge[] = [
