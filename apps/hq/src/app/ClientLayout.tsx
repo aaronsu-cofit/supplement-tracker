@@ -6,11 +6,17 @@ import Link from "next/link";
 import { AppLayout } from "@vitera/lib";
 
 const NAV_LINKS = [
-  { href: "/", label: "總覽 Overview" },
-  { href: "/admins", label: "管理員 Admins" },
-  { href: "/lineoamenu", label: "LINE OA 選單" },
-  { href: "/wizard", label: "CoBlocks Wizard" },
+  { href: "/", label: "系統總覽" },
+  { href: "/oa", label: "LINE OA" },
+  { href: "/admins", label: "管理員" },
 ];
+
+// Pages that want full-height canvas (no hq-content padding wrapper)
+function isFullPath(pathname: string): boolean {
+  if (pathname === '/wizard') return true;
+  if (pathname.startsWith('/oa/')) return true; // /oa/[id] with tabs (including fullscreen wizard tab)
+  return false;
+}
 
 function AppShell({ children }) {
   const pathname = usePathname();
@@ -50,8 +56,8 @@ function AppShell({ children }) {
           </nav>
         )}
       </aside>
-      <main className={`hq-main${pathname === '/wizard' ? ' overflow-hidden flex flex-col' : ''}`}>
-        {pathname === '/wizard' ? children : <div className="hq-content">{children}</div>}
+      <main className={`hq-main${isFullPath(pathname) ? ' overflow-hidden flex flex-col' : ''}`}>
+        {isFullPath(pathname) ? children : <div className="hq-content">{children}</div>}
       </main>
     </div>
   );

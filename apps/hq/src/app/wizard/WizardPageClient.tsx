@@ -12,9 +12,17 @@ const DEFAULT_NODES: Node[] = [
   { id: 'day-0', type: 'day-node', position: { x: 80, y: 180 }, data: { day: 0, label: 'Follow' } },
 ]
 
-export default function WizardPageClient() {
+interface WizardPageClientProps {
+  /**
+   * When provided, hides the OA dropdown and locks the wizard to this OA.
+   * Used when embedded as a tab inside /oa/[id].
+   */
+  forcedOaId?: string
+}
+
+export default function WizardPageClient({ forcedOaId }: WizardPageClientProps = {}) {
   const [oas, setOas] = useState<OA[]>([])
-  const [selectedOAId, setSelectedOAId] = useState<string>('default')
+  const [selectedOAId, setSelectedOAId] = useState<string>(forcedOaId ?? 'default')
   const [scenarios, setScenarios] = useState<Scenario[]>([])
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null)
   const [loadingScenarios, setLoadingScenarios] = useState(false)
@@ -22,11 +30,12 @@ export default function WizardPageClient() {
   const [editorKey, setEditorKey] = useState('new')
 
   useEffect(() => {
+    if (forcedOaId) return
     apiFetch('/api/line/oa')
       .then(r => r.json())
       .then(({ oas: data }: { oas: OA[] }) => setOas(data ?? []))
       .catch(console.error)
-  }, [])
+  }, [forcedOaId])
 
   useEffect(() => {
     setLoadingScenarios(true)
@@ -128,17 +137,21 @@ export default function WizardPageClient() {
     <div className="flex flex-col flex-1 min-h-0">
       {/* OA + scenario picker bar */}
       <div className="flex items-center gap-3 px-4 py-2 bg-white border-b border-slate-200 shrink-0">
-        <select
-          value={selectedOAId}
-          onChange={e => handleOAChange(e.target.value)}
-          className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-900 outline-none cursor-pointer focus:border-slate-400"
-        >
-          <option value="default">Default (legacy)</option>
-          {oas.map(oa => (
-            <option key={oa.id} value={String(oa.id)}>{oa.name}</option>
-          ))}
-        </select>
-        <div className="w-px h-4 bg-slate-200 shrink-0" />
+        {!forcedOaId && (
+          <>
+            <select
+              value={selectedOAId}
+              onChange={e => handleOAChange(e.target.value)}
+              className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-900 outline-none cursor-pointer focus:border-slate-400"
+            >
+              <option value="default">Default (legacy)</option>
+              {oas.map(oa => (
+                <option key={oa.id} value={String(oa.id)}>{oa.name}</option>
+              ))}
+            </select>
+            <div className="w-px h-4 bg-slate-200 shrink-0" />
+          </>
+        )}
         <div className="flex items-center gap-2 flex-1 overflow-x-auto">
           <button
             onClick={handleNewScenario}
