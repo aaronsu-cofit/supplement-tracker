@@ -66,6 +66,30 @@ lineoa.post('/:id/refresh-bot-info', async (c) => {
   return c.json({ oa: updated, bot_user_id: botInfo.userId, display_name: botInfo.displayName });
 });
 
+// POST /api/line/oa/:id/test-ai-platform — probe the configured AI Skill
+// Platform URL so admin can verify it's reachable before going live.
+lineoa.post('/:id/test-ai-platform', async (c) => {
+  const id = c.req.param('id');
+  const oa = await getLineOAById(id);
+  if (!oa) return c.json({ error: '找不到此 LINE OA' }, 404);
+  if (!oa.ai_skill_platform_url) return c.json({ error: 'AI Skill Platform URL 未設定' }, 400);
+  const base = oa.ai_skill_platform_url.replace(/\/$/, '');
+  try {
+    const started = Date.now();
+    const res = await fetch(base, { method: 'GET', signal: AbortSignal.timeout(5000) });
+    const body = await res.text().catch(() => '');
+    return c.json({
+      ok: res.ok,
+      url: base,
+      status: res.status,
+      latency_ms: Date.now() - started,
+      response_preview: body.slice(0, 200),
+    });
+  } catch (err) {
+    return c.json({ ok: false, url: base, error: (err as Error).message }, 502);
+  }
+});
+
 // DELETE /api/line/oa/:id
 lineoa.delete('/:id', async (c) => {
   const id = c.req.param('id');

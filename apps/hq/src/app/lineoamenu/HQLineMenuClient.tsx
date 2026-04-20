@@ -538,12 +538,28 @@ export default function HQLineMenuClient() {
                       Default Agent:{' '}
                       <code className="bg-white/5 px-1 rounded font-mono">{selectedOA.default_agent_id || 'ai-expert'}</code>
                     </div>
-                    <div>
-                      AI Skill Platform:{' '}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span>AI Skill Platform:</span>
                       {selectedOA.ai_skill_platform_url ? (
-                        <code className="bg-white/5 px-1 rounded font-mono break-all">{selectedOA.ai_skill_platform_url}</code>
+                        <code className="bg-white/5 px-1 rounded font-mono break-all max-w-[320px] truncate" title={selectedOA.ai_skill_platform_url}>{selectedOA.ai_skill_platform_url}</code>
                       ) : (
                         <span className="text-amber-400/80">未設定 — 使用者傳文字訊息不會觸發 AI</span>
+                      )}
+                      {selectedOA.ai_skill_platform_url && (
+                        <button
+                          onClick={async () => {
+                            const res = await apiFetch(`/api/line/oa/${selectedOA.id}/test-ai-platform`, { method: 'POST' });
+                            const data = await res.json();
+                            if (data.ok) {
+                              setActionStatus({ type: 'success', message: `Platform 可達 (HTTP ${data.status}, ${data.latency_ms}ms)` });
+                            } else {
+                              setActionStatus({ type: 'error', message: `無法連線: ${data.error || 'HTTP ' + data.status}` });
+                            }
+                          }}
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                        >
+                          ↻ 測連線
+                        </button>
                       )}
                     </div>
                   </div>

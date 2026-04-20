@@ -56,6 +56,7 @@ function forwardToAiSkillPlatform(baseUrl: string | null, body: string, signatur
     return
   }
   const url = `${baseUrl.replace(/\/$/, '')}/webhook/line`
+  console.log('[webhook/line] forwarding to', url)
   fetch(url, {
     method: 'POST',
     headers: {
@@ -68,6 +69,8 @@ function forwardToAiSkillPlatform(baseUrl: string | null, body: string, signatur
       if (!res.ok) {
         const text = await res.text().catch(() => '')
         console.error('[webhook/line] AI Skill Platform returned', res.status, text.slice(0, 200))
+      } else {
+        console.log('[webhook/line] forward OK', res.status, url)
       }
     })
     .catch(err => console.error('[webhook/line] forward error:', err))
