@@ -86,8 +86,8 @@ export default function OaWorkspaceClient({ oaId }: { oaId: string }) {
         </div>
       </div>
 
-      {/* Tab body */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      {/* Tab body — scenarios runs fullscreen canvas, others scroll normally */}
+      <div className={`flex-1 min-h-0 ${activeTab === 'scenarios' ? 'overflow-hidden flex flex-col' : 'overflow-auto'}`}>
         {activeTab === 'scenarios' && <WizardPageClient forcedOaId={oaId} />}
         {activeTab === 'menus' && oa && <OaMenusTab oaId={oaId} oa={oa} onChange={setOa} />}
         {activeTab === 'overview' && <OaOverviewTab oaId={oaId} />}
