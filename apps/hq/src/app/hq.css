@@ -1,31 +1,32 @@
 /* HQ Control Center Custom CSS - High-Tech SaaS Theme (Pencil/Linear/Vercel inspired) */
 
 :root {
-  --hq-bg-main: #0A0A0A;
-  --hq-bg-sidebar: #0A0A0A;
-  --hq-bg-card: #111111;
-  --hq-bg-card-hover: #151515;
-  --hq-bg-input: #1A1A1A;
-  
-  --hq-border-default: #222222;
-  --hq-border-hover: #333333;
-  --hq-border-highlight: rgba(255,255,255,0.1);
-  
-  --hq-text-title: #EDEDED;
-  --hq-text-body: #A1A1A1;
-  --hq-text-muted: #666666;
-  
-  --hq-success: #06C755;
-  --hq-cyan: #22d3ee;
-  --hq-purple: #c084fc;
-  --hq-amber: #fbbf24;
-  --hq-alert-error-bg: rgba(159, 18, 57, 0.2);
-  --hq-alert-error-text: #f43f5e;
-  --hq-alert-error-border: rgba(159, 18, 57, 0.5);
-  
-  --hq-alert-success-bg: rgba(6, 78, 59, 0.2);
-  --hq-alert-success-text: #34d399;
-  --hq-alert-success-border: rgba(6, 78, 59, 0.5);
+  /* Light theme */
+  --hq-bg-main: #F7F8FA;
+  --hq-bg-sidebar: #FFFFFF;
+  --hq-bg-card: #FFFFFF;
+  --hq-bg-card-hover: #F2F4F7;
+  --hq-bg-input: #F5F6F8;
+
+  --hq-border-default: #E5E7EB;
+  --hq-border-hover: #CBD5E1;
+  --hq-border-highlight: rgba(15,23,42,0.12);
+
+  --hq-text-title: #0F172A;
+  --hq-text-body: #475569;
+  --hq-text-muted: #94A3B8;
+
+  --hq-success: #10B981;
+  --hq-cyan: #0891B2;
+  --hq-purple: #7C3AED;
+  --hq-amber: #D97706;
+  --hq-alert-error-bg: #FEF2F2;
+  --hq-alert-error-text: #B91C1C;
+  --hq-alert-error-border: #FCA5A5;
+
+  --hq-alert-success-bg: #ECFDF5;
+  --hq-alert-success-text: #047857;
+  --hq-alert-success-border: #86EFAC;
 }
 
 .hq-layout {
@@ -33,6 +34,8 @@
   background-color: var(--hq-bg-main);
   color: var(--hq-text-title);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
   display: flex;
   flex-direction: column;
 }
@@ -106,7 +109,7 @@
 }
 
 .hq-brand h1 {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   margin: 0;
   letter-spacing: -0.5px;
@@ -120,9 +123,9 @@
 
 .hq-nav-link {
   display: block;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--hq-text-body);
   text-decoration: none;
@@ -130,12 +133,12 @@
 }
 
 .hq-nav-link:hover {
-  background-color: #1A1A1A;
+  background-color: var(--hq-bg-card-hover);
   color: var(--hq-text-title);
 }
 
 .hq-nav-link-active {
-  background-color: #1A1A1A;
+  background-color: var(--hq-bg-card-hover);
   color: var(--hq-text-title);
   position: relative;
 }
@@ -182,15 +185,16 @@
 }
 
 .hq-header h2 {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
   margin: 0 0 8px 0;
   letter-spacing: -0.5px;
+  color: var(--hq-text-title);
 }
 
 .hq-header p {
   color: var(--hq-text-body);
-  font-size: 14px;
+  font-size: 15px;
   margin: 0;
 }
 
@@ -255,25 +259,27 @@
 .min-h-300 { min-height: 300px; }
 
 .hq-metric-label {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--hq-text-body);
   margin-bottom: 8px;
+  font-weight: 500;
 }
 
 .hq-metric-value-row {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 10px;
 }
 
 .hq-metric-value {
-  font-size: 30px;
+  font-size: 36px;
   font-weight: 700;
   color: var(--hq-text-title);
+  letter-spacing: -0.5px;
 }
 
 .hq-metric-trend {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -780,4 +786,61 @@
 
 @keyframes hqSpin {
   to { transform: rotate(360deg); }
+}
+
+/* ─── Light-theme fixups for components that used dark-theme Tailwind utilities ─── */
+/* Many components were written with `text-white/XX` / `bg-white/X` for a dark bg.
+   After flipping to light theme, those render as near-invisible whites on white.
+   These overrides remap common cases to sensible dark-on-light equivalents. */
+
+.hq-layout {
+  /* text-white */
+  --tw-text-color-white: var(--hq-text-title);
+}
+
+.hq-layout .text-white,
+.hq-layout [class*="text-white/"] {
+  color: var(--hq-text-body);
+}
+
+.hq-layout .text-white\/30,
+.hq-layout .text-white\/40 {
+  color: var(--hq-text-muted);
+}
+
+.hq-layout .text-white\/50,
+.hq-layout .text-white\/60,
+.hq-layout .text-white\/70 {
+  color: var(--hq-text-body);
+}
+
+.hq-layout .text-white\/80,
+.hq-layout .text-white\/90,
+.hq-layout .text-white {
+  color: var(--hq-text-title);
+}
+
+.hq-layout .bg-white\/5,
+.hq-layout .bg-white\/10 {
+  background-color: var(--hq-bg-card-hover);
+}
+
+.hq-layout .border-white\/5,
+.hq-layout .border-white\/10,
+.hq-layout .border-white\/20 {
+  border-color: var(--hq-border-default);
+}
+
+/* Bigger base font in HQ layout for tiny text utilities */
+.hq-layout .text-xs {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.hq-layout .text-\[10px\] {
+  font-size: 12px;
+}
+
+.hq-layout .text-\[11px\] {
+  font-size: 12px;
 }
