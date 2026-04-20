@@ -27,6 +27,7 @@ export interface LineOA {
   line_destination_id?: string | null;
   has_channel_secret?: boolean;
   default_agent_id?: string;
+  ai_skill_platform_url?: string | null;
 }
 
 export interface Zone {

@@ -119,6 +119,7 @@ export interface CreateLineOAInput {
   channel_access_token: string;
   channel_secret?: string;
   default_agent_id?: string;
+  ai_skill_platform_url?: string;
 }
 
 export interface UpdateLineOAInput {
@@ -127,6 +128,7 @@ export interface UpdateLineOAInput {
   channel_access_token?: string;
   channel_secret?: string;
   default_agent_id?: string;
+  ai_skill_platform_url?: string;
   is_active?: boolean;
 }
 

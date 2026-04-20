@@ -426,6 +426,7 @@ const OA_PUBLIC_WITH_SECRET_STATUS = {
   line_destination_id: true,
   channel_secret: true,
   default_agent_id: true,
+  ai_skill_platform_url: true,
   created_at: true,
   updated_at: true,
 };
@@ -454,6 +455,7 @@ export async function createLineOA(data: CreateLineOAInput & { line_destination_
       channel_secret: data.channel_secret || null,
       line_destination_id: data.line_destination_id || null,
       ...(data.default_agent_id && { default_agent_id: data.default_agent_id }),
+      ai_skill_platform_url: data.ai_skill_platform_url || null,
     },
   });
   const { channel_access_token: _t, channel_secret: _s, ...safe } = oa;
@@ -471,6 +473,7 @@ export async function updateLineOA(id: string, data: UpdateLineOAInput & { line_
       ...(data.channel_secret !== undefined && { channel_secret: data.channel_secret || null }),
       ...(data.line_destination_id !== undefined && { line_destination_id: data.line_destination_id || null }),
       ...(data.default_agent_id != null && { default_agent_id: data.default_agent_id }),
+      ...(data.ai_skill_platform_url !== undefined && { ai_skill_platform_url: data.ai_skill_platform_url || null }),
       ...(data.is_active !== undefined && { is_active: data.is_active }),
     },
   });

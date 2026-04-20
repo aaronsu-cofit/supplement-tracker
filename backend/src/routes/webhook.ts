@@ -41,16 +41,20 @@ interface LineWebhookPayload {
 interface OaContext {
   id: number
   channel_access_token: string
+  ai_skill_platform_url: string | null
 }
 
 /**
- * Forward the raw webhook body + signature to the AI Skill Platform.
- * The platform verifies signature itself with the same channel_secret
- * and pushes AI replies to users directly. Fire-and-forget.
+ * Forward the raw webhook body + signature to the AI Skill Platform
+ * configured for this OA. The platform verifies signature with the
+ * same channel_secret and pushes AI replies to users directly.
+ * Fire-and-forget. No-op if no URL configured on the OA.
  */
-function forwardToAiSkillPlatform(body: string, signature: string): void {
-  const baseUrl = process.env.AI_SKILL_PLATFORM_URL
-  if (!baseUrl) return
+function forwardToAiSkillPlatform(baseUrl: string | null, body: string, signature: string): void {
+  if (!baseUrl) {
+    console.warn('[webhook/line] no ai_skill_platform_url configured for OA — message not forwarded')
+    return
+  }
   const url = `${baseUrl.replace(/\/$/, '')}/webhook/line`
   fetch(url, {
     method: 'POST',
@@ -160,13 +164,14 @@ webhook.post('/line', async (c) => {
     return c.json({ error: 'Invalid signature' }, 401)
   }
 
-  // Forward raw body to AI Skill Platform for message → AI reply (fire-and-forget).
-  forwardToAiSkillPlatform(body, signature)
+  // Forward raw body to this OA's AI Skill Platform (fire-and-forget).
+  forwardToAiSkillPlatform(oa.ai_skill_platform_url, body, signature)
 
   // Handle our own side effects (follow, postback, engagement logs).
   const oaCtx: OaContext = {
     id: oa.id,
     channel_access_token: oa.channel_access_token,
+    ai_skill_platform_url: oa.ai_skill_platform_url,
   }
   for (const event of payload.events) {
     handleLineEvent(event, oaCtx).catch(err => console.error('[webhook/line] event error:', err))
