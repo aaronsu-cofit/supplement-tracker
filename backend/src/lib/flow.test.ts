@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { findPushNodesForDay, buildLineMessage, type FlowNode, type FlowEdge } from './flow.js';
+import {
+  findPushNodesForDay,
+  findAiSkillNodesForDay,
+  findActiveAgentForDay,
+  buildLineMessage,
+  type FlowNode,
+  type FlowEdge,
+} from './flow.js';
 
 describe('findPushNodesForDay', () => {
   const nodes: FlowNode[] = [
@@ -61,6 +68,90 @@ describe('findPushNodesForDay', () => {
       { id: 'p', type: 'push-message-node', data: { type: 'text', message: 'hi' } },
     ];
     expect(findPushNodesForDay(isolatedNodes, [], 0)).toEqual([]);
+  });
+});
+
+describe('findAiSkillNodesForDay', () => {
+  const nodes: FlowNode[] = [
+    { id: 'd0', type: 'day-node', data: { day: 0 } },
+    { id: 'd3', type: 'day-node', data: { day: 3 } },
+    { id: 'ai1', type: 'ai-skill-node', data: { agentId: 'onboarding_bot', prompt: 'welcome' } },
+    { id: 'ai2', type: 'ai-skill-node', data: { agentId: 'nutrition_analyst', prompt: 'check in' } },
+    { id: 'p1', type: 'push-message-node', data: { type: 'text', message: 'hi' } },
+  ];
+  const edges: FlowEdge[] = [
+    { source: 'd0', target: 'ai1' },
+    { source: 'd0', target: 'p1' },
+    { source: 'd3', target: 'ai2' },
+  ];
+
+  it('returns ai-skill-node connected to matching day', () => {
+    expect(findAiSkillNodesForDay(nodes, edges, 0).map(n => n.id)).toEqual(['ai1']);
+    expect(findAiSkillNodesForDay(nodes, edges, 3).map(n => n.id)).toEqual(['ai2']);
+  });
+
+  it('ignores non-ai-skill targets', () => {
+    const result = findAiSkillNodesForDay(nodes, edges, 0);
+    expect(result.find(n => n.id === 'p1')).toBeUndefined();
+  });
+
+  it('returns empty when no day matches', () => {
+    expect(findAiSkillNodesForDay(nodes, edges, 99)).toEqual([]);
+  });
+});
+
+describe('findActiveAgentForDay', () => {
+  const nodes: FlowNode[] = [
+    { id: 'd0', type: 'day-node', data: { day: 0 } },
+    { id: 'd3', type: 'day-node', data: { day: 3 } },
+    { id: 'd7', type: 'day-node', data: { day: 7 } },
+    { id: 'ai_onboarding', type: 'ai-skill-node', data: { agentId: 'onboarding_bot' } },
+    { id: 'ai_nutrition', type: 'ai-skill-node', data: { agentId: 'nutrition_analyst' } },
+    { id: 'ai_coach', type: 'ai-skill-node', data: { agentId: 'coach_bot' } },
+  ];
+  const edges: FlowEdge[] = [
+    { source: 'd0', target: 'ai_onboarding' },
+    { source: 'd3', target: 'ai_nutrition' },
+    { source: 'd7', target: 'ai_coach' },
+  ];
+
+  it('returns agent for exact day match', () => {
+    expect(findActiveAgentForDay(nodes, edges, 0)).toBe('onboarding_bot');
+    expect(findActiveAgentForDay(nodes, edges, 3)).toBe('nutrition_analyst');
+    expect(findActiveAgentForDay(nodes, edges, 7)).toBe('coach_bot');
+  });
+
+  it('returns agent from most recent day ≤ target', () => {
+    expect(findActiveAgentForDay(nodes, edges, 1)).toBe('onboarding_bot'); // between 0 and 3
+    expect(findActiveAgentForDay(nodes, edges, 5)).toBe('nutrition_analyst'); // between 3 and 7
+    expect(findActiveAgentForDay(nodes, edges, 100)).toBe('coach_bot'); // far past
+  });
+
+  it('returns null when no day ≤ target', () => {
+    const futureOnly: FlowNode[] = [
+      { id: 'd10', type: 'day-node', data: { day: 10 } },
+      { id: 'ai', type: 'ai-skill-node', data: { agentId: 'future_bot' } },
+    ];
+    const futureEdges: FlowEdge[] = [{ source: 'd10', target: 'ai' }];
+    expect(findActiveAgentForDay(futureOnly, futureEdges, 5)).toBeNull();
+  });
+
+  it('returns null when day has no connected ai-skill-node', () => {
+    const onlyPush: FlowNode[] = [
+      { id: 'd0', type: 'day-node', data: { day: 0 } },
+      { id: 'p', type: 'push-message-node', data: { type: 'text', message: 'hi' } },
+    ];
+    const pushEdges: FlowEdge[] = [{ source: 'd0', target: 'p' }];
+    expect(findActiveAgentForDay(onlyPush, pushEdges, 0)).toBeNull();
+  });
+
+  it('ignores ai-skill-node with no agentId', () => {
+    const broken: FlowNode[] = [
+      { id: 'd0', type: 'day-node', data: { day: 0 } },
+      { id: 'ai', type: 'ai-skill-node', data: {} },
+    ];
+    const brokenEdges: FlowEdge[] = [{ source: 'd0', target: 'ai' }];
+    expect(findActiveAgentForDay(broken, brokenEdges, 0)).toBeNull();
   });
 });
 

@@ -7,8 +7,9 @@ import {
 } from './db.js';
 import { withRetry } from './retry.js';
 import { daysBetweenInTz } from './time.js';
-import { findPushNodesForDay, buildLineMessage, type FlowNode, type FlowEdge } from './flow.js';
+import { findPushNodesForDay, findAiSkillNodesForDay, buildLineMessage, type FlowNode, type FlowEdge } from './flow.js';
 import { evaluateAllActiveUsers, type MenuReevalResult } from './menuEvaluator.js';
+import { adkRun } from './adk.js';
 
 export interface SchedulerRunResult {
   sent: number;
@@ -125,8 +126,6 @@ async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
       ? (enr.scenario.flow_edges as unknown as FlowEdge[]) : [];
 
     const pushNodes = findPushNodesForDay(nodes, edges, daysSinceEnrollment);
-    if (pushNodes.length === 0) continue;
-
     for (const pushNode of pushNodes) {
       const message = buildLineMessage(pushNode.data);
       if (!message) {
@@ -147,6 +146,48 @@ async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
         await releaseDelivery(userId, enr.scenario.id, pushNode.id);
         const status = (err as { statusCode?: number })?.statusCode;
         errors.push(`user=${userId} node=${pushNode.id} status=${status ?? '?'}: ${(err as Error).message}`);
+      }
+    }
+
+    // AI-generated push: ai-skill-nodes with prompt, connected to this Day,
+    // run the agent and push the result. Same claim-first idempotency.
+    const aiNodes = findAiSkillNodesForDay(nodes, edges, daysSinceEnrollment);
+    for (const aiNode of aiNodes) {
+      const agentId = aiNode.data?.agentId;
+      const prompt = aiNode.data?.prompt;
+      if (!agentId || !prompt) {
+        continue; // Only fires proactively when both are set.
+      }
+      if (!oa.ai_skill_platform_url || !oa.ai_skill_platform_api_key) {
+        errors.push(`user=${userId} aiNode=${aiNode.id}: OA missing ai_skill_platform_url/api_key`);
+        continue;
+      }
+
+      const claimed = await tryClaimDelivery(userId, enr.scenario.id, aiNode.id);
+      if (!claimed) { skipped++; continue; }
+
+      try {
+        const result = await adkRun(
+          agentId,
+          userId,
+          { message: prompt },
+          { url: oa.ai_skill_platform_url, apiKey: oa.ai_skill_platform_api_key },
+        );
+        const text = result.result;
+        if (!text || !text.trim()) {
+          await releaseDelivery(userId, enr.scenario.id, aiNode.id);
+          errors.push(`user=${userId} aiNode=${aiNode.id}: agent returned empty result`);
+          continue;
+        }
+        await withRetry(
+          () => client.pushMessage(userId, { type: 'text', text }),
+          `aiPush user=${userId} node=${aiNode.id}`,
+        );
+        sent++;
+      } catch (err) {
+        await releaseDelivery(userId, enr.scenario.id, aiNode.id);
+        const status = (err as { statusCode?: number })?.statusCode;
+        errors.push(`user=${userId} aiNode=${aiNode.id} status=${status ?? '?'}: ${(err as Error).message}`);
       }
     }
   }

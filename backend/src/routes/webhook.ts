@@ -7,8 +7,11 @@ import {
   enrollUserInScenario,
   logEngagementEvent,
   getLineOAByDestination,
+  getActiveEnrollmentsForOA,
 } from '../lib/db.js'
 import { evaluateAndAssignMenu } from '../lib/menuEvaluator.js'
+import { findActiveAgentForDay, type FlowNode, type FlowEdge } from '../lib/flow.js'
+import { daysBetweenInTz } from '../lib/time.js'
 
 const webhook = new Hono()
 
@@ -114,9 +117,14 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
       return
     }
 
+    // Per-phase routing: if the user is in an active scenario that has an
+    // ai-skill-node at (or before) their current day, use that agent.
+    // Otherwise fall back to the OA's default agent.
+    const agentId = (await resolveScenarioAgent(oa.id, lineUserId)) || oa.default_agent_id
+
     try {
       const result = await adkRun(
-        oa.default_agent_id,
+        agentId,
         lineUserId,
         { message: messageText },
         { url: oa.ai_skill_platform_url, apiKey: oa.ai_skill_platform_api_key },
@@ -124,9 +132,35 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
       const replyMessage = result.result || '很抱歉，AI 顧問無法提供回應，請稍後再試 🙏'
       await replyText(event.replyToken, replyMessage, oa.channel_access_token)
     } catch (err) {
-      console.error(`[webhook/line] agent=${oa.default_agent_id} error:`, err)
+      console.error(`[webhook/line] agent=${agentId} error:`, err)
       await replyText(event.replyToken, '很抱歉，AI 顧問暫時無法回應，請稍後再試 🙏', oa.channel_access_token)
     }
+  }
+}
+
+/**
+ * Find the ai-skill-node agentId that applies to this user right now.
+ * Picks the active enrollment with the latest matching ai-skill-node
+ * (by day ≤ daysSinceEnrollment). Returns null if none found.
+ */
+async function resolveScenarioAgent(oaId: number, userId: string): Promise<string | null> {
+  try {
+    const enrollments = (await getActiveEnrollmentsForOA(oaId)).filter(e => e.user.id === userId)
+    if (enrollments.length === 0) return null
+
+    const now = new Date()
+    for (const enr of enrollments) {
+      const tz = enr.user.timezone || 'Asia/Taipei'
+      const day = daysBetweenInTz(enr.enrolled_at, now, tz)
+      const nodes = Array.isArray(enr.scenario.flow_nodes) ? (enr.scenario.flow_nodes as unknown as FlowNode[]) : []
+      const edges = Array.isArray(enr.scenario.flow_edges) ? (enr.scenario.flow_edges as unknown as FlowEdge[]) : []
+      const agentId = findActiveAgentForDay(nodes, edges, day)
+      if (agentId) return agentId
+    }
+    return null
+  } catch (err) {
+    console.error('[webhook/line] resolveScenarioAgent error:', err)
+    return null
   }
 }
 
