@@ -1,7 +1,6 @@
-// backend/src/routes/womenHealing.ts
 import { Hono } from 'hono';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { authMiddleware } from '../middleware/authMiddleware.js';
+import { callGemini, callGeminiText, parseGeminiJson } from '../lib/ai.js';
 import {
   getTodayDiary,
   upsertDiaryEntry,
@@ -14,45 +13,53 @@ import type { HonoEnv } from '../types.js';
 const router = new Hono<HonoEnv>();
 router.use('*', authMiddleware);
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const MODEL = 'gemini-2.0-flash';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
 
 // ─── Diary ────────────────────────────────────────────────────────────────────
 
 // GET /api/women/diary/today
 router.get('/diary/today', async (c) => {
-  const userId = c.get('userId');
-  const entry = await getTodayDiary(userId);
-  return c.json(entry ?? null);
+  try {
+    const userId = c.get('userId');
+    const entry = await getTodayDiary(userId);
+    return c.json(entry ?? null);
+  } catch (error) {
+    return c.json({ error: (error as Error).message }, 500);
+  }
 });
 
 // GET /api/women/diary?page=1&limit=20
 router.get('/diary', async (c) => {
-  const userId = c.get('userId');
-  const page = parseInt(c.req.query('page') ?? '1', 10);
-  const limit = parseInt(c.req.query('limit') ?? '20', 10);
-  const result = await getDiaryEntries(userId, page, Math.min(limit, 50));
-  return c.json(result);
+  try {
+    const userId = c.get('userId');
+    const page = parseInt(c.req.query('page') ?? '1', 10);
+    const limit = parseInt(c.req.query('limit') ?? '20', 10);
+    const result = await getDiaryEntries(userId, page, Math.min(limit, 50));
+    return c.json(result);
+  } catch (error) {
+    return c.json({ error: (error as Error).message }, 500);
+  }
 });
 
 // POST /api/women/diary — upsert today's entry + generate AI feedback
 router.post('/diary', async (c) => {
-  const userId = c.get('userId');
-  const body = await c.req.json<{ mood: number; sleep: number; diary?: string }>();
-
-  if (
-    typeof body.mood !== 'number' || body.mood < 1 || body.mood > 5 ||
-    typeof body.sleep !== 'number' || body.sleep < 1 || body.sleep > 5
-  ) {
-    return c.json({ error: 'mood 和 sleep 必須為 1–5 的整數' }, 400);
-  }
-
-  const moodLabels = ['', '極差', '偏低', '普通', '不錯', '極佳'];
-  const sleepLabels = ['', '極差', '難入眠', '普通', '穩定', '深層'];
-
-  let aiFeedback: string;
   try {
-    const prompt = `你是「女人療心室」的 AI 心理支持助理，專門陪伴前更年期女性走過情緒波動、睡眠困擾與身體不適。
+    const userId = c.get('userId');
+    const body = await c.req.json<{ mood: number; sleep: number; diary?: string }>();
+
+    if (
+      typeof body.mood !== 'number' || body.mood < 1 || body.mood > 5 ||
+      typeof body.sleep !== 'number' || body.sleep < 1 || body.sleep > 5
+    ) {
+      return c.json({ error: 'mood 和 sleep 必須為 1–5 的整數' }, 400);
+    }
+
+    const moodLabels = ['', '極差', '偏低', '普通', '不錯', '極佳'];
+    const sleepLabels = ['', '極差', '難入眠', '普通', '穩定', '深層'];
+
+    let aiFeedback: string;
+    try {
+      const prompt = `你是「女人療心室」的 AI 心理支持助理，專門陪伴前更年期女性走過情緒波動、睡眠困擾與身體不適。
 
 【今日用戶數據】
 - 情緒評分：${body.mood}/5（${moodLabels[body.mood]}）
@@ -63,34 +70,35 @@ router.post('/diary', async (c) => {
 要讓她感到被真正理解與支持，並針對她的具體情況給一個溫和、可行的小建議。
 使用自然的段落，不要條列式。不要過於制式化，要像朋友般真誠。`;
 
-    const model = genAI.getGenerativeModel({ model: MODEL });
-    const result = await model.generateContent(prompt);
-    aiFeedback = result.response.text();
-  } catch {
-    aiFeedback = localFallback(body.diary ?? '', body.mood, body.sleep);
+      aiFeedback = await callGeminiText(GEMINI_API_KEY, prompt);
+    } catch {
+      aiFeedback = localFallback(body.diary ?? '', body.mood, body.sleep);
+    }
+
+    const entry = await upsertDiaryEntry(userId, {
+      mood: body.mood,
+      sleep: body.sleep,
+      diary: body.diary,
+      aiFeedback,
+    });
+
+    return c.json(entry);
+  } catch (error) {
+    return c.json({ error: (error as Error).message }, 500);
   }
-
-  const entry = await upsertDiaryEntry(userId, {
-    mood: body.mood,
-    sleep: body.sleep,
-    diary: body.diary,
-    aiFeedback,
-  });
-
-  return c.json(entry);
 });
 
 // ─── Assessment ───────────────────────────────────────────────────────────────
 
 // POST /api/women/assessment/scan
 router.post('/assessment/scan', async (c) => {
-  const _userId = c.get('userId');
-  const body = await c.req.json<{ imageBase64?: string }>();
-  if (body.imageBase64 && body.imageBase64.length > 2_000_000) {
-    return c.json({ insight: '' }, 200);
-  }
-
   try {
+    const body = await c.req.json<{ imageBase64?: string }>();
+
+    if (body.imageBase64 && body.imageBase64.length > 2_000_000) {
+      return c.json({ insight: '' }, 200);
+    }
+
     const prompt = `你是一位身心健康分析師，專門協助前更年期女性了解自身狀態。
 請觀察這張臉部照片，從以下角度進行健康觀察（這是健康輔助工具，非醫療診斷）：
 - 眼周氣色與暗沉程度
@@ -101,13 +109,11 @@ router.post('/assessment/scan', async (c) => {
 請用溫柔、專業的繁體中文，撰寫一段 80-100 字的自然段落描述，不要使用條列式。
 若圖片不清晰或無法辨識臉部，請根據前更年期女性常見壓力表徵提供一般性描述。`;
 
-    const model = genAI.getGenerativeModel({ model: MODEL });
-    const parts = body.imageBase64
-      ? [prompt, { inlineData: { mimeType: 'image/jpeg' as const, data: body.imageBase64 } }]
-      : [prompt];
+    const insight = body.imageBase64
+      ? await callGemini(GEMINI_API_KEY, body.imageBase64, 'image/jpeg', prompt)
+      : await callGeminiText(GEMINI_API_KEY, prompt);
 
-    const result = await model.generateContent(parts);
-    return c.json({ insight: result.response.text() });
+    return c.json({ insight });
   } catch (err) {
     console.error('Scan error:', err);
     return c.json({ insight: '' }, 200);
@@ -116,36 +122,36 @@ router.post('/assessment/scan', async (c) => {
 
 // POST /api/women/assessment/analyze
 router.post('/assessment/analyze', async (c) => {
-  const userId = c.get('userId');
-  const body = await c.req.json<{
-    scores: { A: number; B: number; C: number };
-    scanInsight: string;
-    answers: Array<{ question: string; selected: string; type: string }>;
-  }>();
-
-  const { scores, scanInsight, answers } = body;
-
-  // Ties default to A (anxiety type); B and C require a strict majority.
-  function determineType(s: { A: number; B: number; C: number }): 'A' | 'B' | 'C' {
-    if (s.B > s.A && s.B > s.C) return 'B';
-    if (s.C > s.A && s.C > s.B) return 'C';
-    return 'A';
-  }
-  const resultType = determineType(scores);
-
-  const typeLabels: Record<string, string> = {
-    A: '神經緊繃型（腦袋停不下來）',
-    B: '情緒波動型（心情起伏大）',
-    C: '身心失衡型（生理不適明顯）',
-  };
-
-  const sanitize = (s: string) => String(s).replace(/[<>]/g, '').slice(0, 200);
-  const answersText = answers
-    .slice(0, 30)
-    .map((a, i) => `Q${i + 1}: ${sanitize(a.question)}\n→ ${sanitize(a.selected)}`)
-    .join('\n\n');
-
   try {
+    const userId = c.get('userId');
+    const body = await c.req.json<{
+      scores: { A: number; B: number; C: number };
+      scanInsight: string;
+      answers: Array<{ question: string; selected: string; type: string }>;
+    }>();
+
+    const { scores, scanInsight, answers } = body;
+
+    // Ties default to A (anxiety type); B and C require a strict majority.
+    function determineType(s: { A: number; B: number; C: number }): 'A' | 'B' | 'C' {
+      if (s.B > s.A && s.B > s.C) return 'B';
+      if (s.C > s.A && s.C > s.B) return 'C';
+      return 'A';
+    }
+    const resultType = determineType(scores);
+
+    const typeLabels: Record<string, string> = {
+      A: '神經緊繃型（腦袋停不下來）',
+      B: '情緒波動型（心情起伏大）',
+      C: '身心失衡型（生理不適明顯）',
+    };
+
+    const sanitize = (s: string) => String(s).replace(/[<>]/g, '').slice(0, 200);
+    const answersText = answers
+      .slice(0, 30)
+      .map((a, i) => `Q${i + 1}: ${sanitize(a.question)}\n→ ${sanitize(a.selected)}`)
+      .join('\n\n');
+
     const prompt = `你是一位專業的前更年期身心健康顧問，請根據以下資訊，為這位女性生成個人化的健康評估報告。
 
 【評估類型】${typeLabels[resultType]}
@@ -168,25 +174,21 @@ ${scanInsight || '（本次未進行臉部掃描）'}
   "courseTitle": "最適合她的課程名稱（可參考：好眠正念課、情緒安定課、荷爾蒙重整課）"
 }`;
 
-    const model = genAI.getGenerativeModel({
-      model: MODEL,
-      generationConfig: { responseMimeType: 'application/json' },
-    });
-    const result = await model.generateContent(prompt);
-    const analysis = JSON.parse(result.response.text());
+    const text = await callGeminiText(GEMINI_API_KEY, prompt);
+    const analysis = parseGeminiJson(text);
 
     // Save to DB (fire-and-forget)
     saveAssessmentResult(userId, {
       resultType,
       scores,
-      aiAnalysis: analysis,
+      aiAnalysis: analysis as object,
       faceInsight: scanInsight,
     }).catch(console.error);
 
     return c.json(analysis);
-  } catch (err) {
-    console.error('Analyze error:', err);
-    return c.json({ error: '分析失敗' }, 500);
+  } catch (error) {
+    console.error('Analyze error:', error);
+    return c.json({ error: (error as Error).message }, 500);
   }
 });
 
@@ -194,14 +196,18 @@ ${scanInsight || '（本次未進行臉部掃描）'}
 
 // POST /api/women/relief
 router.post('/relief', async (c) => {
-  const userId = c.get('userId');
-  const body = await c.req.json<{ type: 'BREATHING' | 'BODY_SCAN' | 'SLEEP_QUOTES'; durationSec: number }>();
-  if (!body.type) return c.json({ error: '缺少 type 欄位' }, 400);
-  const session = await saveReliefSession(userId, {
-    type: body.type,
-    durationSec: body.durationSec ?? 0,
-  });
-  return c.json(session, 201);
+  try {
+    const userId = c.get('userId');
+    const body = await c.req.json<{ type: 'BREATHING' | 'BODY_SCAN' | 'SLEEP_QUOTES'; durationSec: number }>();
+    if (!body.type) return c.json({ error: '缺少 type 欄位' }, 400);
+    const session = await saveReliefSession(userId, {
+      type: body.type,
+      durationSec: body.durationSec ?? 0,
+    });
+    return c.json(session, 201);
+  } catch (error) {
+    return c.json({ error: (error as Error).message }, 500);
+  }
 });
 
 // ─── Fallback ─────────────────────────────────────────────────────────────────
