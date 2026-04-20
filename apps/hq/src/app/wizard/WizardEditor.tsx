@@ -132,8 +132,8 @@ function EditorInner({ oaId, scenarioId, scenarioName: initialScenarioName, init
   }, [handleSave])
 
   return (
-    <div className="flex flex-1 bg-[#0d0d0d] text-white min-h-0">
-      <div className="w-60 border-r border-white/[0.08] p-4 overflow-y-auto shrink-0">
+    <div className="flex flex-1 bg-slate-50 text-slate-900 min-h-0">
+      <div className="w-60 border-r border-slate-200 bg-white p-4 overflow-y-auto shrink-0">
         <BlockPalette />
       </div>
       <div className="flex-1 relative min-w-0">
@@ -145,7 +145,7 @@ function EditorInner({ oaId, scenarioId, scenarioName: initialScenarioName, init
           lastSaved={lastSaved}
         />
         {saveError && (
-          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10 bg-red-900/80 border border-red-500/50 text-red-200 text-xs px-3 py-1.5 rounded-lg">
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10 bg-red-50 border border-red-300 text-red-700 text-xs px-3 py-1.5 rounded-lg shadow">
             {saveError}
           </div>
         )}
@@ -160,18 +160,18 @@ function EditorInner({ oaId, scenarioId, scenarioName: initialScenarioName, init
           onSelectionChange={onSelectionChange}
           nodeTypes={nodeTypes}
           fitView
-          style={{ background: '#0d0d0d' }}
+          style={{ background: '#F7F8FA' }}
         >
-          <Background color="rgba(255,255,255,0.04)" gap={24} />
-          <Controls style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }} />
+          <Background color="rgba(15,23,42,0.08)" gap={24} />
+          <Controls style={{ background: '#FFFFFF', border: '1px solid #E5E7EB' }} />
           <MiniMap
-            nodeColor={() => 'rgba(255,255,255,0.15)'}
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
+            nodeColor={() => 'rgba(15,23,42,0.2)'}
+            style={{ background: '#FFFFFF', border: '1px solid #E5E7EB' }}
           />
         </ReactFlow>
       </div>
-      <div className="w-[280px] border-l border-white/[0.08] p-4 overflow-y-auto shrink-0">
-        <p className="text-[10px] text-white/30 uppercase tracking-[0.1em] mb-3">Config</p>
+      <div className="w-[280px] border-l border-slate-200 bg-white p-4 overflow-y-auto shrink-0">
+        <p className="text-[11px] text-slate-500 uppercase tracking-[0.1em] mb-3 font-semibold">Config</p>
         <ConfigPanel
           node={selectedNode ? nodes.find(n => n.id === selectedNode.id) ?? null : null}
           templates={templates}

@@ -1177,39 +1177,41 @@ textarea.form-input {
     opacity: 0.6;
   }
 }
-/* ─── React Flow (Wizard canvas) — readable on dark background ─────────── */
+/* ─── React Flow (Wizard canvas) — readable on light background ─────────── */
 
 .react-flow__controls {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
   border-radius: 8px;
   overflow: hidden;
+  border: 1px solid #E5E7EB;
 }
 
 .react-flow__controls-button {
-  background: rgba(255, 255, 255, 0.08) !important;
-  color: white !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: #ffffff !important;
+  color: #0F172A !important;
+  border-bottom: 1px solid #E5E7EB !important;
   width: 28px !important;
   height: 28px !important;
 }
 
 .react-flow__controls-button:hover {
-  background: rgba(255, 255, 255, 0.18) !important;
+  background: #F1F5F9 !important;
 }
 
 .react-flow__controls-button svg {
-  fill: white !important;
+  fill: #0F172A !important;
 }
 
 .react-flow__minimap {
   border-radius: 8px;
+  border: 1px solid #E5E7EB;
 }
 
 .react-flow__attribution {
-  background: rgba(255, 255, 255, 0.05) !important;
-  color: rgba(255, 255, 255, 0.3) !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  color: #64748B !important;
 }
 
 .react-flow__attribution a {
-  color: rgba(255, 255, 255, 0.4) !important;
+  color: #475569 !important;
 }

@@ -127,27 +127,27 @@ export default function WizardPageClient() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* OA + scenario picker bar */}
-      <div className="flex items-center gap-3 px-4 py-2 bg-[#0d0d0d] border-b border-white/[0.08] shrink-0">
+      <div className="flex items-center gap-3 px-4 py-2 bg-white border-b border-slate-200 shrink-0">
         <select
           value={selectedOAId}
           onChange={e => handleOAChange(e.target.value)}
-          className="bg-[rgba(255,255,255,0.05)] border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white outline-none cursor-pointer"
+          className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-900 outline-none cursor-pointer focus:border-slate-400"
         >
           <option value="default">Default (legacy)</option>
           {oas.map(oa => (
             <option key={oa.id} value={String(oa.id)}>{oa.name}</option>
           ))}
         </select>
-        <div className="w-px h-4 bg-white/10 shrink-0" />
+        <div className="w-px h-4 bg-slate-200 shrink-0" />
         <div className="flex items-center gap-2 flex-1 overflow-x-auto">
           <button
             onClick={handleNewScenario}
-            className="shrink-0 text-xs px-2.5 py-1 rounded-md bg-[rgba(124,92,252,0.15)] text-[#a78bfa] border border-[rgba(124,92,252,0.3)] hover:bg-[rgba(124,92,252,0.25)] transition-colors cursor-pointer"
+            className="shrink-0 text-xs px-2.5 py-1 rounded-md bg-[rgba(124,58,237,0.1)] text-[#7c3aed] border border-[rgba(124,58,237,0.3)] hover:bg-[rgba(124,58,237,0.18)] transition-colors cursor-pointer font-medium"
           >
             + New
           </button>
           {loadingScenarios && (
-            <span className="text-xs text-white/30 shrink-0">Loading...</span>
+            <span className="text-xs text-slate-400 shrink-0">Loading...</span>
           )}
           {scenarios.map(s => {
             const isSelected = s.id === selectedScenarioId
@@ -157,12 +157,12 @@ export default function WizardPageClient() {
                   onClick={() => handleScenarioSelect(s)}
                   className={`text-xs px-2.5 py-1 rounded-md border transition-colors cursor-pointer whitespace-nowrap ${
                     isSelected
-                      ? 'bg-white/10 text-white border-white/20'
-                      : 'bg-transparent text-white/50 border-white/10 hover:text-white/80 hover:border-white/20'
+                      ? 'bg-slate-100 text-slate-900 border-slate-300'
+                      : 'bg-transparent text-slate-500 border-slate-200 hover:text-slate-800 hover:border-slate-300'
                   }`}
                 >
                   {s.name}
-                  {s.is_active && <span className="ml-1 text-[#5ce0d8]">●</span>}
+                  {s.is_active && <span className="ml-1 text-emerald-600">●</span>}
                 </button>
                 {isSelected && (
                   <div className="flex items-center gap-0.5">
@@ -171,8 +171,8 @@ export default function WizardPageClient() {
                       title={s.is_active ? 'Deactivate' : 'Activate'}
                       className={`text-[11px] w-6 h-6 flex items-center justify-center rounded-md border transition-colors cursor-pointer ${
                         s.is_active
-                          ? 'text-[#5ce0d8] border-[#5ce0d8]/30 bg-[#5ce0d8]/10 hover:bg-[#5ce0d8]/20'
-                          : 'text-white/30 border-white/10 bg-white/5 hover:text-[#5ce0d8] hover:border-[#5ce0d8]/20'
+                          ? 'text-emerald-600 border-emerald-300 bg-emerald-50 hover:bg-emerald-100'
+                          : 'text-slate-400 border-slate-200 bg-slate-50 hover:text-emerald-600 hover:border-emerald-200'
                       }`}
                     >
                       ●
@@ -180,14 +180,14 @@ export default function WizardPageClient() {
                     <button
                       onClick={() => handleDuplicateScenario(s)}
                       title="Duplicate scenario"
-                      className="text-[11px] w-6 h-6 flex items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/30 hover:text-white/80 hover:border-white/20 transition-colors cursor-pointer"
+                      className="text-[11px] w-6 h-6 flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-400 hover:text-slate-700 hover:border-slate-300 transition-colors cursor-pointer"
                     >
                       ⎘
                     </button>
                     <button
                       onClick={() => handleDeleteScenario(s)}
                       title="Delete scenario"
-                      className="text-[11px] w-6 h-6 flex items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/30 hover:text-red-400 hover:border-red-500/30 transition-colors cursor-pointer"
+                      className="text-[11px] w-6 h-6 flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-400 hover:text-red-500 hover:border-red-300 transition-colors cursor-pointer"
                     >
                       ✕
                     </button>

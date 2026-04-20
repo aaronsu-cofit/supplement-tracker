@@ -12,7 +12,7 @@ export default function ConfigPanel({ node, templates }: Props) {
   const { updateNodeData } = useReactFlow()
 
   if (!node) {
-    return <p className="text-white/20 text-sm">Select a node to configure it.</p>
+    return <p className="text-slate-400 text-sm">Select a node to configure it.</p>
   }
 
   const upd = (patch: Record<string, unknown>) => updateNodeData(node.id, patch)
@@ -22,21 +22,21 @@ export default function ConfigPanel({ node, templates }: Props) {
     return (
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] text-white/40 uppercase tracking-[0.08em]">Day Number</span>
+          <span className="text-[11px] text-slate-500 uppercase tracking-[0.08em] font-semibold">Day Number</span>
           <input
             type="number"
             value={d.day}
             onChange={(e) => upd({ day: parseInt(e.target.value) || 0 })}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm outline-none focus:border-slate-400"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] text-white/40 uppercase tracking-[0.08em]">Label</span>
+          <span className="text-[11px] text-slate-500 uppercase tracking-[0.08em] font-semibold">Label</span>
           <input
             type="text"
             value={d.label}
             onChange={(e) => upd({ label: e.target.value })}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm outline-none focus:border-slate-400"
           />
         </div>
       </div>
@@ -48,25 +48,25 @@ export default function ConfigPanel({ node, templates }: Props) {
     return (
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] text-white/40 uppercase tracking-[0.08em]">Label</span>
+          <span className="text-[11px] text-slate-500 uppercase tracking-[0.08em] font-semibold">Label</span>
           <input
             type="text"
             value={d.label}
             onChange={(e) => upd({ label: e.target.value })}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm outline-none focus:border-slate-400"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] text-white/40 uppercase tracking-[0.08em]">Agent ID</span>
+          <span className="text-[11px] text-slate-500 uppercase tracking-[0.08em] font-semibold">Agent ID</span>
           <input
             type="text"
             value={d.agentId}
             placeholder="e.g. nutrition_analyst"
             onChange={(e) => upd({ agentId: e.target.value })}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm outline-none focus:border-slate-400"
           />
         </div>
-        <p className="text-[10px] text-white/40">
+        <p className="text-[11px] text-slate-500">
           兩種用途：<br />
           1. <b>對話路由</b>：使用者傳訊息時，若 scenario 有連到此節點（Day 之前），會用此 <code>agent_id</code> 覆蓋 OA 預設。<br />
           2. <b>排程推播</b>：scheduler 到該 Day 會呼叫 agent，由 agent 自己決定要生什麼內容 push 給使用者。
@@ -81,20 +81,20 @@ export default function ConfigPanel({ node, templates }: Props) {
     return (
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] text-white/40 uppercase tracking-[0.08em]">Label</span>
+          <span className="text-[11px] text-slate-500 uppercase tracking-[0.08em] font-semibold">Label</span>
           <input
             type="text"
             value={d.label}
             onChange={(e) => upd({ label: e.target.value })}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm outline-none focus:border-slate-400"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] text-white/40 uppercase tracking-[0.08em]">Type</span>
+          <span className="text-[11px] text-slate-500 uppercase tracking-[0.08em] font-semibold">Type</span>
           <select
             value={t}
             onChange={(e) => upd({ type: e.target.value as PushMessageType })}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30 cursor-pointer"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm outline-none focus:border-slate-400 cursor-pointer"
           >
             <option value="text">Text</option>
             <option value="image">Image</option>
@@ -103,36 +103,36 @@ export default function ConfigPanel({ node, templates }: Props) {
         </div>
         {t === 'text' && (
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-white/40 uppercase tracking-[0.08em]">Message</span>
+            <span className="text-[11px] text-slate-500 uppercase tracking-[0.08em] font-semibold">Message</span>
             <textarea
               value={d.message || ''}
               placeholder="LINE push message content..."
               rows={5}
               onChange={(e) => upd({ message: e.target.value })}
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30 resize-none"
+              className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm outline-none focus:border-slate-400 resize-none"
             />
           </div>
         )}
         {t === 'image' && (
           <>
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-white/40 uppercase tracking-[0.08em]">Image URL (https)</span>
+              <span className="text-[11px] text-slate-500 uppercase tracking-[0.08em] font-semibold">Image URL (https)</span>
               <input
                 type="url"
                 value={d.imageUrl || ''}
                 placeholder="https://example.com/image.jpg"
                 onChange={(e) => upd({ imageUrl: e.target.value })}
-                className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30"
+                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm outline-none focus:border-slate-400"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-white/40 uppercase tracking-[0.08em]">Preview URL (optional — falls back to Image URL)</span>
+              <span className="text-[11px] text-slate-500 uppercase tracking-[0.08em] font-semibold">Preview URL (optional — falls back to Image URL)</span>
               <input
                 type="url"
                 value={d.previewUrl || ''}
                 placeholder="https://example.com/preview.jpg"
                 onChange={(e) => upd({ previewUrl: e.target.value })}
-                className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30"
+                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm outline-none focus:border-slate-400"
               />
             </div>
           </>
@@ -140,27 +140,27 @@ export default function ConfigPanel({ node, templates }: Props) {
         {t === 'sticker' && (
           <>
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-white/40 uppercase tracking-[0.08em]">Package ID</span>
+              <span className="text-[11px] text-slate-500 uppercase tracking-[0.08em] font-semibold">Package ID</span>
               <input
                 type="text"
                 value={d.stickerPackageId || ''}
                 placeholder="446"
                 onChange={(e) => upd({ stickerPackageId: e.target.value })}
-                className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30"
+                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm outline-none focus:border-slate-400"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-white/40 uppercase tracking-[0.08em]">Sticker ID</span>
+              <span className="text-[11px] text-slate-500 uppercase tracking-[0.08em] font-semibold">Sticker ID</span>
               <input
                 type="text"
                 value={d.stickerId || ''}
                 placeholder="1988"
                 onChange={(e) => upd({ stickerId: e.target.value })}
-                className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30"
+                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm outline-none focus:border-slate-400"
               />
             </div>
-            <p className="text-[10px] text-white/30">
-              完整清單見 <a href="https://developers.line.biz/en/docs/messaging-api/sticker-list/" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/50">LINE Sticker List</a>
+            <p className="text-[11px] text-slate-500">
+              完整清單見 <a href="https://developers.line.biz/en/docs/messaging-api/sticker-list/" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-700">LINE Sticker List</a>
             </p>
           </>
         )}
@@ -175,21 +175,21 @@ export default function ConfigPanel({ node, templates }: Props) {
     return (
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] text-white/40 uppercase tracking-[0.08em]">Label</span>
+          <span className="text-[11px] text-slate-500 uppercase tracking-[0.08em] font-semibold">Label</span>
           <input
             type="text"
             value={d.label}
             onChange={(e) => upd({ label: e.target.value })}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm outline-none focus:border-slate-400"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] text-white/40 uppercase tracking-[0.08em]">Menu Name</span>
+          <span className="text-[11px] text-slate-500 uppercase tracking-[0.08em] font-semibold">Menu Name</span>
           {hasTemplates ? (
             <select
               value={d.menuName}
               onChange={(e) => upd({ menuName: e.target.value })}
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30 cursor-pointer"
+              className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm outline-none focus:border-slate-400 cursor-pointer"
             >
               <option value="">(select menu)</option>
               {templates.map(t => (
@@ -205,16 +205,16 @@ export default function ConfigPanel({ node, templates }: Props) {
               value={d.menuName}
               placeholder="e.g. Recovery Menu"
               onChange={(e) => upd({ menuName: e.target.value })}
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-white/30"
+              className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm outline-none focus:border-slate-400"
             />
           )}
           {menuNameInvalid && (
-            <span className="text-[10px] text-amber-400/80">Template "{d.menuName}" not found in this OA.</span>
+            <span className="text-[11px] text-amber-600">Template "{d.menuName}" not found in this OA.</span>
           )}
         </div>
       </div>
     )
   }
 
-  return <p className="text-white/20 text-sm">Unknown node type.</p>
+  return <p className="text-slate-400 text-sm">Unknown node type.</p>
 }
