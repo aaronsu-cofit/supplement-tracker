@@ -47,12 +47,6 @@ function AppShell({ children }) {
                 {link.label}
               </Link>
             ))}
-            <a
-              href={process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:3000"}
-              className="hq-nav-link hq-nav-back"
-            >
-              ← 回 Portal
-            </a>
           </nav>
         )}
       </aside>
