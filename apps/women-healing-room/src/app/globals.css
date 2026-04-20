@@ -59,8 +59,8 @@
   }
 
   button {
-    background: none;
-    border: none;
+    background: transparent;
+    border-width: 0;
     font-family: inherit;
     cursor: pointer;
   }
