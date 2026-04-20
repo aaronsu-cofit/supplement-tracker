@@ -18,7 +18,9 @@ const SLEEP_EMOJIS = ['', '😫', '🥱', '😐', '😴', '🛌'];
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 
 function formatDate(dateStr: string): { display: string; weekday: string } {
-  const d = new Date(dateStr + 'T12:00:00');
+  // dateStr may be a full ISO string ("2026-04-20T00:00:00.000Z") or bare date ("2026-04-20")
+  const datePart = dateStr.split('T')[0];
+  const d = new Date(datePart + 'T12:00:00');
   const display = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
   return { display, weekday: `週${WEEKDAYS[d.getDay()]}` };
 }
@@ -152,7 +154,7 @@ export default function HistoryPage() {
       <div className="px-4 space-y-4">
         {(avgMood || avgSleep) && (
           <section className="bg-white rounded-2xl shadow-sm p-4">
-            <p className="text-xs text-[#64748B] mb-3">本月平均</p>
+            <p className="text-xs text-[#64748B] mb-3">本月統計（已載入）</p>
             <div className="flex gap-6">
               {avgMood && (
                 <div className="text-center">
@@ -185,14 +187,15 @@ export default function HistoryPage() {
             <p className="text-xs text-[#94A3B8] mt-1">回到今日打卡，開始第一筆記錄吧</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {entries.map((entry) => (
-              <EntryCard key={entry.id} entry={entry} />
-            ))}
-          </div>
+          <>
+            <div className="space-y-3">
+              {entries.map((entry) => (
+                <EntryCard key={entry.id} entry={entry} />
+              ))}
+            </div>
+            <div ref={sentinelRef} className="h-4" />
+          </>
         )}
-
-        <div ref={sentinelRef} className="h-4" />
 
         {isLoadingMore && (
           <div className="flex justify-center py-4">
