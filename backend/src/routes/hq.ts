@@ -1,12 +1,10 @@
 import { Hono } from 'hono';
 import type { HonoEnv } from '../types.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
-import { requireRole } from '../middleware/requireRole.js';
 import { getAllModules, updateModule, getAllUsers, updateUserRole, getHQStats } from '../lib/db.js';
 
 const hq = new Hono<HonoEnv>();
 hq.use('*', authMiddleware);
-hq.use('*', requireRole('admin', 'superadmin'));
 
 // GET /api/hq/modules
 hq.get('/modules', async (c) => {
@@ -42,8 +40,8 @@ hq.get('/admins', async (c) => {
   }
 });
 
-// PATCH /api/hq/admins/:userId (superadmin only)
-hq.patch('/admins/:userId', requireRole('superadmin'), async (c) => {
+// PATCH /api/hq/admins/:userId
+hq.patch('/admins/:userId', async (c) => {
   try {
     const userId = c.req.param('userId');
     const { role } = await c.req.json();
