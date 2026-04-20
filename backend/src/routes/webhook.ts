@@ -1,7 +1,13 @@
 import { Hono } from 'hono'
 import { verifyLineSignature, replyText } from '../lib/line.js'
 import { adkRun } from '../lib/adk.js'
-import { findOrCreateLineUser, getActiveScenariosForOA, enrollUserInScenario, logEngagementEvent } from '../lib/db.js'
+import {
+  findOrCreateLineUser,
+  getActiveScenariosForOA,
+  enrollUserInScenario,
+  logEngagementEvent,
+  getLineOAByDestination,
+} from '../lib/db.js'
 import { evaluateAndAssignMenu } from '../lib/menuEvaluator.js'
 
 const webhook = new Hono()
@@ -33,7 +39,12 @@ interface LineWebhookPayload {
   events: LineWebhookEvent[]
 }
 
-async function handleLineEvent(event: LineWebhookEvent): Promise<void> {
+interface OaContext {
+  id: number
+  channel_access_token: string
+}
+
+async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<void> {
   const lineUserId = event.source.userId
   if (!lineUserId) return
 
@@ -44,25 +55,21 @@ async function handleLineEvent(event: LineWebhookEvent): Promise<void> {
       console.error('[webhook/line] follow findOrCreateLineUser error:', err)
     }
 
-    const oaId = parseInt(process.env.LINE_OA_ID || '0')
-    const channelToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || ''
-    if (oaId > 0 && channelToken) {
-      evaluateAndAssignMenu(oaId, lineUserId, channelToken).catch(err =>
-        console.error('[webhook/line] follow menu evaluation error:', err)
-      )
+    evaluateAndAssignMenu(oa.id, lineUserId, oa.channel_access_token).catch(err =>
+      console.error('[webhook/line] follow menu evaluation error:', err)
+    )
 
-      // Auto-enroll the newly-followed user in every active scenario for this OA
-      ;(async () => {
-        const scenarios = await getActiveScenariosForOA(oaId)
-        await Promise.all(scenarios.map(s => enrollUserInScenario(lineUserId, s.id)))
-      })().catch(err =>
-        console.error('[webhook/line] follow auto-enroll error:', err)
-      )
-    }
+    // Auto-enroll the newly-followed user in every active scenario for this OA
+    ;(async () => {
+      const scenarios = await getActiveScenariosForOA(oa.id)
+      await Promise.all(scenarios.map(s => enrollUserInScenario(lineUserId, s.id)))
+    })().catch(err =>
+      console.error('[webhook/line] follow auto-enroll error:', err)
+    )
 
     if (event.replyToken) {
       try {
-        await replyText(event.replyToken, '您好！我是您的 AI 健康顧問，有任何問題都可以直接傳訊問我 😊')
+        await replyText(event.replyToken, '您好！我是您的 AI 健康顧問，有任何問題都可以直接傳訊問我 😊', oa.channel_access_token)
       } catch (err) {
         console.error('[webhook/line] follow reply error:', err)
       }
@@ -79,7 +86,8 @@ async function handleLineEvent(event: LineWebhookEvent): Promise<void> {
     try {
       await replyText(
         event.replyToken,
-        liffUrl ? `點這裡開啟健康紀錄：${liffUrl}` : '健康紀錄功能即將開放，敬請期待 😊'
+        liffUrl ? `點這裡開啟健康紀錄：${liffUrl}` : '健康紀錄功能即將開放，敬請期待 😊',
+        oa.channel_access_token,
       )
     } catch (err) {
       console.error('[webhook/line] postback reply error:', err)
@@ -102,10 +110,10 @@ async function handleLineEvent(event: LineWebhookEvent): Promise<void> {
     try {
       const result = await adkRun('ai-expert', lineUserId, { message: messageText })
       const replyMessage = result.result || '很抱歉，AI 顧問無法提供回應，請稍後再試 🙏'
-      await replyText(event.replyToken, replyMessage)
+      await replyText(event.replyToken, replyMessage, oa.channel_access_token)
     } catch (err) {
       console.error('[webhook/line] AI Expert error:', err)
-      await replyText(event.replyToken, '很抱歉，AI 顧問暫時無法回應，請稍後再試 🙏')
+      await replyText(event.replyToken, '很抱歉，AI 顧問暫時無法回應，請稍後再試 🙏', oa.channel_access_token)
     }
   }
 }
@@ -114,10 +122,6 @@ async function handleLineEvent(event: LineWebhookEvent): Promise<void> {
 webhook.post('/line', async (c) => {
   const body = await c.req.text()
   const signature = c.req.header('x-line-signature') || ''
-
-  if (!verifyLineSignature(body, signature)) {
-    return c.json({ error: 'Invalid signature' }, 401)
-  }
 
   let payload: LineWebhookPayload
   try {
@@ -130,9 +134,21 @@ webhook.post('/line', async (c) => {
     return c.json({ error: 'Invalid JSON' }, 400)
   }
 
+  // Multi-OA routing: look up OA by bot destination ID.
+  const oa = await getLineOAByDestination(payload.destination)
+  if (!oa || !oa.channel_secret) {
+    console.warn('[webhook/line] unknown or unconfigured destination', payload.destination)
+    return c.json({ error: 'unknown destination — register OA with channel_secret in /lineoamenu' }, 404)
+  }
+
+  if (!verifyLineSignature(body, signature, oa.channel_secret)) {
+    return c.json({ error: 'Invalid signature' }, 401)
+  }
+
   // 立即回 200，非同步處理 events（避免 LINE retry）
+  const oaCtx: OaContext = { id: oa.id, channel_access_token: oa.channel_access_token }
   for (const event of payload.events) {
-    handleLineEvent(event).catch(err => console.error('[webhook/line] event error:', err))
+    handleLineEvent(event, oaCtx).catch(err => console.error('[webhook/line] event error:', err))
   }
 
   return c.text('OK', 200)

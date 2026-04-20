@@ -184,12 +184,15 @@ model LineOA {
   name                 String   @db.VarChar(200)
   description          String?
   channel_access_token String   @db.VarChar(500)
+  channel_secret       String?  @db.VarChar(200)
+  line_destination_id  String?  @db.VarChar(64)
   is_active            Boolean  @default(true)
   created_at           DateTime @default(now())
   updated_at           DateTime @updatedAt
 
   richMenuTemplates LineOARichMenuTemplate[]
 
+  @@index([line_destination_id], name: "idx_line_oa_destination")
   @@map("line_oa")
 }
 

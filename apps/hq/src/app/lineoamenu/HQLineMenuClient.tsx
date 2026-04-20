@@ -7,6 +7,7 @@ interface OAEditForm {
   name: string;
   description: string;
   channel_access_token: string;
+  channel_secret: string;
 }
 
 const DEFAULT_ZONES: Zone[] = [
@@ -15,7 +16,7 @@ const DEFAULT_ZONES: Zone[] = [
   { id: 'C', position: '左下', label: '', uri: '' },
   { id: 'D', position: '右下', label: '', uri: '' },
 ];
-const EMPTY_ADD_FORM: OAEditForm = { name: '', description: '', channel_access_token: '' };
+const EMPTY_ADD_FORM: OAEditForm = { name: '', description: '', channel_access_token: '', channel_secret: '' };
 
 export default function HQLineMenuClient() {
   // ── OA list state ──────────────────────────────────────────────────────────
@@ -27,7 +28,7 @@ export default function HQLineMenuClient() {
   const [isAdding, setIsAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [editingOAId, setEditingOAId] = useState<string | null>(null);
-  const [editOAForm, setEditOAForm] = useState<OAEditForm>({ name: '', description: '', channel_access_token: '' });
+  const [editOAForm, setEditOAForm] = useState<OAEditForm>({ name: '', description: '', channel_access_token: '', channel_secret: '' });
   const [isSavingOA, setIsSavingOA] = useState(false);
   const [selectedOA, setSelectedOA] = useState<LineOA | null>(null);
 
@@ -168,7 +169,7 @@ export default function HQLineMenuClient() {
 
   const startEditOA = (oa: LineOA) => {
     setEditingOAId(oa.id);
-    setEditOAForm({ name: oa.name, description: oa.description || '', channel_access_token: '' });
+    setEditOAForm({ name: oa.name, description: oa.description || '', channel_access_token: '', channel_secret: '' });
     setSelectedOA(null);
     setEditingTemplate(null);
   };
@@ -180,6 +181,7 @@ export default function HQLineMenuClient() {
         name: editOAForm.name,
         description: editOAForm.description,
         ...(editOAForm.channel_access_token && { channel_access_token: editOAForm.channel_access_token }),
+        ...(editOAForm.channel_secret && { channel_secret: editOAForm.channel_secret }),
       };
       const res = await apiFetch(`/api/line/oa/${id}`, {
         method: 'PATCH',
@@ -397,6 +399,11 @@ export default function HQLineMenuClient() {
                 value={addForm.description} onChange={e => setAddForm(p => ({ ...p, description: e.target.value }))} />
               <input className="hq-input text-sm font-mono" placeholder="Channel Access Token（必填）" type="password"
                 value={addForm.channel_access_token} onChange={e => setAddForm(p => ({ ...p, channel_access_token: e.target.value }))} />
+              <input className="hq-input text-sm font-mono" placeholder="Channel Secret（webhook 簽章驗證用）" type="password"
+                value={addForm.channel_secret} onChange={e => setAddForm(p => ({ ...p, channel_secret: e.target.value }))} />
+              <p className="text-[10px] text-white/40">
+                建立後系統會自動抓取這個 OA 的 bot user ID，存成 <code>line_destination_id</code> 供 webhook 路由用。
+              </p>
               {addError && <p className="text-xs text-red-400">{addError}</p>}
               <button onClick={handleAddOA} disabled={isAdding} className="hq-btn-primary text-sm">
                 {isAdding ? <><span className="hq-spinner"></span> 新增中...</> : '確認新增'}
@@ -427,6 +434,8 @@ export default function HQLineMenuClient() {
                       onChange={e => setEditOAForm(p => ({ ...p, description: e.target.value }))} placeholder="說明（選填）" />
                     <input className="hq-input text-sm font-mono" type="password" value={editOAForm.channel_access_token}
                       onChange={e => setEditOAForm(p => ({ ...p, channel_access_token: e.target.value }))} placeholder="新 Token（留空=不變）" />
+                    <input className="hq-input text-sm font-mono" type="password" value={editOAForm.channel_secret}
+                      onChange={e => setEditOAForm(p => ({ ...p, channel_secret: e.target.value }))} placeholder="新 Channel Secret（留空=不變）" />
                     <div className="flex gap-2">
                       <button onClick={() => handleSaveOAEdit(oa.id)} disabled={isSavingOA} className="hq-btn-primary text-xs px-2 py-1">
                         {isSavingOA ? '儲存中...' : '儲存'}
@@ -474,9 +483,23 @@ export default function HQLineMenuClient() {
                 <div>
                   <h3 className="font-bold">
                     {selectedOA.name}
-                    <span className="ml-2 font-mono text-xs font-normal text-white/40">#{selectedOA.id} — 把這個數字填進 <code className="bg-white/5 px-1 rounded">LINE_OA_ID</code></span>
+                    <span className="ml-2 font-mono text-xs font-normal text-white/40">#{selectedOA.id}</span>
                   </h3>
                   {selectedOA.description && <p className="hq-muted-text text-xs mt-0.5">{selectedOA.description}</p>}
+                  <div className="mt-1 text-[10px] text-white/40 space-y-0.5">
+                    <div>
+                      Webhook destination:{' '}
+                      {selectedOA.line_destination_id ? (
+                        <code className="bg-white/5 px-1 rounded font-mono">{selectedOA.line_destination_id}</code>
+                      ) : (
+                        <span className="text-amber-400/80">尚未抓取 — 編輯此 OA 重新儲存 token 即可</span>
+                      )}
+                    </div>
+                    <div>
+                      Webhook URL 填:{' '}
+                      <code className="bg-white/5 px-1 rounded font-mono">{typeof window !== 'undefined' ? window.location.origin.replace('https://vitera-staging', 'https://vitera-api-staging').replace('https://vitera.', 'https://vitera-api.') : ''}/webhook/line</code>
+                    </div>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
                   {templates.some(t => t.is_active) && selectedOA.is_active && (

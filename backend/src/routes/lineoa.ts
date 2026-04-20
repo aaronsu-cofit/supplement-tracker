@@ -4,6 +4,7 @@ import {
   getAllLineOAs, getLineOAById, createLineOA, updateLineOA, deleteLineOA,
   getTemplatesForOA, getTemplateById, createTemplate, updateTemplate, deleteTemplate, setActiveTemplate, deactivateAllTemplates,
 } from '../lib/db.js';
+import { fetchLineBotInfo } from '../lib/line.js';
 
 const lineoa = new Hono();
 lineoa.use('*', authMiddleware);
@@ -17,11 +18,19 @@ lineoa.get('/', async (c) => {
 // POST /api/line/oa
 lineoa.post('/', async (c) => {
   const body = await c.req.json();
-  const { name, description, channel_access_token } = body;
+  const { name, description, channel_access_token, channel_secret } = body;
   if (!name || !channel_access_token) {
     return c.json({ error: '請提供 name 與 channel_access_token' }, 400);
   }
-  const oa = await createLineOA({ name, description, channel_access_token });
+  // Auto-fetch bot's LINE user ID (= webhook destination) from LINE API
+  const botInfo = await fetchLineBotInfo(channel_access_token);
+  const oa = await createLineOA({
+    name,
+    description,
+    channel_access_token,
+    channel_secret,
+    line_destination_id: botInfo?.userId ?? null,
+  });
   return c.json({ oa }, 201);
 });
 
@@ -30,10 +39,15 @@ lineoa.patch('/:id', async (c) => {
   const id = c.req.param('id');
   const body = await c.req.json();
   try {
+    // If token changes, refresh destination id (bot might be different)
+    if (body.channel_access_token) {
+      const botInfo = await fetchLineBotInfo(body.channel_access_token);
+      if (botInfo?.userId) body.line_destination_id = botInfo.userId;
+    }
     const oa = await updateLineOA(id, body);
     return c.json({ oa });
-  } catch (e) {
-    if (e?.code === 'P2025') return c.json({ error: '找不到此 LINE OA' }, 404);
+  } catch (e: unknown) {
+    if ((e as { code?: string })?.code === 'P2025') return c.json({ error: '找不到此 LINE OA' }, 404);
     throw e;
   }
 });

@@ -24,6 +24,8 @@ export interface LineOA {
   name: string;
   description?: string | null;
   is_active: boolean;
+  line_destination_id?: string | null;
+  channel_secret?: string | null;
 }
 
 export interface Zone {

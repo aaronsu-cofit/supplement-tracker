@@ -117,12 +117,14 @@ export interface CreateLineOAInput {
   name: string;
   description?: string;
   channel_access_token: string;
+  channel_secret?: string;
 }
 
 export interface UpdateLineOAInput {
   name?: string;
   description?: string;
   channel_access_token?: string;
+  channel_secret?: string;
   is_active?: boolean;
 }
 

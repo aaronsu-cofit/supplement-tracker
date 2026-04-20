@@ -421,6 +421,7 @@ const OA_PUBLIC_SELECT = {
   name: true,
   description: true,
   is_active: true,
+  line_destination_id: true,
   created_at: true,
   updated_at: true,
 };
@@ -436,30 +437,46 @@ export async function getLineOAById(id: string) {
   return db().lineOA.findUnique({ where: { id: parseInt(id, 10) } });
 }
 
-export async function createLineOA(data: CreateLineOAInput) {
+export async function createLineOA(data: CreateLineOAInput & { line_destination_id?: string | null }) {
   const oa = await db().lineOA.create({
     data: {
       name: data.name,
       description: data.description || null,
       channel_access_token: data.channel_access_token,
+      channel_secret: data.channel_secret || null,
+      line_destination_id: data.line_destination_id || null,
     },
   });
-  const { channel_access_token: _, ...safe } = oa;
+  const { channel_access_token: _t, channel_secret: _s, ...safe } = oa;
+  void _t; void _s;
   return safe;
 }
 
-export async function updateLineOA(id: string, data: UpdateLineOAInput) {
+export async function updateLineOA(id: string, data: UpdateLineOAInput & { line_destination_id?: string | null }) {
   const oa = await db().lineOA.update({
     where: { id: parseInt(id, 10) },
     data: {
       ...(data.name != null && { name: data.name }),
       ...(data.description !== undefined && { description: data.description }),
       ...(data.channel_access_token != null && { channel_access_token: data.channel_access_token }),
+      ...(data.channel_secret !== undefined && { channel_secret: data.channel_secret || null }),
+      ...(data.line_destination_id !== undefined && { line_destination_id: data.line_destination_id || null }),
       ...(data.is_active !== undefined && { is_active: data.is_active }),
     },
   });
-  const { channel_access_token: _, ...safe } = oa;
+  const { channel_access_token: _t, channel_secret: _s, ...safe } = oa;
+  void _t; void _s;
   return safe;
+}
+
+/**
+ * Find the OA that owns a given webhook `destination` (the bot's LINE
+ * user ID). Returns null if no match. Used by the webhook router.
+ */
+export async function getLineOAByDestination(destination: string) {
+  return db().lineOA.findFirst({
+    where: { line_destination_id: destination, is_active: true },
+  });
 }
 
 export async function deleteLineOA(id: string): Promise<{ success: boolean }> {
