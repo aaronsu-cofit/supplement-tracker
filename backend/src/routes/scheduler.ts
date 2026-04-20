@@ -22,11 +22,12 @@ scheduler.post('/run', async (c) => {
   }
 });
 
-// GET /api/scheduler/activity
+// GET /api/scheduler/activity?oa_id=N — optional filter, else all OAs
 scheduler.get('/activity', async (c) => {
   try {
+    const queryOa = c.req.query('oa_id');
     const envOa = parseInt(process.env.LINE_OA_ID || '0');
-    const oaId = envOa > 0 ? envOa : undefined;
+    const oaId = queryOa ? parseInt(queryOa) : (envOa > 0 ? envOa : undefined);
     const [enrollments, deliveries, engagement] = await Promise.all([
       getActiveEnrollmentsList(50, oaId),
       getRecentDeliveries(50, oaId),

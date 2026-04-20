@@ -1,6 +1,7 @@
 import {
   getActiveEnrollmentsForOA,
   getLineOAById,
+  getAllLineOAs,
   tryClaimDelivery,
   releaseDelivery,
 } from './db.js';
@@ -24,35 +25,56 @@ export interface SchedulerRunResult {
  * transient errors.
  */
 export async function runScheduler(now: Date = new Date()): Promise<SchedulerRunResult> {
-  const oaId = parseInt(process.env.LINE_OA_ID || '0');
-  if (!oaId) {
-    return {
-      sent: 0,
-      skipped: 0,
-      errors: ['LINE_OA_ID env var is not set (should be the #id shown in /lineoamenu)'],
-      enrollmentsConsidered: 0,
-    };
+  // Determine which OAs to run for:
+  // - If LINE_OA_ID env is set → single-OA mode (legacy)
+  // - Otherwise → iterate every active OA in DB
+  const envOa = parseInt(process.env.LINE_OA_ID || '0');
+  let oaIds: number[];
+  if (envOa > 0) {
+    const oa = await getLineOAById(envOa.toString());
+    if (!oa) {
+      return {
+        sent: 0, skipped: 0, enrollmentsConsidered: 0,
+        errors: [`LINE OA #${envOa} not found in DB — check LINE_OA_ID matches /lineoamenu`],
+      };
+    }
+    oaIds = [envOa];
+  } else {
+    const all = await getAllLineOAs();
+    oaIds = all.filter(o => o.is_active).map(o => o.id);
+    if (oaIds.length === 0) {
+      return {
+        sent: 0, skipped: 0, enrollmentsConsidered: 0,
+        errors: ['No active LINE OAs found. Create one in /lineoamenu, or set LINE_OA_ID env to restrict.'],
+      };
+    }
   }
 
+  let sent = 0;
+  let skipped = 0;
+  let enrollmentsConsidered = 0;
+  const errors: string[] = [];
+
+  for (const oaId of oaIds) {
+    const result = await runForOa(oaId, now);
+    sent += result.sent;
+    skipped += result.skipped;
+    enrollmentsConsidered += result.enrollmentsConsidered;
+    errors.push(...result.errors);
+  }
+
+  return { sent, skipped, errors, enrollmentsConsidered };
+}
+
+async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
   const oa = await getLineOAById(oaId.toString());
-  if (!oa) {
+  if (!oa?.channel_access_token) {
     return {
-      sent: 0,
-      skipped: 0,
-      errors: [`LINE OA #${oaId} not found in DB — check LINE_OA_ID matches /lineoamenu`],
-      enrollmentsConsidered: 0,
+      sent: 0, skipped: 0, enrollmentsConsidered: 0,
+      errors: [`OA #${oaId}: channel_access_token missing — edit in /lineoamenu`],
     };
   }
-
   const channelToken = oa.channel_access_token;
-  if (!channelToken) {
-    return {
-      sent: 0,
-      skipped: 0,
-      errors: [`LINE OA #${oaId} has no channel_access_token — edit it in /lineoamenu`],
-      enrollmentsConsidered: 0,
-    };
-  }
 
   const enrollments = await getActiveEnrollmentsForOA(oaId);
   if (enrollments.length === 0) {
