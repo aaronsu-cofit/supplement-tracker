@@ -151,12 +151,14 @@ export default function ProgressPage() {
                   key={item.val}
                   onClick={() => !isSaved && setMood(item.val)}
                   disabled={isSaved}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
-                    mood === item.val ? 'bg-[#DCE8EF] scale-110 shadow-sm' : 'hover:bg-[#F0F6FA]'
-                  } ${isSaved ? 'opacity-80 cursor-default' : 'cursor-pointer'}`}
+                  className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all border-2 ${
+                    mood === item.val
+                      ? 'border-[#4A5D6E] bg-[#DCE8EF]'
+                      : 'border-transparent opacity-40 hover:opacity-70 hover:bg-[#F0F6FA]'
+                  } ${isSaved ? 'cursor-default' : 'cursor-pointer'}`}
                 >
-                  <span className="text-2xl">{item.emoji}</span>
-                  <span className="text-[10px] text-[#64748B]">{item.label}</span>
+                  <span className={`transition-all ${mood === item.val ? 'text-3xl' : 'text-2xl'}`}>{item.emoji}</span>
+                  <span className={`text-[10px] font-medium ${mood === item.val ? 'text-[#4A5D6E]' : 'text-[#94A3B8]'}`}>{item.label}</span>
                 </button>
               ))}
             </div>
@@ -170,12 +172,14 @@ export default function ProgressPage() {
                   key={item.val}
                   onClick={() => !isSaved && setSleep(item.val)}
                   disabled={isSaved}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
-                    sleep === item.val ? 'bg-[#E1F4F5] scale-110 shadow-sm' : 'hover:bg-[#F0F6FA]'
-                  } ${isSaved ? 'opacity-80 cursor-default' : 'cursor-pointer'}`}
+                  className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all border-2 ${
+                    sleep === item.val
+                      ? 'border-[#7ABFBF] bg-[#E1F4F5]'
+                      : 'border-transparent opacity-40 hover:opacity-70 hover:bg-[#F0F6FA]'
+                  } ${isSaved ? 'cursor-default' : 'cursor-pointer'}`}
                 >
-                  <span className="text-2xl">{item.emoji}</span>
-                  <span className="text-[10px] text-[#64748B]">{item.label}</span>
+                  <span className={`transition-all ${sleep === item.val ? 'text-3xl' : 'text-2xl'}`}>{item.emoji}</span>
+                  <span className={`text-[10px] font-medium ${sleep === item.val ? 'text-[#7ABFBF]' : 'text-[#94A3B8]'}`}>{item.label}</span>
                 </button>
               ))}
             </div>
