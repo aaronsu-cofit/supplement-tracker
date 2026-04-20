@@ -1,5 +1,5 @@
 'use client';
-import { apiFetch } from '@vitera/lib';
+import { apiFetch, getApiUrl } from '@vitera/lib';
 import { useState, useEffect, useCallback } from 'react';
 import type { LineOA, LineTemplate, Zone, ActionStatus } from '../../types';
 
@@ -518,7 +518,7 @@ export default function HQLineMenuClient() {
                     </div>
                     <div>
                       Webhook URL 填:{' '}
-                      <code className="bg-white/5 px-1 rounded font-mono">{typeof window !== 'undefined' ? window.location.origin.replace('https://vitera-staging', 'https://vitera-api-staging').replace('https://vitera.', 'https://vitera-api.') : ''}/webhook/line</code>
+                      <code className="bg-white/5 px-1 rounded font-mono">{getApiUrl()}/webhook/line</code>
                     </div>
                   </div>
                 </div>
