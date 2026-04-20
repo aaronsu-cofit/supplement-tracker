@@ -72,8 +72,11 @@ export default function HQOverviewClient() {
 
   useEffect(() => {
     apiFetch('/api/hq/stats')
-      .then(r => r.json())
-      .then((data: HQStats) => setStats(data))
+      .then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<HQStats>;
+      })
+      .then(data => setStats(data))
       .catch(err => {
         console.error('[hq/overview] stats error:', err);
         setLoadError('無法載入統計資料');
@@ -83,11 +86,15 @@ export default function HQOverviewClient() {
   const loadActivity = useCallback(() => {
     setActivityError(null);
     apiFetch('/api/scheduler/activity')
-      .then(r => r.json())
-      .then((data: ActivityResponse) => setActivity(data))
+      .then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<ActivityResponse>;
+      })
+      .then(data => setActivity(data))
       .catch(err => {
         console.error('[hq/overview] activity error:', err);
         setActivityError('無法載入活動紀錄');
+        setActivity(null);
       });
   }, []);
 
@@ -203,17 +210,21 @@ export default function HQOverviewClient() {
           </button>
         </div>
         {activityError && <p className="text-sm text-red-400">{activityError}</p>}
-        {activity && (
+        {activity && (() => {
+          const enrollments = activity.enrollments ?? [];
+          const deliveries = activity.deliveries ?? [];
+          const engagement = activity.engagement ?? [];
+          return (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
             <details open className="bg-[var(--hq-bg-main)] rounded-lg p-3">
               <summary className="cursor-pointer text-white/70 font-semibold mb-2">
-                活躍 Enrollments ({activity.enrollments.length})
+                活躍 Enrollments ({enrollments.length})
               </summary>
-              {activity.enrollments.length === 0 ? (
+              {enrollments.length === 0 ? (
                 <p className="text-white/30 mt-2">尚無 enrollment</p>
               ) : (
                 <div className="flex flex-col gap-1 mt-2 max-h-72 overflow-y-auto">
-                  {activity.enrollments.map(e => (
+                  {enrollments.map(e => (
                     <div key={e.id} className="flex items-center justify-between gap-2 py-1 border-b border-white/5">
                       <span className="font-mono text-white/60 truncate max-w-[120px]" title={e.user_id}>
                         {e.user.display_name || e.user_id.slice(0, 10)}
@@ -228,13 +239,13 @@ export default function HQOverviewClient() {
 
             <details open className="bg-[var(--hq-bg-main)] rounded-lg p-3">
               <summary className="cursor-pointer text-white/70 font-semibold mb-2">
-                最近推播 Deliveries ({activity.deliveries.length})
+                最近推播 Deliveries ({deliveries.length})
               </summary>
-              {activity.deliveries.length === 0 ? (
+              {deliveries.length === 0 ? (
                 <p className="text-white/30 mt-2">尚未推播過任何訊息</p>
               ) : (
                 <div className="flex flex-col gap-1 mt-2 max-h-72 overflow-y-auto">
-                  {activity.deliveries.map(d => (
+                  {deliveries.map(d => (
                     <div key={d.id} className="flex items-center justify-between gap-2 py-1 border-b border-white/5">
                       <span className="font-mono text-white/60 truncate max-w-[120px]" title={d.user_id}>
                         {d.user_id.slice(0, 10)}
@@ -249,13 +260,13 @@ export default function HQOverviewClient() {
 
             <details open className="bg-[var(--hq-bg-main)] rounded-lg p-3">
               <summary className="cursor-pointer text-white/70 font-semibold mb-2">
-                互動事件 Engagement ({activity.engagement.length})
+                互動事件 Engagement ({engagement.length})
               </summary>
-              {activity.engagement.length === 0 ? (
+              {engagement.length === 0 ? (
                 <p className="text-white/30 mt-2">尚無事件</p>
               ) : (
                 <div className="flex flex-col gap-1 mt-2 max-h-72 overflow-y-auto">
-                  {activity.engagement.map(e => (
+                  {engagement.map(e => (
                     <div key={e.id} className="flex items-center justify-between gap-2 py-1 border-b border-white/5">
                       <span className="font-mono text-white/60 truncate max-w-[100px]" title={e.user_id}>
                         {e.user_id.slice(0, 10)}
@@ -273,7 +284,8 @@ export default function HQOverviewClient() {
               )}
             </details>
           </div>
-        )}
+          );
+        })()}
       </div>
 
       <div className="hq-grid-3">
