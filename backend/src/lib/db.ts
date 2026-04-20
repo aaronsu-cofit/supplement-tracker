@@ -707,20 +707,46 @@ export async function logEngagementEvent(userId: string, eventType: string, payl
   });
 }
 
-export async function getActiveEnrollmentsList(limit = 50) {
+/**
+ * List active enrollments, optionally filtered to scenarios belonging to
+ * the given OA (or legacy 'default'). When oaId is omitted returns all.
+ */
+export async function getActiveEnrollmentsList(limit = 50, oaId?: number) {
   return db().enrollment.findMany({
-    where: { status: 'active' },
+    where: {
+      status: 'active',
+      ...(oaId != null && {
+        scenario: {
+          OR: [{ oa_id: oaId.toString() }, { oa_id: 'default' }],
+        },
+      }),
+    },
     orderBy: { enrolled_at: 'desc' },
     take: limit,
     include: {
       user: { select: { id: true, display_name: true, timezone: true } },
-      scenario: { select: { id: true, name: true, is_active: true } },
+      scenario: { select: { id: true, name: true, is_active: true, oa_id: true } },
     },
   });
 }
 
-export async function getRecentDeliveries(limit = 50) {
+/**
+ * Recent deliveries. When oaId is provided, restricts to scenarios of that
+ * OA (plus legacy 'default') via a subquery on scenario_id.
+ */
+export async function getRecentDeliveries(limit = 50, oaId?: number) {
+  if (oaId == null) {
+    return db().messageDelivery.findMany({ orderBy: { delivered_at: 'desc' }, take: limit });
+  }
+  const scenarioIds = (
+    await db().coBlocksScenario.findMany({
+      where: { OR: [{ oa_id: oaId.toString() }, { oa_id: 'default' }] },
+      select: { id: true },
+    })
+  ).map(s => s.id);
+  if (scenarioIds.length === 0) return [];
   return db().messageDelivery.findMany({
+    where: { scenario_id: { in: scenarioIds } },
     orderBy: { delivered_at: 'desc' },
     take: limit,
   });

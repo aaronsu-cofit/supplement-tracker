@@ -51,13 +51,9 @@ wizard.patch('/scenarios/:id', async (c) => {
   }
   try {
     const scenario = await updateScenario(c.req.param('id'), body)
-    // When a scenario becomes active, enroll all existing LINE users so they
-    // can start receiving scheduled messages (new follows auto-enroll via webhook).
-    if (body.is_active === true) {
-      enrollAllLineUsersInScenario(scenario.id).catch(err =>
-        console.error('[wizard] enrollAllLineUsersInScenario error:', err)
-      )
-    }
+    // Intentionally NOT auto-enrolling existing LINE users on activate.
+    // Only new follows (via webhook) get auto-enrolled going forward.
+    // Use POST /api/wizard/scenarios/:id/enroll-all for explicit bulk enroll.
     return c.json({ scenario })
   } catch (e: unknown) {
     if ((e as { code?: string })?.code === 'P2025') return c.json({ error: 'not found' }, 404)
@@ -71,6 +67,19 @@ wizard.delete('/scenarios/:id', async (c) => {
     return c.json({ success: true })
   } catch (e: unknown) {
     if ((e as { code?: string })?.code === 'P2025') return c.json({ error: 'not found' }, 404)
+    throw e
+  }
+})
+
+// POST /api/wizard/scenarios/:id/enroll-all — opt-in bulk enrollment of all LINE users.
+// Use with care: this retroactively enrolls everyone into the scenario's flow, so
+// Day 0 messages will fire at the next scheduler run.
+wizard.post('/scenarios/:id/enroll-all', async (c) => {
+  try {
+    const count = await enrollAllLineUsersInScenario(c.req.param('id'))
+    return c.json({ enrolled: count })
+  } catch (e: unknown) {
+    if ((e as { code?: string })?.code === 'P2003') return c.json({ error: 'scenario not found' }, 404)
     throw e
   }
 })

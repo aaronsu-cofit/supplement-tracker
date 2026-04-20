@@ -25,12 +25,14 @@ scheduler.post('/run', async (c) => {
 // GET /api/scheduler/activity
 scheduler.get('/activity', async (c) => {
   try {
+    const envOa = parseInt(process.env.LINE_OA_ID || '0');
+    const oaId = envOa > 0 ? envOa : undefined;
     const [enrollments, deliveries, engagement] = await Promise.all([
-      getActiveEnrollmentsList(50),
-      getRecentDeliveries(50),
+      getActiveEnrollmentsList(50, oaId),
+      getRecentDeliveries(50, oaId),
       getRecentEngagementEvents(50),
     ]);
-    return c.json({ enrollments, deliveries, engagement });
+    return c.json({ enrollments, deliveries, engagement, oaId: oaId ?? null });
   } catch (error) {
     console.error('[scheduler/activity] error:', error);
     return c.json({ error: 'Failed to load activity' }, 500);
