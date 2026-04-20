@@ -487,13 +487,26 @@ export default function HQLineMenuClient() {
                   </h3>
                   {selectedOA.description && <p className="hq-muted-text text-xs mt-0.5">{selectedOA.description}</p>}
                   <div className="mt-1 text-[10px] text-white/40 space-y-0.5">
-                    <div>
-                      Webhook destination:{' '}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span>Webhook destination:</span>
                       {selectedOA.line_destination_id ? (
                         <code className="bg-white/5 px-1 rounded font-mono">{selectedOA.line_destination_id}</code>
                       ) : (
-                        <span className="text-amber-400/80">尚未抓取 — 編輯此 OA 重新儲存 token 即可</span>
+                        <span className="text-amber-400/80">尚未抓取</span>
                       )}
+                      <button
+                        onClick={async () => {
+                          const res = await apiFetch(`/api/line/oa/${selectedOA.id}/refresh-bot-info`, { method: 'POST' });
+                          const data = await res.json();
+                          if (!res.ok) { setActionStatus({ type: 'error', message: data.error || '抓取失敗' }); return; }
+                          setSelectedOA(prev => prev ? { ...prev, line_destination_id: data.bot_user_id } : null);
+                          setOaList(prev => prev.map(o => o.id === selectedOA.id ? { ...o, line_destination_id: data.bot_user_id } : o));
+                          setActionStatus({ type: 'success', message: `已抓取 bot ID (${data.bot_user_id})` });
+                        }}
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                      >
+                        ↻ 抓取
+                      </button>
                     </div>
                     <div>
                       Webhook URL 填:{' '}

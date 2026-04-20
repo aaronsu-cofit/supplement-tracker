@@ -52,6 +52,20 @@ lineoa.patch('/:id', async (c) => {
   }
 });
 
+// POST /api/line/oa/:id/refresh-bot-info — re-fetch the bot's LINE user ID
+// using the stored channel_access_token; updates line_destination_id.
+lineoa.post('/:id/refresh-bot-info', async (c) => {
+  const id = c.req.param('id');
+  const oa = await getLineOAById(id);
+  if (!oa) return c.json({ error: '找不到此 LINE OA' }, 404);
+  const botInfo = await fetchLineBotInfo(oa.channel_access_token);
+  if (!botInfo?.userId) {
+    return c.json({ error: '無法取得 bot info — 請確認 Channel Access Token 正確' }, 400);
+  }
+  const updated = await updateLineOA(id, { line_destination_id: botInfo.userId });
+  return c.json({ oa: updated, bot_user_id: botInfo.userId, display_name: botInfo.displayName });
+});
+
 // DELETE /api/line/oa/:id
 lineoa.delete('/:id', async (c) => {
   const id = c.req.param('id');
