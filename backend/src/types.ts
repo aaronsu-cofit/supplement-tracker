@@ -120,6 +120,7 @@ export interface CreateLineOAInput {
   channel_secret?: string;
   default_agent_id?: string;
   ai_skill_platform_url?: string;
+  ai_skill_platform_api_key?: string;
 }
 
 export interface UpdateLineOAInput {
@@ -129,6 +130,7 @@ export interface UpdateLineOAInput {
   channel_secret?: string;
   default_agent_id?: string;
   ai_skill_platform_url?: string;
+  ai_skill_platform_api_key?: string;
   is_active?: boolean;
 }
 

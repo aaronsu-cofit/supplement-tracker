@@ -10,6 +10,7 @@ interface OAEditForm {
   channel_secret: string;
   default_agent_id: string;
   ai_skill_platform_url: string;
+  ai_skill_platform_api_key: string;
 }
 
 const DEFAULT_ZONES: Zone[] = [
@@ -18,7 +19,7 @@ const DEFAULT_ZONES: Zone[] = [
   { id: 'C', position: '左下', label: '', uri: '' },
   { id: 'D', position: '右下', label: '', uri: '' },
 ];
-const EMPTY_ADD_FORM: OAEditForm = { name: '', description: '', channel_access_token: '', channel_secret: '', default_agent_id: 'ai-expert', ai_skill_platform_url: '' };
+const EMPTY_ADD_FORM: OAEditForm = { name: '', description: '', channel_access_token: '', channel_secret: '', default_agent_id: 'ai-expert', ai_skill_platform_url: '', ai_skill_platform_api_key: '' };
 
 export default function HQLineMenuClient() {
   // ── OA list state ──────────────────────────────────────────────────────────
@@ -30,7 +31,7 @@ export default function HQLineMenuClient() {
   const [isAdding, setIsAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [editingOAId, setEditingOAId] = useState<string | null>(null);
-  const [editOAForm, setEditOAForm] = useState<OAEditForm>({ name: '', description: '', channel_access_token: '', channel_secret: '', default_agent_id: '', ai_skill_platform_url: '' });
+  const [editOAForm, setEditOAForm] = useState<OAEditForm>({ name: '', description: '', channel_access_token: '', channel_secret: '', default_agent_id: '', ai_skill_platform_url: '', ai_skill_platform_api_key: '' });
   const [isSavingOA, setIsSavingOA] = useState(false);
   const [selectedOA, setSelectedOA] = useState<LineOA | null>(null);
 
@@ -171,7 +172,7 @@ export default function HQLineMenuClient() {
 
   const startEditOA = (oa: LineOA) => {
     setEditingOAId(oa.id);
-    setEditOAForm({ name: oa.name, description: oa.description || '', channel_access_token: '', channel_secret: '', default_agent_id: oa.default_agent_id || '', ai_skill_platform_url: oa.ai_skill_platform_url || '' });
+    setEditOAForm({ name: oa.name, description: oa.description || '', channel_access_token: '', channel_secret: '', default_agent_id: oa.default_agent_id || '', ai_skill_platform_url: oa.ai_skill_platform_url || '', ai_skill_platform_api_key: '' });
     setSelectedOA(null);
     setEditingTemplate(null);
   };
@@ -186,6 +187,7 @@ export default function HQLineMenuClient() {
         ...(editOAForm.channel_secret && { channel_secret: editOAForm.channel_secret }),
         ...(editOAForm.default_agent_id && { default_agent_id: editOAForm.default_agent_id }),
         ai_skill_platform_url: editOAForm.ai_skill_platform_url,
+        ...(editOAForm.ai_skill_platform_api_key && { ai_skill_platform_api_key: editOAForm.ai_skill_platform_api_key }),
       };
       const res = await apiFetch(`/api/line/oa/${id}`, {
         method: 'PATCH',
@@ -409,10 +411,12 @@ export default function HQLineMenuClient() {
                 value={addForm.default_agent_id} onChange={e => setAddForm(p => ({ ...p, default_agent_id: e.target.value }))} />
               <input className="hq-input text-sm font-mono" placeholder="AI Skill Platform URL (https://...)"
                 value={addForm.ai_skill_platform_url} onChange={e => setAddForm(p => ({ ...p, ai_skill_platform_url: e.target.value }))} />
+              <input className="hq-input text-sm font-mono" placeholder="AI Skill Platform API Key" type="password"
+                value={addForm.ai_skill_platform_api_key} onChange={e => setAddForm(p => ({ ...p, ai_skill_platform_api_key: e.target.value }))} />
               <p className="text-[10px] text-white/40">
                 建立後系統會自動抓取這個 OA 的 bot user ID，存成 <code>line_destination_id</code> 供 webhook 路由用。<br />
-                Default Agent：使用者傳文字訊息時，webhook 會 forward 到 AI Skill Platform 處理。<br />
-                AI Skill Platform URL：留空則不 forward（AI 不會回訊息）。
+                Default Agent：使用者傳文字訊息時 backend 會呼叫 <code>${'{url}'}/run</code>。<br />
+                URL 跟 API Key 都要填 AI 才會跑（AI Skill Platform 用 API Key 驗證，不需 channel_secret）。
               </p>
               {addError && <p className="text-xs text-red-400">{addError}</p>}
               <button onClick={handleAddOA} disabled={isAdding} className="hq-btn-primary text-sm">
@@ -450,6 +454,8 @@ export default function HQLineMenuClient() {
                       onChange={e => setEditOAForm(p => ({ ...p, default_agent_id: e.target.value }))} placeholder="Default Agent ID" />
                     <input className="hq-input text-sm font-mono" value={editOAForm.ai_skill_platform_url}
                       onChange={e => setEditOAForm(p => ({ ...p, ai_skill_platform_url: e.target.value }))} placeholder="AI Skill Platform URL (https://...)" />
+                    <input className="hq-input text-sm font-mono" type="password" value={editOAForm.ai_skill_platform_api_key}
+                      onChange={e => setEditOAForm(p => ({ ...p, ai_skill_platform_api_key: e.target.value }))} placeholder="新 AI Skill Platform API Key（留空=不變）" />
                     <div className="flex gap-2">
                       <button onClick={() => handleSaveOAEdit(oa.id)} disabled={isSavingOA} className="hq-btn-primary text-xs px-2 py-1">
                         {isSavingOA ? '儲存中...' : '儲存'}
@@ -543,7 +549,12 @@ export default function HQLineMenuClient() {
                       {selectedOA.ai_skill_platform_url ? (
                         <code className="bg-white/5 px-1 rounded font-mono break-all max-w-[320px] truncate" title={selectedOA.ai_skill_platform_url}>{selectedOA.ai_skill_platform_url}</code>
                       ) : (
-                        <span className="text-amber-400/80">未設定 — 使用者傳文字訊息不會觸發 AI</span>
+                        <span className="text-amber-400/80">URL 未設定</span>
+                      )}
+                      {selectedOA.has_ai_skill_platform_api_key ? (
+                        <span className="text-[#5ce0d8]">✓ API Key</span>
+                      ) : (
+                        <span className="text-amber-400/80">✗ API Key</span>
                       )}
                       {selectedOA.ai_skill_platform_url && (
                         <button

@@ -427,6 +427,7 @@ const OA_PUBLIC_WITH_SECRET_STATUS = {
   channel_secret: true,
   default_agent_id: true,
   ai_skill_platform_url: true,
+  ai_skill_platform_api_key: true,
   created_at: true,
   updated_at: true,
 };
@@ -437,8 +438,12 @@ export async function getAllLineOAs() {
     orderBy: { created_at: 'desc' },
   });
   return rows.map(r => {
-    const { channel_secret, ...safe } = r;
-    return { ...safe, has_channel_secret: !!channel_secret };
+    const { channel_secret, ai_skill_platform_api_key, ...safe } = r;
+    return {
+      ...safe,
+      has_channel_secret: !!channel_secret,
+      has_ai_skill_platform_api_key: !!ai_skill_platform_api_key,
+    };
   });
 }
 
@@ -456,10 +461,11 @@ export async function createLineOA(data: CreateLineOAInput & { line_destination_
       line_destination_id: data.line_destination_id || null,
       ...(data.default_agent_id && { default_agent_id: data.default_agent_id }),
       ai_skill_platform_url: data.ai_skill_platform_url || null,
+      ai_skill_platform_api_key: data.ai_skill_platform_api_key || null,
     },
   });
-  const { channel_access_token: _t, channel_secret: _s, ...safe } = oa;
-  void _t; void _s;
+  const { channel_access_token: _t, channel_secret: _s, ai_skill_platform_api_key: _k, ...safe } = oa;
+  void _t; void _s; void _k;
   return safe;
 }
 
@@ -474,11 +480,12 @@ export async function updateLineOA(id: string, data: UpdateLineOAInput & { line_
       ...(data.line_destination_id !== undefined && { line_destination_id: data.line_destination_id || null }),
       ...(data.default_agent_id != null && { default_agent_id: data.default_agent_id }),
       ...(data.ai_skill_platform_url !== undefined && { ai_skill_platform_url: data.ai_skill_platform_url || null }),
+      ...(data.ai_skill_platform_api_key !== undefined && { ai_skill_platform_api_key: data.ai_skill_platform_api_key || null }),
       ...(data.is_active !== undefined && { is_active: data.is_active }),
     },
   });
-  const { channel_access_token: _t, channel_secret: _s, ...safe } = oa;
-  void _t; void _s;
+  const { channel_access_token: _t, channel_secret: _s, ai_skill_platform_api_key: _k, ...safe } = oa;
+  void _t; void _s; void _k;
   return safe;
 }
 

@@ -180,17 +180,18 @@ model Module {
 }
 
 model LineOA {
-  id                     Int      @id @default(autoincrement())
-  name                   String   @db.VarChar(200)
-  description            String?
-  channel_access_token   String   @db.VarChar(500)
-  channel_secret         String?  @db.VarChar(200)
-  line_destination_id    String?  @db.VarChar(64)
-  default_agent_id       String   @default("ai-expert") @db.VarChar(100)
-  ai_skill_platform_url  String?  @db.VarChar(500)
-  is_active              Boolean  @default(true)
-  created_at             DateTime @default(now())
-  updated_at             DateTime @updatedAt
+  id                         Int      @id @default(autoincrement())
+  name                       String   @db.VarChar(200)
+  description                String?
+  channel_access_token       String   @db.VarChar(500)
+  channel_secret             String?  @db.VarChar(200)
+  line_destination_id        String?  @db.VarChar(64)
+  default_agent_id           String   @default("ai-expert") @db.VarChar(100)
+  ai_skill_platform_url      String?  @db.VarChar(500)
+  ai_skill_platform_api_key  String?  @db.VarChar(500)
+  is_active                  Boolean  @default(true)
+  created_at                 DateTime @default(now())
+  updated_at                 DateTime @updatedAt
 
   richMenuTemplates LineOARichMenuTemplate[]
 

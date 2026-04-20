@@ -1,30 +1,39 @@
-function requireAdkConfig(): { url: string; headers: Record<string, string> } {
-  const url = process.env.ADK_URL
-  const apiKey = process.env.ADK_API_KEY
-  if (!url || !apiKey) {
-    throw new Error('ADK_URL and ADK_API_KEY must be set')
-  }
-  return {
-    url,
-    headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
-  }
-}
-
 export interface AdkRunResult {
   result: string
   skill_key: string
 }
 
-// 同步呼叫 ADK Service，等待完整結果（用於 LINE 聊天室）
+export interface AdkConfig {
+  url: string
+  apiKey: string
+}
+
+function resolveConfig(override?: AdkConfig): AdkConfig {
+  if (override?.url && override?.apiKey) return override
+  const url = process.env.ADK_URL
+  const apiKey = process.env.ADK_API_KEY
+  if (!url || !apiKey) {
+    throw new Error('ADK config missing — provide per-call {url, apiKey} or set ADK_URL + ADK_API_KEY env vars')
+  }
+  return { url, apiKey }
+}
+
+function headersFor(apiKey: string): Record<string, string> {
+  return { 'Content-Type': 'application/json', 'X-API-Key': apiKey }
+}
+
+// 同步呼叫 AI Skill Platform 的 /run endpoint，等待完整結果。
+// `cfg` 可以 per-call override（例如從 DB LineOA 拿 url + key）。
 export async function adkRun(
   agentId: string,
   clientId: string,
-  options?: { message?: string }
+  options?: { message?: string },
+  cfg?: AdkConfig,
 ): Promise<AdkRunResult> {
-  const { url, headers } = requireAdkConfig()
-  const res = await fetch(`${url}/run`, {
+  const { url, apiKey } = resolveConfig(cfg)
+  const res = await fetch(`${url.replace(/\/$/, '')}/run`, {
     method: 'POST',
-    headers,
+    headers: headersFor(apiKey),
     body: JSON.stringify({
       agent_id: agentId,
       client_id: clientId,
@@ -44,11 +53,11 @@ export async function adkRun(
 // 取得 ADK Service 的 SSE stream（用於 LIFF 串流顯示）
 // Known limitation: timeout(30000) only covers header delivery — a stalled stream body
 // after headers arrive has no per-chunk timeout. Acceptable for POC.
-export async function adkStream(agentId: string, clientId: string): Promise<Response> {
-  const { url, headers } = requireAdkConfig()
-  const res = await fetch(`${url}/run_sse`, {
+export async function adkStream(agentId: string, clientId: string, cfg?: AdkConfig): Promise<Response> {
+  const { url, apiKey } = resolveConfig(cfg)
+  const res = await fetch(`${url.replace(/\/$/, '')}/run_sse`, {
     method: 'POST',
-    headers,
+    headers: headersFor(apiKey),
     body: JSON.stringify({ agent_id: agentId, client_id: clientId }),
     signal: AbortSignal.timeout(30000),
   })
