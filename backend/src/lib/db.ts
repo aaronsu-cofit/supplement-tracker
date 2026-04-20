@@ -416,20 +416,27 @@ export async function updateModule(id: string, updates: UpdateModuleInput) {
 // LINE OA CRUD
 // ============================================
 
-const OA_PUBLIC_SELECT = {
+// The actual channel_secret value is never returned to clients; we only
+// expose a boolean `has_channel_secret` computed in the query wrapper.
+const OA_PUBLIC_WITH_SECRET_STATUS = {
   id: true,
   name: true,
   description: true,
   is_active: true,
   line_destination_id: true,
+  channel_secret: true,
   created_at: true,
   updated_at: true,
 };
 
 export async function getAllLineOAs() {
-  return db().lineOA.findMany({
-    select: OA_PUBLIC_SELECT,
+  const rows = await db().lineOA.findMany({
+    select: OA_PUBLIC_WITH_SECRET_STATUS,
     orderBy: { created_at: 'desc' },
+  });
+  return rows.map(r => {
+    const { channel_secret, ...safe } = r;
+    return { ...safe, has_channel_secret: !!channel_secret };
   });
 }
 

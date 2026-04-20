@@ -488,6 +488,14 @@ export default function HQLineMenuClient() {
                   {selectedOA.description && <p className="hq-muted-text text-xs mt-0.5">{selectedOA.description}</p>}
                   <div className="mt-1 text-[10px] text-white/40 space-y-0.5">
                     <div className="flex items-center gap-2 flex-wrap">
+                      <span>Channel Secret:</span>
+                      {selectedOA.has_channel_secret ? (
+                        <span className="text-[#5ce0d8]">✓ 已設定</span>
+                      ) : (
+                        <span className="text-amber-400/80">✗ 未設定 — 請點編輯填入 Channel Secret</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span>Webhook destination:</span>
                       {selectedOA.line_destination_id ? (
                         <code className="bg-white/5 px-1 rounded font-mono">{selectedOA.line_destination_id}</code>

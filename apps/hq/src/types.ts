@@ -25,7 +25,7 @@ export interface LineOA {
   description?: string | null;
   is_active: boolean;
   line_destination_id?: string | null;
-  channel_secret?: string | null;
+  has_channel_secret?: boolean;
 }
 
 export interface Zone {
