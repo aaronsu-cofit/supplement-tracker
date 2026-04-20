@@ -17,7 +17,7 @@ import type {
 
 let _prisma: PrismaClient | undefined;
 
-function db(): PrismaClient {
+export function db(): PrismaClient {
   if (!_prisma) _prisma = new PrismaClient();
   return _prisma;
 }

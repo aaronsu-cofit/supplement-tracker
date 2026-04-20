@@ -1,0 +1,257 @@
+.container {
+  min-height: 100vh;
+  background: #F8FAFC;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.backButton {
+  margin-right: 16px;
+  color: var(--text-secondary);
+  font-size: 16px;
+  text-decoration: none;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-dark-blue-gray);
+}
+
+.searchContainer {
+  margin-bottom: 32px;
+}
+
+.searchBox {
+  background: white;
+  border-radius: var(--border-radius-md);
+  padding: 8px 8px 8px 16px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.searchIcon {
+  margin-right: 12px;
+  opacity: 0.5;
+}
+
+.searchInput {
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-size: 15px;
+  color: var(--text-main);
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: #94A3B8;
+}
+
+.sendBtn {
+  background: var(--color-dark-blue-gray);
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.sendBtn:active {
+  opacity: 0.8;
+}
+
+.aiReplyBox {
+  background: white;
+  border-left: 4px solid var(--color-pale-green);
+  border-radius: 4px 8px 8px 4px;
+  padding: 16px;
+  margin-top: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  animation: fadeIn 0.4s ease;
+}
+
+.aiName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-dark-blue-gray);
+  margin-bottom: 8px;
+}
+
+.aiText {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-main);
+  text-align: justify;
+}
+
+.dotPulse {
+  font-size: 14px;
+  color: #9CA3AF;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dot {
+  animation: jump 1.4s infinite ease-in-out both;
+}
+
+.dot:nth-child(1) { animation-delay: -0.32s; }
+.dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes jump {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-4px); }
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-dark-blue-gray);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.icon {
+  color: #3B82F6;
+  margin-right: 8px;
+}
+
+.qaList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.qaCard {
+  background: white;
+  border-radius: var(--border-radius-md);
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.04);
+  cursor: pointer;
+}
+
+.qText {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.qMark {
+  color: #3B82F6;
+  margin-right: 4px;
+}
+
+.aText {
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  padding-top: 16px;
+  border-top: 1px dashed rgba(0,0,0,0.1);
+  animation: fadeIn 0.3s ease;
+}
+
+.aMark {
+  color: #10B981;
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+.footerLink {
+  margin-top: auto;
+  padding: 40px 0 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+.psychologistBtn {
+  color: #3B82F6;
+  font-weight: 600;
+  margin-left: 8px;
+  text-decoration: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.voiceChatEntry {
+  margin-top: 32px;
+  background: white;
+  border-radius: var(--border-radius-lg);
+  padding: 24px 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: fadeIn 0.4s ease;
+}
+
+.voiceBox {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.voiceIcon {
+  font-size: 32px;
+  background: #EFF6FF;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.voiceTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-dark-blue-gray);
+  margin-bottom: 4px;
+}
+
+.voiceDesc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.voiceBtn {
+  background: var(--color-dark-blue-gray);
+  color: white;
+  text-align: center;
+  padding: 14px;
+  border-radius: 100px;
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(74, 93, 110, 0.2);
+  transition: opacity 0.2s;
+}
+
+.voiceBtn:active {
+  opacity: 0.8;
+}

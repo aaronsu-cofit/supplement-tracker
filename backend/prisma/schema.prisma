@@ -27,6 +27,9 @@ model User {
   shoe_images          ShoeImage[]
   intimacy_assessments IntimacyAssessment[]
   enrollments          Enrollment[]
+  diary_entries        DiaryEntry[]
+  relief_sessions      ReliefSession[]
+  assessment_results   AssessmentResult[]
 
   @@map("users")
 }
@@ -283,4 +286,54 @@ model EngagementEvent {
   @@index([user_id, occurred_at], name: "idx_engagement_user_time")
   @@index([event_type, occurred_at], name: "idx_engagement_type_time")
   @@map("engagement_events")
+}
+
+model DiaryEntry {
+  id          String   @id @default(cuid())
+  user_id     String   @db.VarChar(64)
+  date        DateTime @db.Date
+  mood        Int
+  sleep       Int
+  diary       String?  @db.Text
+  ai_feedback String?  @db.Text
+  created_at  DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, date])
+  @@map("diary_entries")
+}
+
+model ReliefSession {
+  id           String     @id @default(cuid())
+  user_id      String     @db.VarChar(64)
+  type         ReliefType
+  duration_sec Int
+  completed_at DateTime   @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id], name: "idx_relief_sessions_user")
+  @@map("relief_sessions")
+}
+
+model AssessmentResult {
+  id           String   @id @default(cuid())
+  user_id      String   @db.VarChar(64)
+  result_type  String   @db.VarChar(1)
+  scores       Json
+  ai_analysis  Json
+  face_insight String?  @db.Text
+  created_at   DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id], name: "idx_assessment_results_user")
+  @@map("assessment_results")
+}
+
+enum ReliefType {
+  BREATHING
+  BODY_SCAN
+  SLEEP_QUOTES
 }
