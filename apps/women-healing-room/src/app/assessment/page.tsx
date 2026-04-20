@@ -72,30 +72,69 @@ const questions = [
   },
 ];
 
+interface Answer {
+  question: string;
+  selected: string;
+  type: "A" | "B" | "C";
+}
+
 export default function Assessment() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [scores, setScores] = useState({ A: 0, B: 0, C: 0 });
+  const [answers, setAnswers] = useState<Answer[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const handleSelect = (type: "A" | "B" | "C") => {
+  const handleSelect = async (type: "A" | "B" | "C") => {
     const newScores = { ...scores, [type]: scores[type] + 1 };
+    const newAnswers: Answer[] = [
+      ...answers,
+      {
+        question: questions[currentStep].title,
+        selected: questions[currentStep].options.find((o) => o.type === type)?.text || "",
+        type,
+      },
+    ];
+
     setScores(newScores);
+    setAnswers(newAnswers);
 
     if (currentStep < questions.length - 1) {
       setCurrentStep(currentStep + 1);
-    } else {
-      // Finished
-      setIsAnalyzing(true);
-      setTimeout(() => {
-        // Determine result
-        let resultType = "A";
-        if (newScores.B > newScores.A && newScores.B > newScores.C) resultType = "B";
-        if (newScores.C > newScores.A && newScores.C > newScores.B) resultType = "C";
-        
-        router.push(`/assessment/result?type=${resultType}`);
-      }, 2500); // Fake AI analyzing time
+      return;
     }
+
+    // 最後一題：呼叫 Gemini 分析
+    setIsAnalyzing(true);
+
+    const scanInsight = sessionStorage.getItem("scanInsight") || "";
+    const minDelay = new Promise<void>((resolve) => setTimeout(resolve, 2500));
+
+    const apiCall = (async () => {
+      try {
+        const res = await fetch("/api/assessment/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scores: newScores, scanInsight, answers: newAnswers }),
+        });
+        if (!res.ok) throw new Error("API error");
+        const result = await res.json();
+        sessionStorage.setItem("assessmentResult", JSON.stringify(result));
+      } catch {
+        // fallback：清除舊資料，讓 result 頁用規則計算
+        sessionStorage.removeItem("assessmentResult");
+        const type =
+          newScores.B > newScores.A && newScores.B > newScores.C
+            ? "B"
+            : newScores.C > newScores.A && newScores.C > newScores.B
+            ? "C"
+            : "A";
+        sessionStorage.setItem("assessmentFallbackType", type);
+      }
+    })();
+
+    await Promise.all([minDelay, apiCall]);
+    router.push("/assessment/result");
   };
 
   if (isAnalyzing) {
@@ -103,7 +142,7 @@ export default function Assessment() {
       <div className={styles.analyzingContainer}>
         <div className={styles.spinner}></div>
         <h2 className={styles.analyzingText}>女人療心室 AI 分析中...</h2>
-        <p className={styles.analyzingSub}>正在為您綜合評估睡眠與情緒指標</p>
+        <p className={styles.analyzingSub}>正在為您綜合評估睡眠、情緒與臉部指標</p>
       </div>
     );
   }
@@ -113,8 +152,8 @@ export default function Assessment() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-         <Link href="/" className={styles.backButton}>← 返回</Link>
-         <div className={styles.progressText}>{currentStep + 1} / {questions.length}</div>
+        <Link href="/" className={styles.backButton}>← 返回</Link>
+        <div className={styles.progressText}>{currentStep + 1} / {questions.length}</div>
       </header>
 
       <div className={styles.progressBar}>
