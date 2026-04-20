@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./Photo.module.css";
 import Link from "next/link";
+import { apiFetch } from '@vitera/lib';
 
 export default function PhotoScan() {
   const router = useRouter();
@@ -68,9 +69,8 @@ export default function PhotoScan() {
 
     const apiCall = (async () => {
       try {
-        const res = await fetch("/api/assessment/scan", {
+        const res = await apiFetch("/api/women/assessment/scan", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ imageBase64 }),
         });
         const data = await res.json();

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./Assessment.module.css";
 import Link from "next/link";
+import { apiFetch } from '@vitera/lib';
 
 const questions = [
   {
@@ -112,9 +113,8 @@ export default function Assessment() {
 
     const apiCall = (async () => {
       try {
-        const res = await fetch("/api/assessment/analyze", {
+        const res = await apiFetch("/api/women/assessment/analyze", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ scores: newScores, scanInsight, answers: newAnswers }),
         });
         if (!res.ok) throw new Error("API error");
