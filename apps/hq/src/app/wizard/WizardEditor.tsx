@@ -172,7 +172,10 @@ function EditorInner({ oaId, scenarioId, scenarioName: initialScenarioName, init
       </div>
       <div className="w-[280px] border-l border-white/[0.08] p-4 overflow-y-auto shrink-0">
         <p className="text-[10px] text-white/30 uppercase tracking-[0.1em] mb-3">Config</p>
-        <ConfigPanel node={selectedNode} templates={templates} />
+        <ConfigPanel
+          node={selectedNode ? nodes.find(n => n.id === selectedNode.id) ?? null : null}
+          templates={templates}
+        />
       </div>
     </div>
   )
