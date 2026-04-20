@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import { verifyLineSignature, replyText } from '../lib/line.js'
-import { adkRun } from '../lib/adk.js'
 import {
   findOrCreateLineUser,
   getActiveScenariosForOA,
@@ -42,9 +41,40 @@ interface LineWebhookPayload {
 interface OaContext {
   id: number
   channel_access_token: string
-  default_agent_id: string
 }
 
+/**
+ * Forward the raw webhook body + signature to the AI Skill Platform.
+ * The platform verifies signature itself with the same channel_secret
+ * and pushes AI replies to users directly. Fire-and-forget.
+ */
+function forwardToAiSkillPlatform(body: string, signature: string): void {
+  const baseUrl = process.env.AI_SKILL_PLATFORM_URL
+  if (!baseUrl) return
+  const url = `${baseUrl.replace(/\/$/, '')}/webhook/line`
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Line-Signature': signature,
+    },
+    body,
+  })
+    .then(async res => {
+      if (!res.ok) {
+        const text = await res.text().catch(() => '')
+        console.error('[webhook/line] AI Skill Platform returned', res.status, text.slice(0, 200))
+      }
+    })
+    .catch(err => console.error('[webhook/line] forward error:', err))
+}
+
+/**
+ * Side-effect handler for an event. We handle follow/postback ourselves
+ * (enrollment, menu evaluation, engagement logging). Message events are
+ * intentionally NOT replied to here — the AI Skill Platform handles
+ * user-visible replies via its own LINE Push API.
+ */
 async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<void> {
   const lineUserId = event.source.userId
   if (!lineUserId) return
@@ -60,7 +90,6 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
       console.error('[webhook/line] follow menu evaluation error:', err)
     )
 
-    // Auto-enroll the newly-followed user in every active scenario for this OA
     ;(async () => {
       const scenarios = await getActiveScenariosForOA(oa.id)
       await Promise.all(scenarios.map(s => enrollUserInScenario(lineUserId, s.id)))
@@ -68,13 +97,7 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
       console.error('[webhook/line] follow auto-enroll error:', err)
     )
 
-    if (event.replyToken) {
-      try {
-        await replyText(event.replyToken, '您好！我是您的 AI 健康顧問，有任何問題都可以直接傳訊問我 😊', oa.channel_access_token)
-      } catch (err) {
-        console.error('[webhook/line] follow reply error:', err)
-      }
-    }
+    // Welcome reply is handled by AI Skill Platform (or LINE greeting setting).
     return
   }
 
@@ -96,7 +119,7 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
     return
   }
 
-  if (event.type === 'message' && event.message?.type === 'text' && event.replyToken) {
+  if (event.type === 'message' && event.message?.type === 'text') {
     const messageText = event.message.text
     try {
       await findOrCreateLineUser(lineUserId)
@@ -107,15 +130,7 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
     logEngagementEvent(lineUserId, 'text_reply', messageText.slice(0, 500)).catch(err =>
       console.error('[webhook/line] log text engagement error:', err)
     )
-
-    try {
-      const result = await adkRun(oa.default_agent_id, lineUserId, { message: messageText })
-      const replyMessage = result.result || '很抱歉，AI 顧問無法提供回應，請稍後再試 🙏'
-      await replyText(event.replyToken, replyMessage, oa.channel_access_token)
-    } catch (err) {
-      console.error(`[webhook/line] agent=${oa.default_agent_id} error:`, err)
-      await replyText(event.replyToken, '很抱歉，AI 顧問暫時無法回應，請稍後再試 🙏', oa.channel_access_token)
-    }
+    // AI reply is the AI Skill Platform's job (see forwardToAiSkillPlatform).
   }
 }
 
@@ -135,7 +150,6 @@ webhook.post('/line', async (c) => {
     return c.json({ error: 'Invalid JSON' }, 400)
   }
 
-  // Multi-OA routing: look up OA by bot destination ID.
   const oa = await getLineOAByDestination(payload.destination)
   if (!oa || !oa.channel_secret) {
     console.warn('[webhook/line] unknown or unconfigured destination', payload.destination)
@@ -146,11 +160,13 @@ webhook.post('/line', async (c) => {
     return c.json({ error: 'Invalid signature' }, 401)
   }
 
-  // 立即回 200，非同步處理 events（避免 LINE retry）
+  // Forward raw body to AI Skill Platform for message → AI reply (fire-and-forget).
+  forwardToAiSkillPlatform(body, signature)
+
+  // Handle our own side effects (follow, postback, engagement logs).
   const oaCtx: OaContext = {
     id: oa.id,
     channel_access_token: oa.channel_access_token,
-    default_agent_id: oa.default_agent_id,
   }
   for (const event of payload.events) {
     handleLineEvent(event, oaCtx).catch(err => console.error('[webhook/line] event error:', err))
