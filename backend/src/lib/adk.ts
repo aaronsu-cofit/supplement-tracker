@@ -1,13 +1,13 @@
-const ADK_URL = process.env.ADK_URL
-const ADK_API_KEY = process.env.ADK_API_KEY
-
-if (!ADK_URL || !ADK_API_KEY) {
-  throw new Error('ADK_URL and ADK_API_KEY must be set')
-}
-
-const ADK_HEADERS = {
-  'Content-Type': 'application/json',
-  'X-API-Key': ADK_API_KEY,
+function requireAdkConfig(): { url: string; headers: Record<string, string> } {
+  const url = process.env.ADK_URL
+  const apiKey = process.env.ADK_API_KEY
+  if (!url || !apiKey) {
+    throw new Error('ADK_URL and ADK_API_KEY must be set')
+  }
+  return {
+    url,
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+  }
 }
 
 export interface AdkRunResult {
@@ -21,9 +21,10 @@ export async function adkRun(
   clientId: string,
   options?: { message?: string }
 ): Promise<AdkRunResult> {
-  const res = await fetch(`${ADK_URL}/run`, {
+  const { url, headers } = requireAdkConfig()
+  const res = await fetch(`${url}/run`, {
     method: 'POST',
-    headers: ADK_HEADERS,
+    headers,
     body: JSON.stringify({
       agent_id: agentId,
       client_id: clientId,
@@ -44,9 +45,10 @@ export async function adkRun(
 // Known limitation: timeout(30000) only covers header delivery — a stalled stream body
 // after headers arrive has no per-chunk timeout. Acceptable for POC.
 export async function adkStream(agentId: string, clientId: string): Promise<Response> {
-  const res = await fetch(`${ADK_URL}/run_sse`, {
+  const { url, headers } = requireAdkConfig()
+  const res = await fetch(`${url}/run_sse`, {
     method: 'POST',
-    headers: ADK_HEADERS,
+    headers,
     body: JSON.stringify({ agent_id: agentId, client_id: clientId }),
     signal: AbortSignal.timeout(30000),
   })
