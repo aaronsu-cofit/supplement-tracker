@@ -98,6 +98,18 @@ export default function HQOverviewClient() {
       });
   }, []);
 
+  const handleDeleteEnrollment = useCallback(async (enr: EnrollmentRow) => {
+    if (!window.confirm(`移除 ${enr.user.display_name || enr.user_id.slice(0, 10)} 的「${enr.scenario.name}」訂閱？`)) return;
+    try {
+      const res = await apiFetch(`/api/wizard/enrollments/${enr.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      loadActivity();
+    } catch (err) {
+      console.error('[hq/overview] delete enrollment error:', err);
+      window.alert('刪除失敗');
+    }
+  }, [loadActivity]);
+
   useEffect(() => {
     loadActivity();
   }, [loadActivity]);
@@ -226,11 +238,18 @@ export default function HQOverviewClient() {
                 <div className="flex flex-col gap-1 mt-2 max-h-72 overflow-y-auto">
                   {enrollments.map(e => (
                     <div key={e.id} className="flex items-center justify-between gap-2 py-1 border-b border-white/5">
-                      <span className="font-mono text-white/60 truncate max-w-[120px]" title={e.user_id}>
+                      <span className="font-mono text-white/60 truncate max-w-[100px]" title={e.user_id}>
                         {e.user.display_name || e.user_id.slice(0, 10)}
                       </span>
-                      <span className="text-white/60 truncate max-w-[100px]" title={e.scenario.name}>{e.scenario.name}</span>
+                      <span className="text-white/60 truncate max-w-[90px]" title={e.scenario.name}>{e.scenario.name}</span>
                       <span className="text-white/30 whitespace-nowrap">{formatTs(e.enrolled_at)}</span>
+                      <button
+                        onClick={() => handleDeleteEnrollment(e)}
+                        title="移除訂閱"
+                        className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border-none bg-transparent text-[12px]"
+                      >
+                        ✕
+                      </button>
                     </div>
                   ))}
                 </div>

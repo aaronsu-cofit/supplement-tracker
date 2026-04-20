@@ -4,6 +4,7 @@ import {
   getScenariosForOA, getScenarioById,
   createScenario, updateScenario, deleteScenario,
   enrollAllLineUsersInScenario,
+  deleteEnrollment, deleteAllEnrollmentsForScenario,
 } from '../lib/db.js'
 
 // TODO(security): PATCH/DELETE/GET single-scenario routes do not verify OA ownership.
@@ -82,6 +83,20 @@ wizard.post('/scenarios/:id/enroll-all', async (c) => {
     if ((e as { code?: string })?.code === 'P2003') return c.json({ error: 'scenario not found' }, 404)
     throw e
   }
+})
+
+// DELETE /api/wizard/enrollments/:id — remove one enrollment (no-op on already-deleted)
+wizard.delete('/enrollments/:id', async (c) => {
+  const id = parseInt(c.req.param('id'))
+  if (!id || isNaN(id)) return c.json({ error: 'invalid id' }, 400)
+  await deleteEnrollment(id)
+  return c.json({ success: true })
+})
+
+// DELETE /api/wizard/scenarios/:id/enrollments — remove ALL enrollments for one scenario
+wizard.delete('/scenarios/:id/enrollments', async (c) => {
+  const count = await deleteAllEnrollmentsForScenario(c.req.param('id'))
+  return c.json({ deleted: count })
 })
 
 export default wizard

@@ -685,6 +685,20 @@ export async function enrollUserInScenario(userId: string, scenarioId: string, e
  * is newly activated). Uses createMany(skipDuplicates) so existing
  * enrollments are preserved. Returns the count of LINE users considered.
  */
+export async function deleteEnrollment(id: number): Promise<void> {
+  try {
+    await db().enrollment.delete({ where: { id } });
+  } catch (err) {
+    if ((err as { code?: string })?.code === 'P2025') return;
+    throw err;
+  }
+}
+
+export async function deleteAllEnrollmentsForScenario(scenarioId: string): Promise<number> {
+  const res = await db().enrollment.deleteMany({ where: { scenario_id: scenarioId } });
+  return res.count;
+}
+
 export async function enrollAllLineUsersInScenario(scenarioId: string): Promise<number> {
   const users = await db().user.findMany({ where: { auth_provider: 'line' }, select: { id: true } });
   if (users.length === 0) return 0;
