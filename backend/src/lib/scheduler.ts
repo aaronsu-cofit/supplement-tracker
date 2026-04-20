@@ -8,12 +8,38 @@ import {
 import { withRetry } from './retry.js';
 import { daysBetweenInTz } from './time.js';
 import { findPushNodesForDay, buildLineMessage, type FlowNode, type FlowEdge } from './flow.js';
+import { evaluateAllActiveUsers, type MenuReevalResult } from './menuEvaluator.js';
 
 export interface SchedulerRunResult {
   sent: number;
   skipped: number;
   errors: string[];
   enrollmentsConsidered: number;
+  menuReeval?: MenuReevalResult;
+}
+
+export interface DailyCycleOptions {
+  now?: Date;
+  includeMenuReeval?: boolean;
+}
+
+/**
+ * Runs the daily cycle: push messages + (optional) menu re-evaluation.
+ * Call this from a cron tick or from the manual trigger button. Menu
+ * re-eval ensures users whose Day N changed today get switched to the
+ * right menu, since follow-time evaluation is one-shot.
+ */
+export async function runDailyCycle(opts: DailyCycleOptions = {}): Promise<SchedulerRunResult> {
+  const now = opts.now ?? new Date();
+  const result = await runScheduler(now);
+  if (opts.includeMenuReeval !== false) {
+    try {
+      result.menuReeval = await evaluateAllActiveUsers();
+    } catch (err) {
+      result.errors.push(`menu re-eval failed: ${(err as Error).message}`);
+    }
+  }
+  return result;
 }
 
 /**

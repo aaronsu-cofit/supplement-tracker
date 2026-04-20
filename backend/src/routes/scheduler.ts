@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { HonoEnv } from '../types.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
-import { runScheduler } from '../lib/scheduler.js';
+import { runDailyCycle } from '../lib/scheduler.js';
 import {
   getActiveEnrollmentsList,
   getRecentDeliveries,
@@ -11,10 +11,11 @@ import {
 const scheduler = new Hono<HonoEnv>();
 scheduler.use('*', authMiddleware);
 
-// POST /api/scheduler/run
+// POST /api/scheduler/run?skip_menu_reeval=1 (optional flag)
 scheduler.post('/run', async (c) => {
   try {
-    const result = await runScheduler();
+    const skipMenu = c.req.query('skip_menu_reeval') === '1';
+    const result = await runDailyCycle({ includeMenuReeval: !skipMenu });
     return c.json(result);
   } catch (error) {
     console.error('[scheduler/run] error:', error);

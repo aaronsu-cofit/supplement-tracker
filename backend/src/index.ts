@@ -3,6 +3,8 @@ import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import cron from 'node-cron';
+import { runDailyCycle } from './lib/scheduler.js';
 
 import authRoutes from './routes/auth.js';
 import supplementRoutes from './routes/supplements.js';
@@ -80,3 +82,40 @@ const port = parseInt(process.env.PORT || '8080', 10);
 console.log(`🚀 Backend running on port ${port}`);
 
 serve({ fetch: app.fetch, port });
+
+// ─── Daily scheduler cron ────────────────────────────────────────────
+// Runs runDailyCycle (push messages + menu re-evaluation) on a cron
+// schedule. Defaults to 09:00 Asia/Taipei. Set SCHEDULER_CRON=off to
+// disable (e.g., in local dev or tests). Multi-replica safe thanks to
+// message_deliveries unique constraint — duplicate fires just skip.
+const cronExpr = process.env.SCHEDULER_CRON ?? '0 9 * * *';
+const cronTz = process.env.SCHEDULER_TZ ?? 'Asia/Taipei';
+if (cronExpr && cronExpr !== 'off') {
+  try {
+    cron.schedule(
+      cronExpr,
+      async () => {
+        const startedAt = new Date().toISOString();
+        console.log(`[cron/scheduler] firing at ${startedAt}`);
+        try {
+          const result = await runDailyCycle();
+          console.log('[cron/scheduler] result', {
+            sent: result.sent,
+            skipped: result.skipped,
+            enrollments: result.enrollmentsConsidered,
+            menu: result.menuReeval,
+            errorCount: result.errors.length,
+          });
+        } catch (err) {
+          console.error('[cron/scheduler] fatal', err);
+        }
+      },
+      { timezone: cronTz },
+    );
+    console.log(`🕒 Daily cron scheduled: '${cronExpr}' (${cronTz})`);
+  } catch (err) {
+    console.error('[cron/scheduler] setup failed', err);
+  }
+} else {
+  console.log('🕒 Daily cron disabled (SCHEDULER_CRON=off)');
+}

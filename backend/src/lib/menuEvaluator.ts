@@ -4,6 +4,9 @@ import {
   getScenariosForOA,
   getActiveTemplateForOA,
   upsertUserMenuAssignment,
+  getAllLineOAs,
+  getLineOAById,
+  getActiveEnrollmentsForOA,
 } from './db.js';
 
 interface DeployedTemplate {
@@ -108,4 +111,44 @@ async function linkMenuToUser(token: string, userId: string, richMenuId: string)
   const { Client } = await import('@line/bot-sdk');
   const client = new Client({ channelAccessToken: token });
   await client.linkRichMenuToUser(userId, richMenuId);
+}
+
+export interface MenuReevalResult {
+  evaluated: number;
+  rule: number;
+  ai: number;
+  fallback: number;
+  errors: string[];
+}
+
+/**
+ * Re-evaluate menus for every active enrollment across all active OAs.
+ * Used by the daily cron to shift users' menus when their Day N changes
+ * or when admin edits active scenarios. Unique users per OA.
+ */
+export async function evaluateAllActiveUsers(): Promise<MenuReevalResult> {
+  const oas = (await getAllLineOAs()).filter(o => o.is_active);
+  let evaluated = 0, rule = 0, ai = 0, fallback = 0;
+  const errors: string[] = [];
+
+  for (const oaSummary of oas) {
+    const oa = await getLineOAById(oaSummary.id.toString());
+    if (!oa?.channel_access_token) continue;
+
+    const enrollments = await getActiveEnrollmentsForOA(oaSummary.id);
+    const uniqueUserIds = Array.from(new Set(enrollments.map(e => e.user_id)));
+
+    for (const userId of uniqueUserIds) {
+      try {
+        const res = await evaluateAndAssignMenu(oaSummary.id, userId, oa.channel_access_token);
+        evaluated++;
+        if (res.source === 'rule') rule++;
+        else if (res.source === 'ai') ai++;
+        else fallback++;
+      } catch (err) {
+        errors.push(`oa=${oaSummary.id} user=${userId}: ${(err as Error).message}`);
+      }
+    }
+  }
+  return { evaluated, rule, ai, fallback, errors };
 }

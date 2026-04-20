@@ -18,6 +18,13 @@ interface SchedulerResult {
   skipped: number;
   errors: string[];
   enrollmentsConsidered: number;
+  menuReeval?: {
+    evaluated: number;
+    rule: number;
+    ai: number;
+    fallback: number;
+    errors: string[];
+  };
 }
 
 interface EnrollmentRow {
@@ -199,6 +206,12 @@ export default function HQOverviewClient() {
             <div>✅ 已送出：<span className="text-[#5ce0d8] font-semibold">{runResult.sent}</span> 則</div>
             <div>⏭ 已跳過（之前送過）：{runResult.skipped} 則</div>
             <div>👥 評估 enrollment 數：{runResult.enrollmentsConsidered}</div>
+            {runResult.menuReeval && (
+              <div className="pt-1">
+                🔀 Menu 重評：<span className="text-[#a78bfa] font-semibold">{runResult.menuReeval.evaluated}</span> 人
+                （rule {runResult.menuReeval.rule} / ai {runResult.menuReeval.ai} / fallback {runResult.menuReeval.fallback}）
+              </div>
+            )}
             {runResult.errors.length > 0 && (
               <details className="mt-2">
                 <summary className="cursor-pointer text-amber-400/80">錯誤 {runResult.errors.length} 則</summary>
