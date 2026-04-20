@@ -89,7 +89,7 @@ function EntryCard({ entry }: { entry: DiaryEntry }) {
 
 export default function HistoryPage() {
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
-  const [page, setPage] = useState(1);
+  const pageRef = useRef(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -121,16 +121,15 @@ export default function HistoryPage() {
     const observer = new IntersectionObserver(
       (observerEntries) => {
         if (observerEntries[0].isIntersecting && hasMore && !isLoadingMore && !isLoading) {
-          const nextPage = page + 1;
-          setPage(nextPage);
-          loadEntries(nextPage, true);
+          pageRef.current += 1;
+          loadEntries(pageRef.current, true);
         }
       },
       { threshold: 0.1 }
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasMore, isLoadingMore, isLoading, page, loadEntries]);
+  }, [hasMore, isLoadingMore, isLoading, loadEntries]);
 
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

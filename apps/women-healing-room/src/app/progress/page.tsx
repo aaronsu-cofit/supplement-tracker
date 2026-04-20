@@ -103,6 +103,7 @@ export default function ProgressPage() {
         setChartEntries(entries);
       }
     } catch {
+      setIsSaved(false);
       setAiFeedback('「謝謝妳願意記錄今天的心情。每一天的書寫，都是對自己最好的陪伴。」');
     } finally {
       setIsAnalyzing(false);
