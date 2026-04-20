@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '@vitera/lib';
 
 interface HQStats {
@@ -20,12 +20,55 @@ interface SchedulerResult {
   enrollmentsConsidered: number;
 }
 
+interface EnrollmentRow {
+  id: number;
+  user_id: string;
+  enrolled_at: string;
+  status: string;
+  user: { id: string; display_name: string | null; timezone: string };
+  scenario: { id: string; name: string; is_active: boolean };
+}
+
+interface DeliveryRow {
+  id: number;
+  user_id: string;
+  scenario_id: string;
+  node_id: string;
+  delivered_at: string;
+}
+
+interface EngagementRow {
+  id: number;
+  user_id: string;
+  event_type: string;
+  payload: string | null;
+  occurred_at: string;
+}
+
+interface ActivityResponse {
+  enrollments: EnrollmentRow[];
+  deliveries: DeliveryRow[];
+  engagement: EngagementRow[];
+}
+
+function formatTs(iso: string): string {
+  return new Date(iso).toLocaleString('zh-TW', {
+    month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function truncate(s: string, n: number): string {
+  return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
 export default function HQOverviewClient() {
   const [stats, setStats] = useState<HQStats | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<SchedulerResult | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
+  const [activity, setActivity] = useState<ActivityResponse | null>(null);
+  const [activityError, setActivityError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch('/api/hq/stats')
@@ -36,6 +79,21 @@ export default function HQOverviewClient() {
         setLoadError('無法載入統計資料');
       });
   }, []);
+
+  const loadActivity = useCallback(() => {
+    setActivityError(null);
+    apiFetch('/api/scheduler/activity')
+      .then(r => r.json())
+      .then((data: ActivityResponse) => setActivity(data))
+      .catch(err => {
+        console.error('[hq/overview] activity error:', err);
+        setActivityError('無法載入活動紀錄');
+      });
+  }, []);
+
+  useEffect(() => {
+    loadActivity();
+  }, [loadActivity]);
 
   const handleRunScheduler = async () => {
     if (!window.confirm('執行推播排程？此動作會對所有符合條件的 LINE 使用者發送訊息。')) return;
@@ -50,6 +108,8 @@ export default function HQOverviewClient() {
         return;
       }
       setRunResult(data as SchedulerResult);
+      // Refresh activity after a run so the new deliveries show up
+      loadActivity();
     } catch (err) {
       setRunError((err as Error).message || '網路錯誤');
     } finally {
@@ -128,6 +188,90 @@ export default function HQOverviewClient() {
                 </ul>
               </details>
             )}
+          </div>
+        )}
+      </div>
+
+      <div className="hq-card mt-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="hq-metric-label">活動紀錄 (Scheduler Activity)</div>
+          <button
+            onClick={loadActivity}
+            className="text-xs text-white/60 hover:text-white transition-colors cursor-pointer bg-transparent border-none"
+          >
+            ↻ 重新整理
+          </button>
+        </div>
+        {activityError && <p className="text-sm text-red-400">{activityError}</p>}
+        {activity && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <details open className="bg-[var(--hq-bg-main)] rounded-lg p-3">
+              <summary className="cursor-pointer text-white/70 font-semibold mb-2">
+                活躍 Enrollments ({activity.enrollments.length})
+              </summary>
+              {activity.enrollments.length === 0 ? (
+                <p className="text-white/30 mt-2">尚無 enrollment</p>
+              ) : (
+                <div className="flex flex-col gap-1 mt-2 max-h-72 overflow-y-auto">
+                  {activity.enrollments.map(e => (
+                    <div key={e.id} className="flex items-center justify-between gap-2 py-1 border-b border-white/5">
+                      <span className="font-mono text-white/60 truncate max-w-[120px]" title={e.user_id}>
+                        {e.user.display_name || e.user_id.slice(0, 10)}
+                      </span>
+                      <span className="text-white/60 truncate max-w-[100px]" title={e.scenario.name}>{e.scenario.name}</span>
+                      <span className="text-white/30 whitespace-nowrap">{formatTs(e.enrolled_at)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </details>
+
+            <details open className="bg-[var(--hq-bg-main)] rounded-lg p-3">
+              <summary className="cursor-pointer text-white/70 font-semibold mb-2">
+                最近推播 Deliveries ({activity.deliveries.length})
+              </summary>
+              {activity.deliveries.length === 0 ? (
+                <p className="text-white/30 mt-2">尚未推播過任何訊息</p>
+              ) : (
+                <div className="flex flex-col gap-1 mt-2 max-h-72 overflow-y-auto">
+                  {activity.deliveries.map(d => (
+                    <div key={d.id} className="flex items-center justify-between gap-2 py-1 border-b border-white/5">
+                      <span className="font-mono text-white/60 truncate max-w-[120px]" title={d.user_id}>
+                        {d.user_id.slice(0, 10)}
+                      </span>
+                      <span className="text-white/60 truncate max-w-[100px]" title={d.node_id}>{d.node_id}</span>
+                      <span className="text-white/30 whitespace-nowrap">{formatTs(d.delivered_at)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </details>
+
+            <details open className="bg-[var(--hq-bg-main)] rounded-lg p-3">
+              <summary className="cursor-pointer text-white/70 font-semibold mb-2">
+                互動事件 Engagement ({activity.engagement.length})
+              </summary>
+              {activity.engagement.length === 0 ? (
+                <p className="text-white/30 mt-2">尚無事件</p>
+              ) : (
+                <div className="flex flex-col gap-1 mt-2 max-h-72 overflow-y-auto">
+                  {activity.engagement.map(e => (
+                    <div key={e.id} className="flex items-center justify-between gap-2 py-1 border-b border-white/5">
+                      <span className="font-mono text-white/60 truncate max-w-[100px]" title={e.user_id}>
+                        {e.user_id.slice(0, 10)}
+                      </span>
+                      <span className={`hq-badge ${e.event_type === 'postback' ? 'hq-badge-purple' : 'hq-badge-gray'}`}>
+                        {e.event_type}
+                      </span>
+                      <span className="text-white/60 truncate max-w-[120px]" title={e.payload || ''}>
+                        {e.payload ? truncate(e.payload, 30) : '—'}
+                      </span>
+                      <span className="text-white/30 whitespace-nowrap">{formatTs(e.occurred_at)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </details>
           </div>
         )}
       </div>

@@ -436,9 +436,12 @@ export default function HQLineMenuClient() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-sm">{oa.name}</span>
-                      <span className={`hq-badge hq-badge-${oa.is_active ? 'green' : 'gray'}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-sm truncate">
+                        {oa.name}
+                        <span className="ml-2 font-mono text-[10px] text-white/40">#{oa.id}</span>
+                      </span>
+                      <span className={`hq-badge hq-badge-${oa.is_active ? 'green' : 'gray'} shrink-0`}>
                         {oa.is_active ? '啟用' : '停用'}
                       </span>
                     </div>
@@ -469,7 +472,10 @@ export default function HQLineMenuClient() {
               {/* OA Header */}
               <div className="hq-card flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold">{selectedOA.name}</h3>
+                  <h3 className="font-bold">
+                    {selectedOA.name}
+                    <span className="ml-2 font-mono text-xs font-normal text-white/40">#{selectedOA.id} — 把這個數字填進 <code className="bg-white/5 px-1 rounded">LINE_OA_ID</code></span>
+                  </h3>
                   {selectedOA.description && <p className="hq-muted-text text-xs mt-0.5">{selectedOA.description}</p>}
                 </div>
                 <div className="flex items-center gap-3">

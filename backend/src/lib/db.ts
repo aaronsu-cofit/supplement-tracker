@@ -707,6 +707,32 @@ export async function logEngagementEvent(userId: string, eventType: string, payl
   });
 }
 
+export async function getActiveEnrollmentsList(limit = 50) {
+  return db().enrollment.findMany({
+    where: { status: 'active' },
+    orderBy: { enrolled_at: 'desc' },
+    take: limit,
+    include: {
+      user: { select: { id: true, display_name: true, timezone: true } },
+      scenario: { select: { id: true, name: true, is_active: true } },
+    },
+  });
+}
+
+export async function getRecentDeliveries(limit = 50) {
+  return db().messageDelivery.findMany({
+    orderBy: { delivered_at: 'desc' },
+    take: limit,
+  });
+}
+
+export async function getRecentEngagementEvents(limit = 50) {
+  return db().engagementEvent.findMany({
+    orderBy: { occurred_at: 'desc' },
+    take: limit,
+  });
+}
+
 export async function getActiveEnrollmentsForOA(oaId: number) {
   return db().enrollment.findMany({
     where: {
