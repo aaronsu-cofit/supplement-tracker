@@ -1,0 +1,175 @@
+.container {
+  min-height: 100vh;
+  background: var(--bg-gradient);
+  padding-bottom: 100px; /* space for sticky footer */
+  animation: fadeIn 0.4s ease;
+}
+
+.header {
+  padding: 24px 20px 16px;
+}
+
+.backButton {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  padding-bottom: 2px;
+}
+
+.heroSection {
+  padding: 0 20px 32px;
+}
+
+.heroBadge {
+  display: inline-block;
+  background: #FEF3C7;
+  color: #B45309;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 100px;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--color-dark-blue-gray);
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.subtitle {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.doctorSection {
+  display: flex;
+  align-items: center;
+  background: var(--color-white);
+  padding: 20px;
+  margin: 0 20px 24px;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(74, 93, 110, 0.05);
+}
+
+.doctorAvatar {
+  font-size: 40px;
+  margin-right: 16px;
+  background: var(--color-pale-green);
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.docName {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.docTitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.cardSection {
+  background: var(--color-white);
+  padding: 24px 20px;
+  margin: 0 20px 24px;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-dark-blue-gray);
+  margin-bottom: 16px;
+  border-left: 4px solid var(--color-mist-blue);
+  padding-left: 8px;
+}
+
+.benefitList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.benefitList li {
+  font-size: 15px;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag {
+  background: #F1F5F9;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 4px;
+}
+
+.stickyFooter {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.05);
+  border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+.priceInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.originalPrice {
+  font-size: 12px;
+  color: var(--text-light);
+  text-decoration: line-through;
+}
+
+.discountPrice {
+  font-size: 20px;
+  font-weight: 700;
+  color: #DC2626;
+}
+
+.ctaButton {
+  background: var(--color-dark-blue-gray);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 12px 24px;
+  border-radius: 100px;
+  border: none;
+  box-shadow: 0 4px 12px rgba(74, 93, 110, 0.3);
+  transition: all 0.2s;
+}
+
+.ctaButton:active {
+  transform: scale(0.96);
+}

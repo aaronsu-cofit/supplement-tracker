@@ -23,13 +23,14 @@ import webhookRoutes from './routes/webhook.js';
 import wizardRoutes from './routes/wizard.js';
 import menuRoutes from './routes/menu.js';
 import schedulerRoutes from './routes/scheduler.js';
+import womenHealingRoutes from './routes/womenHealing.js';
 
 const app = new Hono();
 
 // ─── CORS ────────────────────────────────────────────────────────────
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005'];
+  : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005', 'http://localhost:3006'];
 
 app.use('*', cors({
   origin: (origin) => {
@@ -67,6 +68,7 @@ app.route('/api/wizard', wizardRoutes);
 app.route('/api/menu', menuRoutes);
 app.route('/api/scheduler', schedulerRoutes);
 app.route('/webhook', webhookRoutes);
+app.route('/api/women', womenHealingRoutes);
 
 // 404 fallback
 app.notFound((c) => c.json({ error: 'Not found' }, 404));
