@@ -166,6 +166,38 @@ export interface UpdateContentItemInput {
   is_active?: boolean;
 }
 
+export type IntentMatchType = 'keyword' | 'regex' | 'exact';
+export type IntentActionType = 'reply_content' | 'set_attribute';
+
+export interface ReplyContentAction {
+  content_key: string;
+}
+
+export interface SetAttributeAction {
+  key: string;
+  value: string;
+  reply_content_key?: string;
+}
+
+export interface CreateIntentRuleInput {
+  name: string;
+  priority?: number;
+  match_type?: IntentMatchType;
+  patterns: string[];
+  action_type: IntentActionType;
+  action_config: ReplyContentAction | SetAttributeAction;
+}
+
+export interface UpdateIntentRuleInput {
+  name?: string;
+  priority?: number;
+  match_type?: IntentMatchType;
+  patterns?: string[];
+  action_type?: IntentActionType;
+  action_config?: ReplyContentAction | SetAttributeAction;
+  is_active?: boolean;
+}
+
 export interface CreateTemplateInput {
   name: string;
   zones: unknown;

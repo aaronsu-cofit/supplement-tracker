@@ -219,6 +219,7 @@ model Product {
 
   oas           LineOA[]
   content_items ContentItem[]
+  intent_rules  IntentRule[]
 
   @@map("products")
 }
@@ -246,6 +247,33 @@ model ContentItem {
   @@unique([product_id, key])
   @@index([product_id], name: "idx_content_items_product")
   @@map("content_items")
+}
+
+// Product-scoped intent rules: when a text message arrives on an OA bound
+// to this product, rules are evaluated in priority order (lower = first).
+// First match wins and its action runs; no match falls through to the AI
+// agent. `match_type`: 'keyword' (substring, case-insensitive) for now;
+// 'regex'/'exact' reserved. `patterns` is a JSON array of strings.
+// `action_type`:
+//   - 'reply_content': config = { content_key }
+//   - 'set_attribute': config = { key, value, reply_content_key? }
+model IntentRule {
+  id          String   @id @default(cuid()) @db.VarChar(30)
+  product_id  String   @db.VarChar(30)
+  name        String   @db.VarChar(200)
+  priority    Int      @default(100)
+  match_type  String   @default("keyword") @db.VarChar(20)
+  patterns    Json
+  action_type String   @db.VarChar(50)
+  action_config Json
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@index([product_id, is_active, priority], name: "idx_intent_rules_product_pri")
+  @@map("intent_rules")
 }
 
 // Arbitrary per-user key/value attributes (e.g. primary_concern,

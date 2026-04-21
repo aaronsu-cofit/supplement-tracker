@@ -17,6 +17,8 @@ import type {
   UpdateProductInput,
   CreateContentItemInput,
   UpdateContentItemInput,
+  CreateIntentRuleInput,
+  UpdateIntentRuleInput,
 } from '../types.js';
 
 let _prisma: PrismaClient | undefined;
@@ -1004,6 +1006,62 @@ export async function updateContentItem(id: string, data: UpdateContentItemInput
 export async function deleteContentItem(id: string): Promise<{ success: boolean }> {
   try {
     await db().contentItem.delete({ where: { id } });
+  } catch (err) {
+    if ((err as { code?: string })?.code === 'P2025') return { success: true };
+    throw err;
+  }
+  return { success: true };
+}
+
+// ============================================
+// Intent Rules (per-product text routing)
+// ============================================
+export async function getIntentRulesForProduct(productId: string) {
+  return db().intentRule.findMany({
+    where: { product_id: productId },
+    orderBy: [{ priority: 'asc' }, { created_at: 'asc' }],
+  });
+}
+
+export async function getActiveIntentRulesForProduct(productId: string) {
+  return db().intentRule.findMany({
+    where: { product_id: productId, is_active: true },
+    orderBy: [{ priority: 'asc' }, { created_at: 'asc' }],
+  });
+}
+
+export async function createIntentRule(productId: string, data: CreateIntentRuleInput) {
+  return db().intentRule.create({
+    data: {
+      product_id: productId,
+      name: data.name,
+      priority: data.priority ?? 100,
+      match_type: data.match_type ?? 'keyword',
+      patterns: data.patterns as Prisma.InputJsonValue,
+      action_type: data.action_type,
+      action_config: data.action_config as unknown as Prisma.InputJsonValue,
+    },
+  });
+}
+
+export async function updateIntentRule(id: string, data: UpdateIntentRuleInput) {
+  return db().intentRule.update({
+    where: { id },
+    data: {
+      ...(data.name != null && { name: data.name }),
+      ...(data.priority != null && { priority: data.priority }),
+      ...(data.match_type != null && { match_type: data.match_type }),
+      ...(data.patterns != null && { patterns: data.patterns as Prisma.InputJsonValue }),
+      ...(data.action_type != null && { action_type: data.action_type }),
+      ...(data.action_config != null && { action_config: data.action_config as unknown as Prisma.InputJsonValue }),
+      ...(data.is_active !== undefined && { is_active: data.is_active }),
+    },
+  });
+}
+
+export async function deleteIntentRule(id: string): Promise<{ success: boolean }> {
+  try {
+    await db().intentRule.delete({ where: { id } });
   } catch (err) {
     if ((err as { code?: string })?.code === 'P2025') return { success: true };
     throw err;

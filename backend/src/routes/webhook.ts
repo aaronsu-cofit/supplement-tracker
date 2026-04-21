@@ -12,6 +12,7 @@ import {
 import { evaluateAndAssignMenu } from '../lib/menuEvaluator.js'
 import { findActiveAgentForDay, type FlowNode, type FlowEdge } from '../lib/flow.js'
 import { daysBetweenInTz } from '../lib/time.js'
+import { runIntent } from '../lib/intent.js'
 
 const webhook = new Hono()
 
@@ -48,6 +49,7 @@ interface OaContext {
   default_agent_id: string
   ai_skill_platform_url: string | null
   ai_skill_platform_api_key: string | null
+  product_id: string | null
 }
 
 async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<void> {
@@ -111,6 +113,22 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
     logEngagementEvent(lineUserId, 'text_reply', messageText.slice(0, 500)).catch(err =>
       console.error('[webhook/line] log text engagement error:', err)
     )
+
+    // Intent routing first: if the OA is bound to a product and a rule
+    // matches, run its action and reply — don't fall through to the AI.
+    if (oa.product_id) {
+      try {
+        const intent = await runIntent(oa.product_id, lineUserId, messageText)
+        if (intent) {
+          if (intent.replyText) {
+            await replyText(event.replyToken, intent.replyText, oa.channel_access_token)
+          }
+          return
+        }
+      } catch (err) {
+        console.error('[webhook/line] intent routing error:', err)
+      }
+    }
 
     if (!oa.ai_skill_platform_url || !oa.ai_skill_platform_api_key) {
       console.warn('[webhook/line] OA missing ai_skill_platform_url / api_key — skipping AI reply')
@@ -196,6 +214,7 @@ webhook.post('/line', async (c) => {
     default_agent_id: oa.default_agent_id,
     ai_skill_platform_url: oa.ai_skill_platform_url,
     ai_skill_platform_api_key: oa.ai_skill_platform_api_key,
+    product_id: oa.product_id,
   }
   for (const event of payload.events) {
     handleLineEvent(event, oaCtx).catch(err => console.error('[webhook/line] event error:', err))

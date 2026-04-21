@@ -63,6 +63,28 @@ export interface ContentItem {
   updated_at: string;
 }
 
+export type IntentMatchType = 'keyword' | 'regex' | 'exact';
+export type IntentActionType = 'reply_content' | 'set_attribute';
+
+export interface IntentRule {
+  id: string;
+  product_id: string;
+  name: string;
+  priority: number;
+  match_type: IntentMatchType;
+  patterns: string[];
+  action_type: IntentActionType;
+  action_config: {
+    content_key?: string;
+    key?: string;
+    value?: string;
+    reply_content_key?: string;
+  };
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Zone {
   id: string;
   position: string;
