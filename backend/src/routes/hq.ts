@@ -4,6 +4,7 @@ import { authMiddleware } from '../middleware/authMiddleware.js';
 import {
   getAllModules, updateModule, getAllUsers, updateUserRole, getHQStats,
   getUserAttributes, setUserAttribute, deleteUserAttribute,
+  getUserMissionAssignments,
 } from '../lib/db.js';
 
 const hq = new Hono<HonoEnv>();
@@ -96,6 +97,18 @@ hq.delete('/users/:userId/attributes/:key', async (c) => {
   } catch (error) {
     console.error('Failed to delete user attribute:', error);
     return c.json({ error: 'Failed to delete attribute' }, 500);
+  }
+});
+
+// GET /api/hq/users/:userId/missions
+hq.get('/users/:userId/missions', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const missions = await getUserMissionAssignments(userId);
+    return c.json({ missions });
+  } catch (error) {
+    console.error('Failed to fetch user missions:', error);
+    return c.json({ error: 'Failed to fetch missions' }, 500);
   }
 });
 

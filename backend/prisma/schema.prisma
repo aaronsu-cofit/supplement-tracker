@@ -217,9 +217,10 @@ model Product {
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 
-  oas           LineOA[]
-  content_items ContentItem[]
-  intent_rules  IntentRule[]
+  oas                LineOA[]
+  content_items      ContentItem[]
+  intent_rules       IntentRule[]
+  mission_templates  MissionTemplate[]
 
   @@map("products")
 }
@@ -274,6 +275,48 @@ model IntentRule {
 
   @@index([product_id, is_active, priority], name: "idx_intent_rules_product_pri")
   @@map("intent_rules")
+}
+
+// Product-scoped mission blueprints. `key` is the product-scoped slug
+// that intent rules / flow nodes reference to assign or complete missions.
+// Rewards are intentionally not modelled here — compose them via the
+// intent action's optional reply_content_key, since any reward beyond a
+// reply can be expressed through set_attribute/scenario enrollment.
+model MissionTemplate {
+  id          String   @id @default(cuid()) @db.VarChar(30)
+  product_id  String   @db.VarChar(30)
+  key         String   @db.VarChar(100)
+  name        String   @db.VarChar(200)
+  description String?
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  product     Product             @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  assignments MissionAssignment[]
+
+  @@unique([product_id, key])
+  @@index([product_id], name: "idx_mission_templates_product")
+  @@map("mission_templates")
+}
+
+// Per-user mission instance. Status transitions: pending → completed
+// (or pending → abandoned). A user can only have one active (non-
+// completed/abandoned) assignment per template at a time; re-assign
+// after completion creates a new row so we keep history.
+model MissionAssignment {
+  id           String    @id @default(cuid()) @db.VarChar(30)
+  user_id      String    @db.VarChar(64)
+  template_id  String    @db.VarChar(30)
+  status       String    @default("pending") @db.VarChar(20)
+  assigned_at  DateTime  @default(now())
+  completed_at DateTime?
+
+  template MissionTemplate @relation(fields: [template_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, status], name: "idx_mission_assignments_user_status")
+  @@index([template_id], name: "idx_mission_assignments_template")
+  @@map("mission_assignments")
 }
 
 // Arbitrary per-user key/value attributes (e.g. primary_concern,

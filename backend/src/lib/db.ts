@@ -19,6 +19,8 @@ import type {
   UpdateContentItemInput,
   CreateIntentRuleInput,
   UpdateIntentRuleInput,
+  CreateMissionTemplateInput,
+  UpdateMissionTemplateInput,
 } from '../types.js';
 
 let _prisma: PrismaClient | undefined;
@@ -1067,4 +1069,98 @@ export async function deleteIntentRule(id: string): Promise<{ success: boolean }
     throw err;
   }
   return { success: true };
+}
+
+// ============================================
+// Mission Templates (product-scoped mission blueprints)
+// ============================================
+export async function getMissionTemplatesForProduct(productId: string) {
+  return db().missionTemplate.findMany({
+    where: { product_id: productId },
+    orderBy: [{ is_active: 'desc' }, { key: 'asc' }],
+  });
+}
+
+export async function getMissionTemplateByKey(productId: string, key: string) {
+  return db().missionTemplate.findUnique({
+    where: { product_id_key: { product_id: productId, key } },
+  });
+}
+
+export async function createMissionTemplate(productId: string, data: CreateMissionTemplateInput) {
+  return db().missionTemplate.create({
+    data: {
+      product_id: productId,
+      key: data.key,
+      name: data.name,
+      description: data.description ?? null,
+    },
+  });
+}
+
+export async function updateMissionTemplate(id: string, data: UpdateMissionTemplateInput) {
+  return db().missionTemplate.update({
+    where: { id },
+    data: {
+      ...(data.key != null && { key: data.key }),
+      ...(data.name != null && { name: data.name }),
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.is_active !== undefined && { is_active: data.is_active }),
+    },
+  });
+}
+
+export async function deleteMissionTemplate(id: string): Promise<{ success: boolean }> {
+  try {
+    await db().missionTemplate.delete({ where: { id } });
+  } catch (err) {
+    if ((err as { code?: string })?.code === 'P2025') return { success: true };
+    throw err;
+  }
+  return { success: true };
+}
+
+// ============================================
+// Mission Assignments (per-user mission instances)
+// ============================================
+
+/**
+ * Assign a mission to a user. If the user already has a pending assignment
+ * for this template, returns that one (idempotent). Past completed/abandoned
+ * assignments are preserved as history; a new pending row is created.
+ */
+export async function assignMission(userId: string, templateId: string) {
+  const existing = await db().missionAssignment.findFirst({
+    where: { user_id: userId, template_id: templateId, status: 'pending' },
+  });
+  if (existing) return existing;
+  return db().missionAssignment.create({
+    data: { user_id: userId, template_id: templateId, status: 'pending' },
+  });
+}
+
+/**
+ * Mark the user's most-recent pending assignment for this template as
+ * completed. Returns the updated row, or null if no pending assignment.
+ */
+export async function completeMission(userId: string, templateId: string) {
+  const pending = await db().missionAssignment.findFirst({
+    where: { user_id: userId, template_id: templateId, status: 'pending' },
+    orderBy: { assigned_at: 'desc' },
+  });
+  if (!pending) return null;
+  return db().missionAssignment.update({
+    where: { id: pending.id },
+    data: { status: 'completed', completed_at: new Date() },
+  });
+}
+
+export async function getUserMissionAssignments(userId: string) {
+  return db().missionAssignment.findMany({
+    where: { user_id: userId },
+    orderBy: { assigned_at: 'desc' },
+    include: {
+      template: { select: { id: true, key: true, name: true, product_id: true } },
+    },
+  });
 }

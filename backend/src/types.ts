@@ -167,7 +167,11 @@ export interface UpdateContentItemInput {
 }
 
 export type IntentMatchType = 'keyword' | 'regex' | 'exact';
-export type IntentActionType = 'reply_content' | 'set_attribute';
+export type IntentActionType =
+  | 'reply_content'
+  | 'set_attribute'
+  | 'assign_mission'
+  | 'complete_mission';
 
 export interface ReplyContentAction {
   content_key: string;
@@ -179,13 +183,36 @@ export interface SetAttributeAction {
   reply_content_key?: string;
 }
 
+export interface MissionAction {
+  mission_key: string;
+  reply_content_key?: string;
+}
+
+export interface CreateMissionTemplateInput {
+  key: string;
+  name: string;
+  description?: string;
+}
+
+export interface UpdateMissionTemplateInput {
+  key?: string;
+  name?: string;
+  description?: string | null;
+  is_active?: boolean;
+}
+
+export type IntentActionConfig =
+  | ReplyContentAction
+  | SetAttributeAction
+  | MissionAction;
+
 export interface CreateIntentRuleInput {
   name: string;
   priority?: number;
   match_type?: IntentMatchType;
   patterns: string[];
   action_type: IntentActionType;
-  action_config: ReplyContentAction | SetAttributeAction;
+  action_config: IntentActionConfig;
 }
 
 export interface UpdateIntentRuleInput {
@@ -194,7 +221,7 @@ export interface UpdateIntentRuleInput {
   match_type?: IntentMatchType;
   patterns?: string[];
   action_type?: IntentActionType;
-  action_config?: ReplyContentAction | SetAttributeAction;
+  action_config?: IntentActionConfig;
   is_active?: boolean;
 }
 

@@ -64,7 +64,11 @@ export interface ContentItem {
 }
 
 export type IntentMatchType = 'keyword' | 'regex' | 'exact';
-export type IntentActionType = 'reply_content' | 'set_attribute';
+export type IntentActionType =
+  | 'reply_content'
+  | 'set_attribute'
+  | 'assign_mission'
+  | 'complete_mission';
 
 export interface IntentRule {
   id: string;
@@ -79,7 +83,19 @@ export interface IntentRule {
     key?: string;
     value?: string;
     reply_content_key?: string;
+    mission_key?: string;
   };
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MissionTemplate {
+  id: string;
+  product_id: string;
+  key: string;
+  name: string;
+  description: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

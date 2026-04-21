@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { ProductWithOAs } from '../../../types';
 import ProductContentSection from './ProductContentSection';
 import ProductIntentSection from './ProductIntentSection';
+import ProductMissionSection from './ProductMissionSection';
 
 interface Props {
   id: string;
@@ -153,11 +154,13 @@ export default function ProductDetailClient({ id }: Props) {
 
       <ProductContentSection productId={id} />
 
+      <ProductMissionSection productId={id} />
+
       <ProductIntentSection productId={id} />
 
       <div className="hq-card flex flex-col gap-2 text-sm text-slate-500">
         <h3 className="font-semibold text-lg text-slate-900">其他設定（即將推出）</h3>
-        <p>後續會加入：任務設定、劇本庫。這些設定會由綁定此產品的所有 OA 共用。</p>
+        <p>後續會加入：劇本庫、遊戲化（連續天數/徽章）。這些設定會由綁定此產品的所有 OA 共用。</p>
       </div>
     </div>
   );

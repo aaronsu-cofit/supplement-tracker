@@ -81,4 +81,18 @@ describe('findMatchingRule', () => {
       reply_content_key: 'sleep_intro',
     });
   });
+
+  it('passes through mission action configs untouched', () => {
+    const r = rule({
+      patterns: ['我完成了'],
+      action_type: 'complete_mission',
+      action_config: { mission_key: 'drink_water_day1', reply_content_key: 'well_done' },
+    });
+    const actual = findMatchingRule('我完成了今天的喝水任務', [r]);
+    expect(actual?.actionType).toBe('complete_mission');
+    expect(actual?.actionConfig).toEqual({
+      mission_key: 'drink_water_day1',
+      reply_content_key: 'well_done',
+    });
+  });
 });

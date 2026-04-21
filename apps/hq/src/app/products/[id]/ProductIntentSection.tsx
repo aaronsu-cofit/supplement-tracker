@@ -19,6 +19,9 @@ interface FormShape {
   attr_key: string;
   attr_value: string;
   attr_reply_content_key: string;
+  // assign_mission / complete_mission
+  mission_key: string;
+  mission_reply_content_key: string;
   is_active: boolean;
 }
 
@@ -32,19 +35,29 @@ const EMPTY: FormShape = {
   attr_key: '',
   attr_value: '',
   attr_reply_content_key: '',
+  mission_key: '',
+  mission_reply_content_key: '',
   is_active: true,
 };
 
 function formToPayload(f: FormShape): Record<string, unknown> {
   const patterns = f.patterns.split(',').map(p => p.trim()).filter(Boolean);
-  const action_config: Record<string, unknown> =
-    f.action_type === 'reply_content'
-      ? { content_key: f.content_key.trim() }
-      : {
-          key: f.attr_key.trim(),
-          value: f.attr_value,
-          ...(f.attr_reply_content_key.trim() && { reply_content_key: f.attr_reply_content_key.trim() }),
-        };
+  let action_config: Record<string, unknown>;
+  if (f.action_type === 'reply_content') {
+    action_config = { content_key: f.content_key.trim() };
+  } else if (f.action_type === 'set_attribute') {
+    action_config = {
+      key: f.attr_key.trim(),
+      value: f.attr_value,
+      ...(f.attr_reply_content_key.trim() && { reply_content_key: f.attr_reply_content_key.trim() }),
+    };
+  } else {
+    // assign_mission | complete_mission
+    action_config = {
+      mission_key: f.mission_key.trim(),
+      ...(f.mission_reply_content_key.trim() && { reply_content_key: f.mission_reply_content_key.trim() }),
+    };
+  }
   return {
     name: f.name.trim(),
     priority: f.priority,
@@ -68,6 +81,8 @@ function ruleToForm(r: IntentRule): FormShape {
     attr_key: cfg.key ?? '',
     attr_value: cfg.value ?? '',
     attr_reply_content_key: cfg.reply_content_key ?? '',
+    mission_key: cfg.mission_key ?? '',
+    mission_reply_content_key: cfg.reply_content_key ?? '',
     is_active: r.is_active,
   };
 }
@@ -181,14 +196,17 @@ export default function ProductIntentSection({ productId }: Props) {
           onChange={e => setForm({ ...form, action_type: e.target.value as IntentActionType })}>
           <option value="reply_content">回覆內容（引用 content key）</option>
           <option value="set_attribute">設定使用者屬性</option>
+          <option value="assign_mission">指派任務</option>
+          <option value="complete_mission">完成任務</option>
         </select>
       </div>
       <input className="hq-input" placeholder="patterns（逗號分隔，如：預約, 要預約）" value={form.patterns}
         onChange={e => setForm({ ...form, patterns: e.target.value })} />
-      {form.action_type === 'reply_content' ? (
+      {form.action_type === 'reply_content' && (
         <input className="hq-input" placeholder="回覆的 content key（需在內容庫存在）" value={form.content_key}
           onChange={e => setForm({ ...form, content_key: e.target.value })} />
-      ) : (
+      )}
+      {form.action_type === 'set_attribute' && (
         <div className="grid grid-cols-3 gap-2">
           <input className="hq-input" placeholder="attribute key" value={form.attr_key}
             onChange={e => setForm({ ...form, attr_key: e.target.value })} />
@@ -196,6 +214,14 @@ export default function ProductIntentSection({ productId }: Props) {
             onChange={e => setForm({ ...form, attr_value: e.target.value })} />
           <input className="hq-input" placeholder="回覆 content key（選填）" value={form.attr_reply_content_key}
             onChange={e => setForm({ ...form, attr_reply_content_key: e.target.value })} />
+        </div>
+      )}
+      {(form.action_type === 'assign_mission' || form.action_type === 'complete_mission') && (
+        <div className="grid grid-cols-2 gap-2">
+          <input className="hq-input" placeholder="mission key（任務庫的 key）" value={form.mission_key}
+            onChange={e => setForm({ ...form, mission_key: e.target.value })} />
+          <input className="hq-input" placeholder="回覆 content key（選填）" value={form.mission_reply_content_key}
+            onChange={e => setForm({ ...form, mission_reply_content_key: e.target.value })} />
         </div>
       )}
       <label className="flex items-center gap-2 text-sm">
@@ -288,6 +314,22 @@ export default function ProductIntentSection({ productId }: Props) {
                     {r.action_type === 'set_attribute' && (
                       <>
                         設定屬性：<code className="bg-slate-100 px-1 rounded">{r.action_config.key}={r.action_config.value}</code>
+                        {r.action_config.reply_content_key && (
+                          <> + 回覆 <code className="bg-slate-100 px-1 rounded">{r.action_config.reply_content_key}</code></>
+                        )}
+                      </>
+                    )}
+                    {r.action_type === 'assign_mission' && (
+                      <>
+                        指派任務：<code className="bg-slate-100 px-1 rounded">{r.action_config.mission_key}</code>
+                        {r.action_config.reply_content_key && (
+                          <> + 回覆 <code className="bg-slate-100 px-1 rounded">{r.action_config.reply_content_key}</code></>
+                        )}
+                      </>
+                    )}
+                    {r.action_type === 'complete_mission' && (
+                      <>
+                        完成任務：<code className="bg-slate-100 px-1 rounded">{r.action_config.mission_key}</code>
                         {r.action_config.reply_content_key && (
                           <> + 回覆 <code className="bg-slate-100 px-1 rounded">{r.action_config.reply_content_key}</code></>
                         )}

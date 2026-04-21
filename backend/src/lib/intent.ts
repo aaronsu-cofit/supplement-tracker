@@ -3,12 +3,17 @@ import {
   getContentItemByKey,
   setUserAttribute,
   logEngagementEvent,
+  getMissionTemplateByKey,
+  assignMission,
+  completeMission,
 } from './db.js';
 import type {
   IntentMatchType,
   IntentActionType,
   ReplyContentAction,
   SetAttributeAction,
+  MissionAction,
+  IntentActionConfig,
 } from '../types.js';
 
 export interface IntentRuleRow {
@@ -26,7 +31,7 @@ export interface IntentMatchResult {
   ruleId: string;
   ruleName: string;
   actionType: IntentActionType;
-  actionConfig: ReplyContentAction | SetAttributeAction;
+  actionConfig: IntentActionConfig;
 }
 
 /**
@@ -70,7 +75,7 @@ export function findMatchingRule(
       ruleId: rule.id,
       ruleName: rule.name,
       actionType: rule.action_type as IntentActionType,
-      actionConfig: rule.action_config as ReplyContentAction | SetAttributeAction,
+      actionConfig: rule.action_config as IntentActionConfig,
     };
   }
   return null;
@@ -118,6 +123,25 @@ export async function runIntent(
       }
     }
     contentKeyToResolve = cfg.reply_content_key;
+  } else if (match.actionType === 'assign_mission' || match.actionType === 'complete_mission') {
+    const cfg = match.actionConfig as MissionAction;
+    if (cfg.mission_key) {
+      const template = await getMissionTemplateByKey(productId, cfg.mission_key);
+      if (!template || !template.is_active) {
+        console.warn(`[intent] rule ${match.ruleId} references missing/inactive mission:${cfg.mission_key}`);
+      } else {
+        try {
+          if (match.actionType === 'assign_mission') {
+            await assignMission(userId, template.id);
+          } else {
+            await completeMission(userId, template.id);
+          }
+        } catch (err) {
+          console.error(`[intent] ${match.actionType} error:`, err);
+        }
+      }
+    }
+    contentKeyToResolve = cfg.reply_content_key;
   }
 
   if (contentKeyToResolve) {
@@ -139,4 +163,9 @@ export async function runIntent(
 
 // Re-export for route validation
 export const VALID_MATCH_TYPES: IntentMatchType[] = ['keyword', 'regex', 'exact'];
-export const VALID_ACTION_TYPES: IntentActionType[] = ['reply_content', 'set_attribute'];
+export const VALID_ACTION_TYPES: IntentActionType[] = [
+  'reply_content',
+  'set_attribute',
+  'assign_mission',
+  'complete_mission',
+];

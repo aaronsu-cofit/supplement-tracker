@@ -15,6 +15,10 @@ import {
   createIntentRule,
   updateIntentRule,
   deleteIntentRule,
+  getMissionTemplatesForProduct,
+  createMissionTemplate,
+  updateMissionTemplate,
+  deleteMissionTemplate,
 } from '../lib/db.js';
 import { VALID_MATCH_TYPES, VALID_ACTION_TYPES } from '../lib/intent.js';
 import type { IntentMatchType, IntentActionType } from '../types.js';
@@ -177,6 +181,13 @@ function validateIntentRuleInput(body: Record<string, unknown>, requireAll: bool
       if (cfg.reply_content_key != null && typeof cfg.reply_content_key !== 'string') {
         return 'reply_content_key 需為字串';
       }
+    } else if (type === 'assign_mission' || type === 'complete_mission') {
+      if (typeof cfg.mission_key !== 'string' || !cfg.mission_key.trim()) {
+        return `${type} action_config 需含 mission_key`;
+      }
+      if (cfg.reply_content_key != null && typeof cfg.reply_content_key !== 'string') {
+        return 'reply_content_key 需為字串';
+      }
     }
   }
   if (body.priority !== undefined && typeof body.priority !== 'number') return 'priority 需為數字';
@@ -230,6 +241,65 @@ products.patch('/:productId/intent/:id', async (c) => {
 products.delete('/:productId/intent/:id', async (c) => {
   const id = c.req.param('id');
   await deleteIntentRule(id);
+  return c.json({ success: true });
+});
+
+// ─── Mission Templates ──────────────────────────────────────────────────────
+
+// GET /api/products/:productId/missions
+products.get('/:productId/missions', async (c) => {
+  const productId = c.req.param('productId');
+  const product = await getProductById(productId);
+  if (!product) return c.json({ error: '找不到此 Product' }, 404);
+  const missions = await getMissionTemplatesForProduct(productId);
+  return c.json({ missions });
+});
+
+// POST /api/products/:productId/missions
+products.post('/:productId/missions', async (c) => {
+  const productId = c.req.param('productId');
+  const product = await getProductById(productId);
+  if (!product) return c.json({ error: '找不到此 Product' }, 404);
+  const body = await c.req.json();
+  if (!body.key || typeof body.key !== 'string') return c.json({ error: '請提供 key' }, 400);
+  if (!KEY_REGEX.test(body.key)) {
+    return c.json({ error: 'key 只能包含英數、點、底線、連字號，開頭需為英數' }, 400);
+  }
+  if (!body.name || typeof body.name !== 'string') return c.json({ error: '請提供 name' }, 400);
+  try {
+    const mission = await createMissionTemplate(productId, {
+      key: body.key,
+      name: body.name,
+      description: body.description,
+    });
+    return c.json({ mission }, 201);
+  } catch (e: unknown) {
+    if ((e as { code?: string })?.code === 'P2002') return c.json({ error: '此 mission key 已存在' }, 409);
+    throw e;
+  }
+});
+
+// PATCH /api/products/:productId/missions/:id
+products.patch('/:productId/missions/:id', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json();
+  if (body.key && !KEY_REGEX.test(body.key)) {
+    return c.json({ error: 'key 格式不合法' }, 400);
+  }
+  try {
+    const mission = await updateMissionTemplate(id, body);
+    return c.json({ mission });
+  } catch (e: unknown) {
+    if ((e as { code?: string })?.code === 'P2025') return c.json({ error: '找不到此任務' }, 404);
+    if ((e as { code?: string })?.code === 'P2002') return c.json({ error: '此 mission key 已存在' }, 409);
+    throw e;
+  }
+});
+
+// DELETE /api/products/:productId/missions/:id
+products.delete('/:productId/missions/:id', async (c) => {
+  const id = c.req.param('id');
+  await deleteMissionTemplate(id);
   return c.json({ success: true });
 });
 
