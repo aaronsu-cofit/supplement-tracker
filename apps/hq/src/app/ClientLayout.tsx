@@ -8,7 +8,7 @@ import { AppLayout } from "@vitera/lib";
 const NAV_LINKS = [
   { href: "/", label: "系統總覽" },
   { href: "/oa", label: "LINE OA" },
-  { href: "/admins", label: "管理員" },
+  { href: "/admins", label: "權限管理" },
   { href: "/manual", label: "操作手冊" },
 ];
 

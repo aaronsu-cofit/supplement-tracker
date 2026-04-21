@@ -320,14 +320,6 @@ export default function HQOverviewClient() {
         })()}
       </div>
 
-      <div className="hq-grid-3">
-        <div className="hq-card hq-col-2 hq-center-h min-h-300">
-          <p className="hq-empty-text">流量報表圖即將推出 (Traffic Chart Placeholder)</p>
-        </div>
-        <div className="hq-card hq-center-h min-h-300">
-          <p className="hq-empty-text">最新系統日誌即將推出 (Logs Placeholder)</p>
-        </div>
-      </div>
     </div>
   );
 }
