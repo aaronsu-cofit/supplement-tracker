@@ -4,12 +4,26 @@ import {
   getAllLineOAs,
   tryClaimDelivery,
   releaseDelivery,
+  getContentItemByKey,
+  getMissionTemplateByKey,
+  assignMission,
 } from './db.js';
 import { withRetry } from './retry.js';
 import { daysBetweenInTz } from './time.js';
-import { findPushNodesForDay, findAiSkillNodesForDay, buildLineMessage, type FlowNode, type FlowEdge } from './flow.js';
+import {
+  findPushNodesForDay,
+  findAiSkillNodesForDay,
+  findMissionAssignNodesForDay,
+  findStreakIncrementNodesForDay,
+  findSetAttributeNodesForDay,
+  buildLineMessage,
+  type FlowNode,
+  type FlowEdge,
+} from './flow.js';
 import { evaluateAllActiveUsers, type MenuReevalResult } from './menuEvaluator.js';
 import { adkRun } from './adk.js';
+import { incrementStreak } from './gamification.js';
+import { setUserAttributeWithHooks } from './missions.js';
 
 export interface SchedulerRunResult {
   sent: number;
@@ -127,7 +141,25 @@ async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
 
     const pushNodes = findPushNodesForDay(nodes, edges, daysSinceEnrollment);
     for (const pushNode of pushNodes) {
-      const message = buildLineMessage(pushNode.data);
+      // Resolve content_key reference: if the node points at a ContentItem
+      // by key, fetch it at send time (so edits to the item flow through).
+      // Only applies when the OA has a product bound and the key resolves.
+      let effectiveData = pushNode.data;
+      const contentKey = pushNode.data?.contentKey;
+      if (contentKey && oa.product_id) {
+        const item = await getContentItemByKey(oa.product_id, contentKey);
+        if (item && item.is_active && item.body) {
+          effectiveData = {
+            ...pushNode.data,
+            type: (pushNode.data?.type as 'text' | 'image' | 'sticker' | undefined) ?? 'text',
+            message: item.body,
+          };
+        } else {
+          errors.push(`user=${userId} node=${pushNode.id}: content_key=${contentKey} missing/inactive/empty`);
+          continue;
+        }
+      }
+      const message = buildLineMessage(effectiveData);
       if (!message) {
         errors.push(`user=${userId} node=${pushNode.id}: skipped (missing required fields for type=${pushNode.data?.type || 'text'})`);
         continue;
@@ -186,6 +218,89 @@ async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
         await releaseDelivery(userId, enr.scenario.id, aiNode.id);
         const status = (err as { statusCode?: number })?.statusCode;
         errors.push(`user=${userId} aiNode=${aiNode.id} status=${status ?? '?'}: ${(err as Error).message}`);
+      }
+    }
+
+    // Platform action nodes (mission / streak / attribute) need a product
+    // to resolve mission_key / streak_key against. When the OA has no
+    // product bound, we log-warn and skip — keeping push/ai handling
+    // fully functional for OAs that aren't on the platform yet.
+    const hasActionNodes =
+      nodes.some(n =>
+        n.type === 'mission-assign-node' ||
+        n.type === 'streak-increment-node' ||
+        n.type === 'set-attribute-node');
+    if (hasActionNodes && !oa.product_id) {
+      errors.push(`OA #${oaId}: scenario has platform action nodes but OA has no product_id bound — skipping`);
+    }
+
+    if (oa.product_id) {
+      // Mission-assign nodes: look up template by key within the OA's
+      // product, then idempotently assign. Claim-first ensures at most
+      // one assignment per (user, scenario, node).
+      const missionNodes = findMissionAssignNodesForDay(nodes, edges, daysSinceEnrollment);
+      for (const mNode of missionNodes) {
+        const missionKey = mNode.data?.missionKey;
+        if (!missionKey) {
+          errors.push(`user=${userId} mNode=${mNode.id}: missing missionKey`);
+          continue;
+        }
+        const template = await getMissionTemplateByKey(oa.product_id, missionKey);
+        if (!template || !template.is_active) {
+          errors.push(`user=${userId} mNode=${mNode.id}: mission ${missionKey} not found/inactive`);
+          continue;
+        }
+        const claimed = await tryClaimDelivery(userId, enr.scenario.id, mNode.id);
+        if (!claimed) { skipped++; continue; }
+        try {
+          await assignMission(userId, template.id);
+          sent++;
+        } catch (err) {
+          await releaseDelivery(userId, enr.scenario.id, mNode.id);
+          errors.push(`user=${userId} mNode=${mNode.id}: ${(err as Error).message}`);
+        }
+      }
+
+      // Streak-increment nodes: the streak helper is already tz-aware and
+      // same-day idempotent, so we skip the claim dance — calling it
+      // twice on the same day is a no-op. But we still claim once per
+      // day to get a counted delivery and keep the scheduler stats clean.
+      const streakNodes = findStreakIncrementNodesForDay(nodes, edges, daysSinceEnrollment);
+      for (const sNode of streakNodes) {
+        const streakKey = sNode.data?.streakKey;
+        if (!streakKey) {
+          errors.push(`user=${userId} sNode=${sNode.id}: missing streakKey`);
+          continue;
+        }
+        const claimed = await tryClaimDelivery(userId, enr.scenario.id, sNode.id);
+        if (!claimed) { skipped++; continue; }
+        try {
+          await incrementStreak(oa.product_id, userId, streakKey);
+          sent++;
+        } catch (err) {
+          await releaseDelivery(userId, enr.scenario.id, sNode.id);
+          errors.push(`user=${userId} sNode=${sNode.id}: ${(err as Error).message}`);
+        }
+      }
+
+      // Set-attribute nodes: writes through the hook-bearing setter so
+      // mission auto-complete fires consistently with the intent path.
+      const attrNodes = findSetAttributeNodesForDay(nodes, edges, daysSinceEnrollment);
+      for (const aNode of attrNodes) {
+        const attributeKey = aNode.data?.attributeKey;
+        if (!attributeKey) {
+          errors.push(`user=${userId} aNode=${aNode.id}: missing attributeKey`);
+          continue;
+        }
+        const claimed = await tryClaimDelivery(userId, enr.scenario.id, aNode.id);
+        if (!claimed) { skipped++; continue; }
+        try {
+          await setUserAttributeWithHooks(userId, attributeKey, aNode.data?.value ?? null);
+          sent++;
+        } catch (err) {
+          await releaseDelivery(userId, enr.scenario.id, aNode.id);
+          errors.push(`user=${userId} aNode=${aNode.id}: ${(err as Error).message}`);
+        }
       }
     }
   }

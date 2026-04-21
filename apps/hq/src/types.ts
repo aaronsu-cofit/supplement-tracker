@@ -194,6 +194,64 @@ export interface BadgeTemplate {
   updated_at: string;
 }
 
+// ─── Scenarios (list-view) ──────────────────────────────────────────────────
+
+export type ScenarioNodeType =
+  | 'day-node'
+  | 'push-message-node'
+  | 'ai-skill-node'
+  | 'menu-change-node'
+  | 'mission-assign-node'
+  | 'streak-increment-node'
+  | 'set-attribute-node';
+
+export interface ScenarioFlowNode {
+  id: string;
+  type?: ScenarioNodeType;
+  position?: { x: number; y: number };
+  data?: {
+    // day-node
+    day?: number;
+    label?: string;
+    // push-message-node
+    type?: 'text' | 'image' | 'sticker';
+    message?: string;
+    imageUrl?: string;
+    previewUrl?: string;
+    stickerPackageId?: string;
+    stickerId?: string;
+    contentKey?: string;
+    // ai-skill-node
+    agentId?: string;
+    // menu-change-node
+    menuName?: string;
+    // mission-assign-node
+    missionKey?: string;
+    // streak-increment-node
+    streakKey?: string;
+    // set-attribute-node
+    attributeKey?: string;
+    value?: string;
+  };
+}
+
+export interface ScenarioFlowEdge {
+  id?: string;
+  source: string;
+  target: string;
+}
+
+export interface Scenario {
+  id: string;
+  oa_id: string;
+  name: string;
+  flow_nodes: ScenarioFlowNode[];
+  flow_edges: ScenarioFlowEdge[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Zone {
   id: string;
   position: string;

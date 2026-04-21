@@ -3,6 +3,9 @@ import {
   findPushNodesForDay,
   findAiSkillNodesForDay,
   findActiveAgentForDay,
+  findMissionAssignNodesForDay,
+  findStreakIncrementNodesForDay,
+  findSetAttributeNodesForDay,
   buildLineMessage,
   type FlowNode,
   type FlowEdge,
@@ -152,6 +155,69 @@ describe('findActiveAgentForDay', () => {
     ];
     const brokenEdges: FlowEdge[] = [{ source: 'd0', target: 'ai' }];
     expect(findActiveAgentForDay(broken, brokenEdges, 0)).toBeNull();
+  });
+});
+
+describe('findMissionAssignNodesForDay', () => {
+  const nodes: FlowNode[] = [
+    { id: 'd0', type: 'day-node', data: { day: 0 } },
+    { id: 'd1', type: 'day-node', data: { day: 1 } },
+    { id: 'm0', type: 'mission-assign-node', data: { missionKey: 'intro' } },
+    { id: 'm1', type: 'mission-assign-node', data: { missionKey: 'day1_task' } },
+    { id: 'p1', type: 'push-message-node', data: { type: 'text', message: 'hi' } },
+  ];
+  const edges: FlowEdge[] = [
+    { source: 'd0', target: 'm0' },
+    { source: 'd0', target: 'p1' }, // other type, must be filtered out
+    { source: 'd1', target: 'm1' },
+  ];
+
+  it('returns mission-assign-nodes for the matching day', () => {
+    expect(findMissionAssignNodesForDay(nodes, edges, 0).map(n => n.id)).toEqual(['m0']);
+    expect(findMissionAssignNodesForDay(nodes, edges, 1).map(n => n.id)).toEqual(['m1']);
+  });
+
+  it('does not return push-nodes connected to the same day', () => {
+    const r = findMissionAssignNodesForDay(nodes, edges, 0);
+    expect(r.find(n => n.id === 'p1')).toBeUndefined();
+  });
+
+  it('returns empty for a day with no mission-assign-nodes', () => {
+    expect(findMissionAssignNodesForDay(nodes, edges, 99)).toEqual([]);
+  });
+});
+
+describe('findStreakIncrementNodesForDay', () => {
+  const nodes: FlowNode[] = [
+    { id: 'd1', type: 'day-node', data: { day: 1 } },
+    { id: 'd1b', type: 'day-node', data: { day: 1 } },
+    { id: 's1', type: 'streak-increment-node', data: { streakKey: 'daily_checkin' } },
+  ];
+  const edges: FlowEdge[] = [
+    { source: 'd1', target: 's1' },
+    { source: 'd1b', target: 's1' }, // duplicate day-nodes → same streak node; must dedupe
+  ];
+
+  it('de-duplicates when two day-nodes point to the same streak-node', () => {
+    const r = findStreakIncrementNodesForDay(nodes, edges, 1);
+    expect(r.filter(n => n.id === 's1').length).toBe(1);
+  });
+});
+
+describe('findSetAttributeNodesForDay', () => {
+  const nodes: FlowNode[] = [
+    { id: 'd0', type: 'day-node', data: { day: 0 } },
+    { id: 'a1', type: 'set-attribute-node', data: { attributeKey: 'onboarded', value: 'yes' } },
+    { id: 'a2', type: 'set-attribute-node', data: { attributeKey: 'phase', value: 'intro' } },
+  ];
+  const edges: FlowEdge[] = [
+    { source: 'd0', target: 'a1' },
+    { source: 'd0', target: 'a2' },
+  ];
+
+  it('returns all set-attribute-nodes for the matching day', () => {
+    const r = findSetAttributeNodesForDay(nodes, edges, 0);
+    expect(r.map(n => n.id).sort()).toEqual(['a1', 'a2']);
   });
 });
 

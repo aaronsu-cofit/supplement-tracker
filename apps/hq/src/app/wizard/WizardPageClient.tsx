@@ -135,6 +135,11 @@ export default function WizardPageClient({ forcedOaId }: WizardPageClientProps =
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
+      {!forcedOaId && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800 shrink-0">
+          此為進階流程圖編輯器。一般編輯請從 LINE OA → 劇本 tab 進入；這裡適用於需要圖形化分支/調整節點位置的情境。
+        </div>
+      )}
       {/* OA + scenario picker bar */}
       <div className="flex items-center gap-3 px-4 py-2 bg-white border-b border-slate-200 shrink-0">
         {!forcedOaId && (

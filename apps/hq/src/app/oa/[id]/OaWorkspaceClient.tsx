@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { LineOA } from '../../../types';
-import WizardPageClient from '../../wizard/WizardPageClient';
+import OaScenariosTab from './tabs/OaScenariosTab';
 import OaOverviewTab from './tabs/OaOverviewTab';
 import OaMenusTab from './tabs/OaMenusTab';
 import OaSettingsTab from './tabs/OaSettingsTab';
@@ -86,9 +86,9 @@ export default function OaWorkspaceClient({ oaId }: { oaId: string }) {
         </div>
       </div>
 
-      {/* Tab body — scenarios runs fullscreen canvas, others scroll normally */}
+      {/* Tab body */}
       <div className={`flex-1 min-h-0 ${activeTab === 'scenarios' ? 'overflow-hidden flex flex-col' : 'overflow-auto'}`}>
-        {activeTab === 'scenarios' && <WizardPageClient forcedOaId={oaId} />}
+        {activeTab === 'scenarios' && <OaScenariosTab oaId={oaId} oa={oa} />}
         {activeTab === 'menus' && oa && <OaMenusTab oaId={oaId} oa={oa} onChange={setOa} />}
         {activeTab === 'overview' && <OaOverviewTab oaId={oaId} />}
         {activeTab === 'settings' && oa && <OaSettingsTab oa={oa} onChange={setOa} />}

@@ -7,15 +7,28 @@ export interface FlowNode {
   id: string;
   type?: string;
   data?: {
+    // day-node
     day?: number;
+    label?: string;
+    // push-message-node
     type?: 'text' | 'image' | 'sticker';
     message?: string;
     imageUrl?: string;
     previewUrl?: string;
     stickerPackageId?: string;
     stickerId?: string;
-    // ai-skill-node fields
+    contentKey?: string;
+    // ai-skill-node
     agentId?: string;
+    // menu-change-node
+    menuName?: string;
+    // mission-assign-node
+    missionKey?: string;
+    // streak-increment-node
+    streakKey?: string;
+    // set-attribute-node
+    attributeKey?: string;
+    value?: string;
   };
 }
 
@@ -25,21 +38,23 @@ export interface FlowEdge {
 }
 
 /**
- * Given a scenario's flow graph and a target day number, return every
- * push-message-node reachable by a single directed edge from any matching
- * day-node. De-duplicates results when multiple day-nodes point to the
- * same push-node.
+ * Shared helper: given a scenario's flow graph, a target day, and a node
+ * type, return every node of that type reachable by a single directed
+ * edge from any day-node whose data.day matches. Deduplicated.
  */
-export function findPushNodesForDay(nodes: FlowNode[], edges: FlowEdge[], day: number): FlowNode[] {
+function findActionNodesForDay(
+  nodes: FlowNode[],
+  edges: FlowEdge[],
+  day: number,
+  targetType: string,
+): FlowNode[] {
   const dayNodeIds = nodes.filter(n => n.type === 'day-node' && n.data?.day === day).map(n => n.id);
   if (dayNodeIds.length === 0) return [];
-  const targetIds = new Set(
-    edges.filter(e => dayNodeIds.includes(e.source)).map(e => e.target),
-  );
+  const targetIds = new Set(edges.filter(e => dayNodeIds.includes(e.source)).map(e => e.target));
   const seen = new Set<string>();
   const result: FlowNode[] = [];
   for (const n of nodes) {
-    if (n.type === 'push-message-node' && targetIds.has(n.id) && !seen.has(n.id)) {
+    if (n.type === targetType && targetIds.has(n.id) && !seen.has(n.id)) {
       seen.add(n.id);
       result.push(n);
     }
@@ -48,22 +63,47 @@ export function findPushNodesForDay(nodes: FlowNode[], edges: FlowEdge[], day: n
 }
 
 /**
+ * Given a scenario's flow graph and a target day number, return every
+ * push-message-node reachable by a single directed edge from any matching
+ * day-node. De-duplicates results when multiple day-nodes point to the
+ * same push-node.
+ */
+export function findPushNodesForDay(nodes: FlowNode[], edges: FlowEdge[], day: number): FlowNode[] {
+  return findActionNodesForDay(nodes, edges, day, 'push-message-node');
+}
+
+/**
  * Like findPushNodesForDay but for ai-skill-nodes. Used by the scheduler
  * to trigger AI-generated push messages on Day N.
  */
 export function findAiSkillNodesForDay(nodes: FlowNode[], edges: FlowEdge[], day: number): FlowNode[] {
-  const dayNodeIds = nodes.filter(n => n.type === 'day-node' && n.data?.day === day).map(n => n.id);
-  if (dayNodeIds.length === 0) return [];
-  const targetIds = new Set(edges.filter(e => dayNodeIds.includes(e.source)).map(e => e.target));
-  const seen = new Set<string>();
-  const result: FlowNode[] = [];
-  for (const n of nodes) {
-    if (n.type === 'ai-skill-node' && targetIds.has(n.id) && !seen.has(n.id)) {
-      seen.add(n.id);
-      result.push(n);
-    }
-  }
-  return result;
+  return findActionNodesForDay(nodes, edges, day, 'ai-skill-node');
+}
+
+/**
+ * Returns mission-assign-nodes the scheduler should assign on Day N.
+ * Each node's data.missionKey is resolved against the OA's bound product.
+ */
+export function findMissionAssignNodesForDay(nodes: FlowNode[], edges: FlowEdge[], day: number): FlowNode[] {
+  return findActionNodesForDay(nodes, edges, day, 'mission-assign-node');
+}
+
+/**
+ * Returns streak-increment-nodes the scheduler should bump on Day N.
+ * Each node's data.streakKey names the per-(product, user) counter to
+ * advance; the call is idempotent per-day via the streak's tz logic.
+ */
+export function findStreakIncrementNodesForDay(nodes: FlowNode[], edges: FlowEdge[], day: number): FlowNode[] {
+  return findActionNodesForDay(nodes, edges, day, 'streak-increment-node');
+}
+
+/**
+ * Returns set-attribute-nodes the scheduler should apply on Day N. Each
+ * node has data.attributeKey + data.value; the call goes through the
+ * hook-bearing setter so mission auto-complete fires.
+ */
+export function findSetAttributeNodesForDay(nodes: FlowNode[], edges: FlowEdge[], day: number): FlowNode[] {
+  return findActionNodesForDay(nodes, edges, day, 'set-attribute-node');
 }
 
 /**
