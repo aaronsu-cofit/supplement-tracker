@@ -1,7 +1,10 @@
 import { Hono } from 'hono';
 import type { HonoEnv } from '../types.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
-import { getAllModules, updateModule, getAllUsers, updateUserRole, getHQStats } from '../lib/db.js';
+import {
+  getAllModules, updateModule, getAllUsers, updateUserRole, getHQStats,
+  getUserAttributes, setUserAttribute, deleteUserAttribute,
+} from '../lib/db.js';
 
 const hq = new Hono<HonoEnv>();
 hq.use('*', authMiddleware);
@@ -51,6 +54,48 @@ hq.patch('/admins/:userId', async (c) => {
     return c.json({ success: true, user });
   } catch (error) {
     return c.json({ error: 'Failed to update user role' }, 500);
+  }
+});
+
+// ─── User Attributes (per-user key/value store) ─────────────────────────────
+
+// GET /api/hq/users/:userId/attributes
+hq.get('/users/:userId/attributes', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const attributes = await getUserAttributes(userId);
+    return c.json({ attributes });
+  } catch (error) {
+    console.error('Failed to fetch user attributes:', error);
+    return c.json({ error: 'Failed to fetch attributes' }, 500);
+  }
+});
+
+// PUT /api/hq/users/:userId/attributes/:key
+hq.put('/users/:userId/attributes/:key', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const key = c.req.param('key');
+    const body = await c.req.json().catch(() => ({}));
+    const value = typeof body.value === 'string' ? body.value : null;
+    const attribute = await setUserAttribute(userId, key, value);
+    return c.json({ attribute });
+  } catch (error) {
+    console.error('Failed to set user attribute:', error);
+    return c.json({ error: 'Failed to set attribute' }, 500);
+  }
+});
+
+// DELETE /api/hq/users/:userId/attributes/:key
+hq.delete('/users/:userId/attributes/:key', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const key = c.req.param('key');
+    await deleteUserAttribute(userId, key);
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('Failed to delete user attribute:', error);
+    return c.json({ error: 'Failed to delete attribute' }, 500);
   }
 });
 

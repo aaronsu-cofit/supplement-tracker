@@ -24,6 +24,7 @@ import wizardRoutes from './routes/wizard.js';
 import menuRoutes from './routes/menu.js';
 import schedulerRoutes from './routes/scheduler.js';
 import womenHealingRoutes from './routes/womenHealing.js';
+import productsRoutes from './routes/products.js';
 
 const app = new Hono();
 
@@ -69,6 +70,7 @@ app.route('/api/menu', menuRoutes);
 app.route('/api/scheduler', schedulerRoutes);
 app.route('/webhook', webhookRoutes);
 app.route('/api/women', womenHealingRoutes);
+app.route('/api/products', productsRoutes);
 
 // 404 fallback
 app.notFound((c) => c.json({ error: 'Not found' }, 404));

@@ -13,6 +13,8 @@ import type {
   UpdateLineOAInput,
   CreateTemplateInput,
   UpdateTemplateInput,
+  CreateProductInput,
+  UpdateProductInput,
 } from '../types.js';
 
 let _prisma: PrismaClient | undefined;
@@ -428,6 +430,7 @@ const OA_PUBLIC_WITH_SECRET_STATUS = {
   default_agent_id: true,
   ai_skill_platform_url: true,
   ai_skill_platform_api_key: true,
+  product_id: true,
   created_at: true,
   updated_at: true,
 };
@@ -462,6 +465,7 @@ export async function createLineOA(data: CreateLineOAInput & { line_destination_
       ...(data.default_agent_id && { default_agent_id: data.default_agent_id }),
       ai_skill_platform_url: data.ai_skill_platform_url || null,
       ai_skill_platform_api_key: data.ai_skill_platform_api_key || null,
+      ...(data.product_id !== undefined && { product_id: data.product_id || null }),
     },
   });
   const { channel_access_token: _t, channel_secret: _s, ai_skill_platform_api_key: _k, ...safe } = oa;
@@ -481,6 +485,7 @@ export async function updateLineOA(id: string, data: UpdateLineOAInput & { line_
       ...(data.default_agent_id != null && { default_agent_id: data.default_agent_id }),
       ...(data.ai_skill_platform_url !== undefined && { ai_skill_platform_url: data.ai_skill_platform_url || null }),
       ...(data.ai_skill_platform_api_key !== undefined && { ai_skill_platform_api_key: data.ai_skill_platform_api_key || null }),
+      ...(data.product_id !== undefined && { product_id: data.product_id || null }),
       ...(data.is_active !== undefined && { is_active: data.is_active }),
     },
   });
@@ -862,4 +867,91 @@ export async function releaseDelivery(userId: string, scenarioId: string, nodeId
     if ((err as { code?: string })?.code === 'P2025') return;
     throw err;
   }
+}
+
+// ============================================
+// Products (shareable config bundles across OAs)
+// ============================================
+export async function getAllProducts() {
+  const rows = await db().product.findMany({
+    orderBy: { created_at: 'desc' },
+    include: { _count: { select: { oas: true } } },
+  });
+  return rows.map(r => {
+    const { _count, ...rest } = r;
+    return { ...rest, oa_count: _count.oas };
+  });
+}
+
+export async function getProductById(id: string) {
+  return db().product.findUnique({
+    where: { id },
+    include: {
+      oas: {
+        select: { id: true, name: true, is_active: true },
+        orderBy: { created_at: 'desc' },
+      },
+    },
+  });
+}
+
+export async function createProduct(data: CreateProductInput) {
+  return db().product.create({
+    data: {
+      name: data.name,
+      description: data.description ?? null,
+    },
+  });
+}
+
+export async function updateProduct(id: string, data: UpdateProductInput) {
+  return db().product.update({
+    where: { id },
+    data: {
+      ...(data.name != null && { name: data.name }),
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.is_active !== undefined && { is_active: data.is_active }),
+    },
+  });
+}
+
+export async function deleteProduct(id: string): Promise<{ success: boolean }> {
+  await db().product.delete({ where: { id } });
+  return { success: true };
+}
+
+// ============================================
+// User Attributes (per-user key/value store)
+// ============================================
+export async function getUserAttributes(userId: string) {
+  return db().userAttribute.findMany({
+    where: { user_id: userId },
+    orderBy: { key: 'asc' },
+  });
+}
+
+export async function getUserAttribute(userId: string, key: string) {
+  return db().userAttribute.findUnique({
+    where: { user_id_key: { user_id: userId, key } },
+  });
+}
+
+export async function setUserAttribute(userId: string, key: string, value: string | null) {
+  return db().userAttribute.upsert({
+    where: { user_id_key: { user_id: userId, key } },
+    create: { user_id: userId, key, value, set_at: new Date() },
+    update: { value, set_at: new Date() },
+  });
+}
+
+export async function deleteUserAttribute(userId: string, key: string): Promise<{ success: boolean }> {
+  try {
+    await db().userAttribute.delete({
+      where: { user_id_key: { user_id: userId, key } },
+    });
+  } catch (err) {
+    if ((err as { code?: string })?.code === 'P2025') return { success: true };
+    throw err;
+  }
+  return { success: true };
 }

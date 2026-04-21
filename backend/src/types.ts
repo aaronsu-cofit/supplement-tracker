@@ -121,6 +121,7 @@ export interface CreateLineOAInput {
   default_agent_id?: string;
   ai_skill_platform_url?: string;
   ai_skill_platform_api_key?: string;
+  product_id?: string | null;
 }
 
 export interface UpdateLineOAInput {
@@ -131,6 +132,18 @@ export interface UpdateLineOAInput {
   default_agent_id?: string;
   ai_skill_platform_url?: string;
   ai_skill_platform_api_key?: string;
+  product_id?: string | null;
+  is_active?: boolean;
+}
+
+export interface CreateProductInput {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateProductInput {
+  name?: string;
+  description?: string;
   is_active?: boolean;
 }
 

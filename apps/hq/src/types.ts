@@ -29,6 +29,23 @@ export interface LineOA {
   default_agent_id?: string;
   ai_skill_platform_url?: string | null;
   has_ai_skill_platform_api_key?: boolean;
+  product_id?: string | null;
+}
+
+// ─── Products (shareable config bundles across OAs) ─────────────────────────
+
+export interface Product {
+  id: string;
+  name: string;
+  description?: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  oa_count?: number;
+}
+
+export interface ProductWithOAs extends Product {
+  oas: Array<{ id: string | number; name: string; is_active: boolean }>;
 }
 
 export interface Zone {

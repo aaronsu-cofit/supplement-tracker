@@ -1,7 +1,7 @@
 'use client';
 import { apiFetch, getApiUrl } from '@vitera/lib';
-import { useState } from 'react';
-import type { LineOA } from '../../../../types';
+import { useEffect, useState } from 'react';
+import type { LineOA, Product } from '../../../../types';
 
 interface Props {
   oa: LineOA;
@@ -16,6 +16,7 @@ interface EditForm {
   default_agent_id: string;
   ai_skill_platform_url: string;
   ai_skill_platform_api_key: string;
+  product_id: string;
 }
 
 export default function OaSettingsTab({ oa, onChange }: Props) {
@@ -27,7 +28,19 @@ export default function OaSettingsTab({ oa, onChange }: Props) {
     default_agent_id: oa.default_agent_id || '',
     ai_skill_platform_url: oa.ai_skill_platform_url || '',
     ai_skill_platform_api_key: '',
+    product_id: oa.product_id || '',
   });
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiFetch('/api/products');
+        const data = await res.json();
+        if (res.ok) setProducts(data.products || []);
+      } catch { /* silent */ }
+    })();
+  }, []);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -45,6 +58,7 @@ export default function OaSettingsTab({ oa, onChange }: Props) {
         ...(form.default_agent_id && { default_agent_id: form.default_agent_id }),
         ai_skill_platform_url: form.ai_skill_platform_url,
         ...(form.ai_skill_platform_api_key && { ai_skill_platform_api_key: form.ai_skill_platform_api_key }),
+        product_id: form.product_id || null,
       };
       const res = await apiFetch(`/api/line/oa/${oa.id}`, {
         method: 'PATCH',
@@ -113,6 +127,26 @@ export default function OaSettingsTab({ oa, onChange }: Props) {
         <div className="flex flex-col gap-1">
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">說明</label>
           <input className="hq-input" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
+        </div>
+      </div>
+
+      <div className="hq-card flex flex-col gap-3">
+        <h3 className="font-semibold text-lg">綁定產品</h3>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Product</label>
+          <select
+            className="hq-input"
+            value={form.product_id}
+            onChange={e => setForm(p => ({ ...p, product_id: e.target.value }))}
+          >
+            <option value="">（未綁定）</option>
+            {products.map(p => (
+              <option key={p.id} value={p.id}>{p.name}{p.is_active ? '' : '（停用）'}</option>
+            ))}
+          </select>
+          <p className="text-xs text-slate-500">
+            綁定後此 OA 會共用該 Product 的內容庫、意圖規則、劇本等設定。管理請至「產品」頁。
+          </p>
         </div>
       </div>
 
