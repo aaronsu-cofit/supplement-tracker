@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { verifyLineSignature, replyText } from '../lib/line.js'
+import { verifyLineSignature, replyText, replyMessage } from '../lib/line.js'
 import { adkRun } from '../lib/adk.js'
 import {
   findOrCreateLineUser,
@@ -120,8 +120,8 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
       try {
         const intent = await runIntent(oa.product_id, lineUserId, messageText)
         if (intent) {
-          if (intent.replyText) {
-            await replyText(event.replyToken, intent.replyText, oa.channel_access_token)
+          if (intent.replyMessage) {
+            await replyMessage(event.replyToken, intent.replyMessage, oa.channel_access_token)
           }
           return
         }

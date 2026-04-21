@@ -11,6 +11,7 @@ import {
   setUserAttributeWithHooks,
 } from './missions.js';
 import { incrementStreak } from './gamification.js';
+import { contentItemToMessage } from './flow.js';
 import type {
   IntentMatchType,
   IntentActionType,
@@ -91,7 +92,7 @@ export interface IntentHandledResult {
   handled: true;
   ruleId: string;
   ruleName: string;
-  replyText: string | null;
+  replyMessage: import('@line/bot-sdk').Message | null;
 }
 
 /**
@@ -113,7 +114,6 @@ export async function runIntent(
     console.error('[intent] log engagement error:', err),
   );
 
-  let replyText: string | null = null;
   let contentKeyToResolve: string | undefined;
 
   if (match.actionType === 'reply_content') {
@@ -176,12 +176,16 @@ export async function runIntent(
     contentKeyToResolve = cfg.reply_content_key;
   }
 
+  let replyMessage: import('@line/bot-sdk').Message | null = null;
   if (contentKeyToResolve) {
     const item = await getContentItemByKey(productId, contentKeyToResolve);
-    if (item && item.is_active) {
-      replyText = item.body ?? item.title ?? null;
+    if (item) {
+      replyMessage = contentItemToMessage(item);
+      if (!replyMessage) {
+        console.warn(`[intent] rule ${match.ruleId} references inactive/empty/malformed content:${contentKeyToResolve}`);
+      }
     } else {
-      console.warn(`[intent] rule ${match.ruleId} references missing/inactive content:${contentKeyToResolve}`);
+      console.warn(`[intent] rule ${match.ruleId} references missing content:${contentKeyToResolve}`);
     }
   }
 
@@ -189,7 +193,7 @@ export async function runIntent(
     handled: true,
     ruleId: match.ruleId,
     ruleName: match.ruleName,
-    replyText,
+    replyMessage,
   };
 }
 

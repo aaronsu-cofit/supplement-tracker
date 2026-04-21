@@ -1,30 +1,67 @@
 'use client';
 import { apiFetch } from '@vitera/lib';
 import { useCallback, useEffect, useState } from 'react';
-import type { ContentItem } from '../../../types';
+import type { ContentItem, ContentItemType } from '../../../types';
 
 interface Props {
   productId: string;
 }
 
-interface AddForm {
+interface FormShape {
   key: string;
+  type: ContentItemType;
   title: string;
   body: string;
+  is_active: boolean;
 }
 
-const EMPTY: AddForm = { key: '', title: '', body: '' };
+const EMPTY: FormShape = { key: '', type: 'text', title: '', body: '', is_active: true };
+
+// Lightweight JSON-shape sanity check for flex content. Matches the
+// backend's tryParseFlex — must be an object with type 'bubble' or
+// 'carousel'. We don't deep-validate; LINE rejects bad contents at send
+// time with a descriptive error, which surfaces in scheduler errors.
+interface FlexValidation { ok: boolean; message?: string }
+function validateFlexJson(raw: string): FlexValidation {
+  if (!raw.trim()) return { ok: false, message: 'Flex 內容不可為空' };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    return { ok: false, message: `JSON 無法解析：${(e as Error).message}` };
+  }
+  if (!parsed || typeof parsed !== 'object') {
+    return { ok: false, message: '最外層需為 JSON 物件' };
+  }
+  const t = (parsed as { type?: unknown }).type;
+  if (t !== 'bubble' && t !== 'carousel') {
+    return { ok: false, message: `最外層 type 需為 bubble 或 carousel（目前：${String(t)}）` };
+  }
+  return { ok: true };
+}
+
+const EXAMPLE_FLEX_BUBBLE = `{
+  "type": "bubble",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      { "type": "text", "text": "今日健康小貼士", "weight": "bold", "size": "lg" },
+      { "type": "text", "text": "每天喝 8 杯水，身體更有活力 💧", "wrap": true, "margin": "md" }
+    ]
+  }
+}`;
 
 export default function ProductContentSection({ productId }: Props) {
   const [items, setItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [addForm, setAddForm] = useState<AddForm>(EMPTY);
+  const [addForm, setAddForm] = useState<FormShape>(EMPTY);
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<AddForm & { is_active: boolean }>({ ...EMPTY, is_active: true });
+  const [editForm, setEditForm] = useState<FormShape>(EMPTY);
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -45,11 +82,18 @@ export default function ProductContentSection({ productId }: Props) {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleAdd = async () => {
-    if (!addForm.key.trim()) {
-      setAddError('請填 key');
-      return;
+  const validateForm = (f: FormShape): string | null => {
+    if (!f.key.trim()) return '請填 key';
+    if (f.type === 'flex') {
+      const r = validateFlexJson(f.body);
+      if (!r.ok) return `Flex 內容錯誤：${r.message}`;
     }
+    return null;
+  };
+
+  const handleAdd = async () => {
+    const err = validateForm(addForm);
+    if (err) { setAddError(err); return; }
     setAdding(true);
     setAddError(null);
     try {
@@ -58,7 +102,7 @@ export default function ProductContentSection({ productId }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           key: addForm.key.trim(),
-          type: 'text',
+          type: addForm.type,
           title: addForm.title || null,
           body: addForm.body || null,
         }),
@@ -70,8 +114,8 @@ export default function ProductContentSection({ productId }: Props) {
       setAddForm(EMPTY);
       setShowAdd(false);
       load();
-    } catch (err) {
-      setAddError((err as Error).message);
+    } catch (e) {
+      setAddError((e as Error).message);
     } finally {
       setAdding(false);
     }
@@ -81,17 +125,16 @@ export default function ProductContentSection({ productId }: Props) {
     setEditingId(item.id);
     setEditForm({
       key: item.key,
+      type: item.type,
       title: item.title ?? '',
       body: item.body ?? '',
       is_active: item.is_active,
     });
   };
 
-  const cancelEdit = () => {
-    setEditingId(null);
-  };
-
   const saveEdit = async (id: string) => {
+    const err = validateForm(editForm);
+    if (err) { alert(err); return; }
     setSavingId(id);
     try {
       const res = await apiFetch(`/api/products/${productId}/content/${id}`, {
@@ -99,6 +142,7 @@ export default function ProductContentSection({ productId }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           key: editForm.key.trim(),
+          type: editForm.type,
           title: editForm.title || null,
           body: editForm.body || null,
           is_active: editForm.is_active,
@@ -110,8 +154,8 @@ export default function ProductContentSection({ productId }: Props) {
       }
       setEditingId(null);
       load();
-    } catch (err) {
-      alert((err as Error).message);
+    } catch (e) {
+      alert((e as Error).message);
     } finally {
       setSavingId(null);
     }
@@ -128,6 +172,50 @@ export default function ProductContentSection({ productId }: Props) {
     }
   };
 
+  const renderForm = (form: FormShape, setForm: (f: FormShape) => void) => (
+    <>
+      <div className="grid grid-cols-2 gap-2">
+        <input className="hq-input" placeholder="key（英數底線點連字號，如 welcome_msg）"
+          value={form.key} onChange={e => setForm({ ...form, key: e.target.value })} />
+        <select className="hq-input" value={form.type}
+          onChange={e => setForm({ ...form, type: e.target.value as ContentItemType })}>
+          <option value="text">text（純文字）</option>
+          <option value="flex">flex（LINE 卡片/按鈕）</option>
+        </select>
+      </div>
+      <input className="hq-input" placeholder="標題（選填；flex 會用作 altText 通知文案）"
+        value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+      {form.type === 'text' ? (
+        <textarea className="hq-input min-h-[80px]" placeholder="訊息文字"
+          value={form.body} onChange={e => setForm({ ...form, body: e.target.value })} />
+      ) : (
+        <>
+          <textarea className="hq-input min-h-[200px] font-mono text-xs"
+            placeholder="Flex 內容 JSON（外層需為 bubble 或 carousel）"
+            value={form.body} onChange={e => setForm({ ...form, body: e.target.value })} />
+          <div className="flex items-center gap-2 flex-wrap text-xs">
+            <button type="button"
+              onClick={() => setForm({ ...form, body: EXAMPLE_FLEX_BUBBLE })}
+              className="text-slate-500 hover:text-slate-900 underline">
+              插入範例 bubble
+            </button>
+            <a href="https://developers.line.biz/flex-simulator/"
+              target="_blank" rel="noopener noreferrer"
+              className="text-slate-500 hover:text-slate-900 underline">
+              LINE Flex Simulator ↗
+            </a>
+            {form.body.trim() && (() => {
+              const r = validateFlexJson(form.body);
+              return r.ok
+                ? <span className="text-emerald-600">✓ JSON 格式通過</span>
+                : <span className="text-red-600">✗ {r.message}</span>;
+            })()}
+          </div>
+        </>
+      )}
+    </>
+  );
+
   return (
     <div className="hq-card flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -140,17 +228,12 @@ export default function ProductContentSection({ productId }: Props) {
         </button>
       </div>
       <p className="text-xs text-slate-500">
-        可複用的訊息文字/卡片。在劇本、push node 中可用 <code className="bg-slate-100 px-1 rounded">content:key</code> 引用。目前支援 text 類型。
+        可複用的訊息。劇本、push node、意圖回覆中可用 <code className="bg-slate-100 px-1 rounded">content:key</code> 引用。支援 text 和 flex（LINE 卡片）。
       </p>
 
       {showAdd && (
         <div className="border border-slate-200 rounded-lg p-3 flex flex-col gap-2 bg-slate-50">
-          <input className="hq-input" placeholder="key（英數底線點連字號，如 welcome_msg）"
-            value={addForm.key} onChange={e => setAddForm(p => ({ ...p, key: e.target.value }))} />
-          <input className="hq-input" placeholder="標題（選填）"
-            value={addForm.title} onChange={e => setAddForm(p => ({ ...p, title: e.target.value }))} />
-          <textarea className="hq-input min-h-[80px]" placeholder="內容文字"
-            value={addForm.body} onChange={e => setAddForm(p => ({ ...p, body: e.target.value }))} />
+          {renderForm(addForm, setAddForm)}
           {addError && <p className="text-sm text-red-600">{addError}</p>}
           <div>
             <button onClick={handleAdd} disabled={adding} className="hq-btn-primary text-sm">
@@ -172,15 +255,10 @@ export default function ProductContentSection({ productId }: Props) {
             <li key={item.id} className="border border-slate-200 rounded-lg p-3 flex flex-col gap-2">
               {editingId === item.id ? (
                 <>
-                  <input className="hq-input text-sm" value={editForm.key}
-                    onChange={e => setEditForm(p => ({ ...p, key: e.target.value }))} />
-                  <input className="hq-input text-sm" placeholder="標題" value={editForm.title}
-                    onChange={e => setEditForm(p => ({ ...p, title: e.target.value }))} />
-                  <textarea className="hq-input text-sm min-h-[80px]" value={editForm.body}
-                    onChange={e => setEditForm(p => ({ ...p, body: e.target.value }))} />
+                  {renderForm(editForm, setEditForm)}
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={editForm.is_active}
-                      onChange={e => setEditForm(p => ({ ...p, is_active: e.target.checked }))} />
+                      onChange={e => setEditForm({ ...editForm, is_active: e.target.checked })} />
                     <span>啟用</span>
                   </label>
                   <div className="flex items-center gap-2">
@@ -188,7 +266,7 @@ export default function ProductContentSection({ productId }: Props) {
                       className="hq-btn-primary text-sm">
                       {savingId === item.id ? '儲存中...' : '儲存'}
                     </button>
-                    <button onClick={cancelEdit}
+                    <button onClick={() => setEditingId(null)}
                       className="text-sm px-3 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50">
                       取消
                     </button>
@@ -199,7 +277,9 @@ export default function ProductContentSection({ productId }: Props) {
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <code className="bg-slate-100 px-1.5 rounded font-mono text-sm">{item.key}</code>
-                      <span className="text-xs text-slate-400 uppercase">{item.type}</span>
+                      <span className={`hq-badge ${item.type === 'flex' ? 'hq-badge-purple' : 'hq-badge-gray'}`}>
+                        {item.type}
+                      </span>
                       {!item.is_active && <span className="hq-badge hq-badge-gray">停用</span>}
                     </div>
                     <div className="flex items-center gap-2">
@@ -214,7 +294,13 @@ export default function ProductContentSection({ productId }: Props) {
                     </div>
                   </div>
                   {item.title && <p className="text-sm font-semibold text-slate-700">{item.title}</p>}
-                  {item.body && <p className="text-sm text-slate-600 whitespace-pre-wrap">{item.body}</p>}
+                  {item.body && (
+                    <pre className={`text-xs whitespace-pre-wrap max-h-48 overflow-auto ${
+                      item.type === 'flex' ? 'font-mono text-slate-500 bg-slate-50 p-2 rounded border border-slate-200' : 'text-slate-600'
+                    }`}>
+                      {item.body}
+                    </pre>
+                  )}
                 </>
               )}
             </li>

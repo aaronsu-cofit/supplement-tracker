@@ -257,13 +257,14 @@ export interface ScenarioFlowNode {
     day?: number;
     label?: string;
     // push-message-node
-    type?: 'text' | 'image' | 'sticker';
+    type?: 'text' | 'image' | 'sticker' | 'flex';
     message?: string;
     imageUrl?: string;
     previewUrl?: string;
     stickerPackageId?: string;
     stickerId?: string;
     contentKey?: string;
+    flexContents?: string;
     // ai-skill-node
     agentId?: string;
     // menu-change-node

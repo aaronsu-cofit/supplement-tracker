@@ -18,20 +18,38 @@ export function verifyLineSignature(body: string, signature: string, secret: str
 }
 
 /**
- * Reply to a webhook event using the given channel's access token.
+ * Reply to a webhook event with a plain text message.
  */
 export async function replyText(replyToken: string, text: string, token: string): Promise<void> {
-  if (!token) throw new Error('replyText: missing token')
+  await replyMessages(replyToken, [{ type: 'text', text }], token)
+}
+
+/**
+ * Generic reply. Accepts any LINE Messaging API message object (text,
+ * image, sticker, flex, …). Used by the intent router when the matched
+ * rule's reply_content points at a non-text ContentItem.
+ */
+export async function replyMessage(
+  replyToken: string,
+  message: import('@line/bot-sdk').Message,
+  token: string,
+): Promise<void> {
+  await replyMessages(replyToken, [message], token)
+}
+
+async function replyMessages(
+  replyToken: string,
+  messages: import('@line/bot-sdk').Message[],
+  token: string,
+): Promise<void> {
+  if (!token) throw new Error('replyMessages: missing token')
   const res = await fetch('https://api.line.me/v2/bot/message/reply', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
-    body: JSON.stringify({
-      replyToken,
-      messages: [{ type: 'text', text }],
-    }),
+    body: JSON.stringify({ replyToken, messages }),
   })
 
   if (!res.ok) {

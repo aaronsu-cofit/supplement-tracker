@@ -7,6 +7,8 @@ import {
   findStreakIncrementNodesForDay,
   findSetAttributeNodesForDay,
   buildLineMessage,
+  tryParseFlex,
+  contentItemToMessage,
   type FlowNode,
   type FlowEdge,
 } from './flow.js';
@@ -288,5 +290,112 @@ describe('buildLineMessage', () => {
 
   it('returns null for undefined data', () => {
     expect(buildLineMessage(undefined)).toBeNull();
+  });
+
+  it('builds flex message when flexContents parses to a bubble', () => {
+    const result = buildLineMessage({
+      type: 'flex',
+      message: '通知文案',
+      flexContents: JSON.stringify({ type: 'bubble', body: { type: 'box', layout: 'vertical', contents: [] } }),
+    });
+    expect(result).toEqual({
+      type: 'flex',
+      altText: '通知文案',
+      contents: { type: 'bubble', body: { type: 'box', layout: 'vertical', contents: [] } },
+    });
+  });
+
+  it('uses default altText when flex message has no text message', () => {
+    const result = buildLineMessage({
+      type: 'flex',
+      flexContents: JSON.stringify({ type: 'carousel', contents: [] }),
+    });
+    expect(result).toEqual({
+      type: 'flex',
+      altText: 'Flex message',
+      contents: { type: 'carousel', contents: [] },
+    });
+  });
+
+  it('returns null for flex with invalid JSON', () => {
+    expect(buildLineMessage({ type: 'flex', flexContents: '{ bad' })).toBeNull();
+  });
+
+  it('returns null for flex whose top-level type is not bubble/carousel', () => {
+    expect(buildLineMessage({ type: 'flex', flexContents: JSON.stringify({ type: 'box' }) })).toBeNull();
+  });
+
+  it('returns null for flex with no flexContents', () => {
+    expect(buildLineMessage({ type: 'flex' })).toBeNull();
+  });
+});
+
+describe('tryParseFlex', () => {
+  it('accepts a well-formed bubble', () => {
+    const json = JSON.stringify({ type: 'bubble', body: { type: 'box', layout: 'vertical', contents: [] } });
+    expect(tryParseFlex(json)).not.toBeNull();
+  });
+
+  it('accepts a well-formed carousel', () => {
+    expect(tryParseFlex(JSON.stringify({ type: 'carousel', contents: [] }))).not.toBeNull();
+  });
+
+  it('rejects non-JSON', () => {
+    expect(tryParseFlex('hello')).toBeNull();
+  });
+
+  it('rejects JSON whose top-level type is not bubble or carousel', () => {
+    expect(tryParseFlex(JSON.stringify({ type: 'text' }))).toBeNull();
+    expect(tryParseFlex(JSON.stringify({ type: 'box' }))).toBeNull();
+  });
+
+  it('rejects non-object JSON (arrays, primitives)', () => {
+    expect(tryParseFlex('[]')).toBeNull();
+    expect(tryParseFlex('"str"')).toBeNull();
+    expect(tryParseFlex('42')).toBeNull();
+  });
+});
+
+describe('contentItemToMessage', () => {
+  it('returns null for inactive items', () => {
+    expect(contentItemToMessage({ type: 'text', body: 'hi', is_active: false })).toBeNull();
+  });
+
+  it('builds a text message for type=text with body', () => {
+    expect(contentItemToMessage({ type: 'text', body: 'hello', is_active: true })).toEqual({
+      type: 'text',
+      text: 'hello',
+    });
+  });
+
+  it('returns null for type=text with empty body', () => {
+    expect(contentItemToMessage({ type: 'text', body: '', is_active: true })).toBeNull();
+    expect(contentItemToMessage({ type: 'text', is_active: true })).toBeNull();
+  });
+
+  it('builds a flex message for type=flex with valid JSON body, using title as altText', () => {
+    const body = JSON.stringify({ type: 'bubble', body: { type: 'box', layout: 'vertical', contents: [] } });
+    expect(contentItemToMessage({ type: 'flex', title: '新訊息', body, is_active: true })).toEqual({
+      type: 'flex',
+      altText: '新訊息',
+      contents: { type: 'bubble', body: { type: 'box', layout: 'vertical', contents: [] } },
+    });
+  });
+
+  it('falls back to generic altText when title is missing', () => {
+    const body = JSON.stringify({ type: 'bubble', body: { type: 'box', layout: 'vertical', contents: [] } });
+    const msg = contentItemToMessage({ type: 'flex', body, is_active: true });
+    expect(msg && 'altText' in msg && msg.altText).toBe('Flex message');
+  });
+
+  it('returns null for type=flex with malformed body', () => {
+    expect(contentItemToMessage({ type: 'flex', body: 'not-json', is_active: true })).toBeNull();
+  });
+
+  it('falls back to text when type is unknown but body is present', () => {
+    expect(contentItemToMessage({ type: 'card', body: 'fallback', is_active: true })).toEqual({
+      type: 'text',
+      text: 'fallback',
+    });
   });
 });

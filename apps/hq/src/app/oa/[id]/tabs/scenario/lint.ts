@@ -43,6 +43,33 @@ export function lintAction(node: ScenarioFlowNode, ctx: LintContext): LintIssue[
           issues.push({ level: 'warning', message: `content_key "${d.contentKey}" 不在產品的內容庫` });
         } else if (!item.is_active) {
           issues.push({ level: 'warning', message: `content_key "${d.contentKey}" 已停用` });
+        } else {
+          // Type mismatch: a push node set to 'flex' but pointing at a
+          // 'text' content item (or vice versa) is almost always a bug.
+          // Scheduler's contentItemToMessage follows the content item's
+          // own type, not the node's — we flag it so ops notice.
+          const pushType = d.type ?? 'text';
+          if ((pushType === 'flex') !== (item.type === 'flex')) {
+            issues.push({
+              level: 'warning',
+              message: `push 類型為 ${pushType} 但 content item 為 ${item.type}；發送時會依 content item 類型處理`,
+            });
+          }
+        }
+      }
+      // Inline flex JSON sanity check (only when not using content_key)
+      if (!has(d.contentKey) && d.type === 'flex') {
+        if (!has(d.flexContents)) {
+          issues.push({ level: 'warning', message: 'Flex 類型需填入 flex JSON' });
+        } else {
+          try {
+            const parsed = JSON.parse(d.flexContents);
+            if (!parsed || typeof parsed !== 'object' || (parsed.type !== 'bubble' && parsed.type !== 'carousel')) {
+              issues.push({ level: 'warning', message: 'Flex JSON 最外層 type 需為 bubble 或 carousel' });
+            }
+          } catch {
+            issues.push({ level: 'warning', message: 'Flex JSON 無法解析' });
+          }
         }
       }
       break;

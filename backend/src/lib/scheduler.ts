@@ -17,6 +17,7 @@ import {
   findStreakIncrementNodesForDay,
   findSetAttributeNodesForDay,
   buildLineMessage,
+  contentItemToMessage,
   type FlowNode,
   type FlowEdge,
 } from './flow.js';
@@ -161,23 +162,23 @@ async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
     for (const pushNode of pushNodes) {
       // Resolve content_key reference: if the node points at a ContentItem
       // by key, fetch it at send time (so edits to the item flow through).
-      // Only applies when the OA has a product bound and the key resolves.
-      let effectiveData = pushNode.data;
+      // contentItemToMessage handles both text and flex types uniformly.
+      let message: ReturnType<typeof buildLineMessage> = null;
       const contentKey = pushNode.data?.contentKey;
       if (contentKey && oa.product_id) {
         const item = await getContentItemByKey(oa.product_id, contentKey);
-        if (item && item.is_active && item.body) {
-          effectiveData = {
-            ...pushNode.data,
-            type: (pushNode.data?.type as 'text' | 'image' | 'sticker' | undefined) ?? 'text',
-            message: item.body,
-          };
-        } else {
-          errors.push(`user=${userId} node=${pushNode.id}: content_key=${contentKey} missing/inactive/empty`);
+        if (!item) {
+          errors.push(`user=${userId} node=${pushNode.id}: content_key=${contentKey} not found`);
           continue;
         }
+        message = contentItemToMessage(item);
+        if (!message) {
+          errors.push(`user=${userId} node=${pushNode.id}: content_key=${contentKey} inactive/empty/malformed`);
+          continue;
+        }
+      } else {
+        message = buildLineMessage(pushNode.data);
       }
-      const message = buildLineMessage(effectiveData);
       if (!message) {
         errors.push(`user=${userId} node=${pushNode.id}: skipped (missing required fields for type=${pushNode.data?.type || 'text'})`);
         continue;
@@ -417,6 +418,25 @@ export async function dryRunScheduler(opts: DryRunOptions): Promise<DryRunResult
           }
           if (d.type === 'image') return { ...base, description: `推播圖片 ${d.imageUrl ?? '(缺 URL)'}`, warning: d.imageUrl ? undefined : 'imageUrl 未設定' };
           if (d.type === 'sticker') return { ...base, description: `貼圖 ${d.stickerPackageId ?? '?'}/${d.stickerId ?? '?'}`, warning: d.stickerPackageId && d.stickerId ? undefined : 'sticker id 不完整' };
+          if (d.type === 'flex') {
+            let flexWarning: string | undefined;
+            if (!d.flexContents) flexWarning = 'flexContents 未設定';
+            else {
+              try {
+                const parsed = JSON.parse(d.flexContents);
+                if (!parsed || typeof parsed !== 'object' || (parsed.type !== 'bubble' && parsed.type !== 'carousel')) {
+                  flexWarning = 'flex JSON 最外層需為 bubble 或 carousel';
+                }
+              } catch {
+                flexWarning = 'flex JSON 無法解析';
+              }
+            }
+            return {
+              ...base,
+              description: `Flex: ${d.message || '(未設 altText)'}`,
+              warning: flexWarning,
+            };
+          }
           return {
             ...base,
             description: d.message ? `推播 "${d.message.slice(0, 40)}"` : '推播（未設內容）',
