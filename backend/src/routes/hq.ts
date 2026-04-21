@@ -6,6 +6,7 @@ import {
   getUserAttributes, deleteUserAttribute,
   getUserMissionAssignments,
   getUserStreaks, getUserBadges,
+  findUserById, db,
 } from '../lib/db.js';
 import { setUserAttributeWithHooks } from '../lib/missions.js';
 
@@ -99,6 +100,39 @@ hq.delete('/users/:userId/attributes/:key', async (c) => {
   } catch (error) {
     console.error('Failed to delete user attribute:', error);
     return c.json({ error: 'Failed to delete attribute' }, 500);
+  }
+});
+
+// GET /api/hq/users/:userId
+hq.get('/users/:userId', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const user = await findUserById(userId);
+    if (!user) return c.json({ error: 'User not found' }, 404);
+    // strip password hash
+    const { password_hash, ...safe } = user;
+    void password_hash;
+    return c.json({ user: safe });
+  } catch (error) {
+    console.error('Failed to fetch user:', error);
+    return c.json({ error: 'Failed to fetch user' }, 500);
+  }
+});
+
+// GET /api/hq/users/:userId/engagement?limit=50
+hq.get('/users/:userId/engagement', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const limit = Math.min(200, parseInt(c.req.query('limit') || '50', 10));
+    const events = await db().engagementEvent.findMany({
+      where: { user_id: userId },
+      orderBy: { occurred_at: 'desc' },
+      take: limit,
+    });
+    return c.json({ events });
+  } catch (error) {
+    console.error('Failed to fetch engagement events:', error);
+    return c.json({ error: 'Failed to fetch events' }, 500);
   }
 });
 

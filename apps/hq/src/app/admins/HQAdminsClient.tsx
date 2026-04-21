@@ -1,5 +1,6 @@
 'use client';
 import { apiFetch } from '@vitera/lib';
+import Link from 'next/link';
 
 import { useState, useEffect } from 'react';
 import type { HQUser } from '../../types';
@@ -115,7 +116,9 @@ export default function HQAdminsClient() {
                                             </div>
                                         )}
                                         <div className="hq-user-info">
-                                            <div className="hq-user-name">{user.display_name || 'Anonymous'}</div>
+                                            <Link href={`/admins/${user.id}`} className="hq-user-name hover:underline">
+                                                {user.display_name || 'Anonymous'}
+                                            </Link>
                                             <div className="hq-user-email">{user.email || 'LINE Login User'}</div>
                                         </div>
                                     </td>

@@ -17,6 +17,65 @@ export interface HQUser {
   created_at: string;
 }
 
+export interface UserAttribute {
+  id: number;
+  user_id: string;
+  key: string;
+  value: string | null;
+  set_at: string;
+}
+
+export interface UserMissionAssignment {
+  id: string;
+  user_id: string;
+  template_id: string;
+  status: string;
+  progress_current: number;
+  progress_target: number;
+  assigned_at: string;
+  completed_at: string | null;
+  template: {
+    id: string;
+    key: string;
+    name: string;
+    product_id: string;
+  };
+}
+
+export interface UserStreakRow {
+  id: number;
+  product_id: string;
+  user_id: string;
+  streak_key: string;
+  count_current: number;
+  count_best: number;
+  last_occurred_on: string | null;
+  updated_at: string;
+}
+
+export interface UserBadgeRow {
+  id: number;
+  user_id: string;
+  template_id: string;
+  earned_at: string;
+  template: {
+    id: string;
+    key: string;
+    name: string;
+    icon: string | null;
+    description: string | null;
+    product_id: string;
+  };
+}
+
+export interface EngagementEventRow {
+  id: number;
+  user_id: string;
+  event_type: string;
+  payload: string | null;
+  occurred_at: string;
+}
+
 // ─── LINE OA ─────────────────────────────────────────────────────────────────
 
 export interface LineOA {
