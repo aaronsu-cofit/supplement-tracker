@@ -1,18 +1,22 @@
 import {
   getActiveIntentRulesForProduct,
   getContentItemByKey,
-  setUserAttribute,
   logEngagementEvent,
   getMissionTemplateByKey,
   assignMission,
-  completeMission,
 } from './db.js';
+import {
+  completeMissionByKey,
+  incrementMissionProgress,
+  setUserAttributeWithHooks,
+} from './missions.js';
 import type {
   IntentMatchType,
   IntentActionType,
   ReplyContentAction,
   SetAttributeAction,
   MissionAction,
+  IncrementMissionAction,
   IntentActionConfig,
 } from '../types.js';
 
@@ -117,13 +121,13 @@ export async function runIntent(
     const cfg = match.actionConfig as SetAttributeAction;
     if (cfg.key) {
       try {
-        await setUserAttribute(userId, cfg.key, cfg.value ?? null);
+        await setUserAttributeWithHooks(userId, cfg.key, cfg.value ?? null);
       } catch (err) {
         console.error('[intent] set_attribute error:', err);
       }
     }
     contentKeyToResolve = cfg.reply_content_key;
-  } else if (match.actionType === 'assign_mission' || match.actionType === 'complete_mission') {
+  } else if (match.actionType === 'assign_mission') {
     const cfg = match.actionConfig as MissionAction;
     if (cfg.mission_key) {
       const template = await getMissionTemplateByKey(productId, cfg.mission_key);
@@ -131,14 +135,30 @@ export async function runIntent(
         console.warn(`[intent] rule ${match.ruleId} references missing/inactive mission:${cfg.mission_key}`);
       } else {
         try {
-          if (match.actionType === 'assign_mission') {
-            await assignMission(userId, template.id);
-          } else {
-            await completeMission(userId, template.id);
-          }
+          await assignMission(userId, template.id);
         } catch (err) {
-          console.error(`[intent] ${match.actionType} error:`, err);
+          console.error('[intent] assign_mission error:', err);
         }
+      }
+    }
+    contentKeyToResolve = cfg.reply_content_key;
+  } else if (match.actionType === 'complete_mission') {
+    const cfg = match.actionConfig as MissionAction;
+    if (cfg.mission_key) {
+      try {
+        await completeMissionByKey(productId, userId, cfg.mission_key);
+      } catch (err) {
+        console.error('[intent] complete_mission error:', err);
+      }
+    }
+    contentKeyToResolve = cfg.reply_content_key;
+  } else if (match.actionType === 'increment_mission_progress') {
+    const cfg = match.actionConfig as IncrementMissionAction;
+    if (cfg.mission_key) {
+      try {
+        await incrementMissionProgress(productId, userId, cfg.mission_key, cfg.step ?? 1);
+      } catch (err) {
+        console.error('[intent] increment_mission_progress error:', err);
       }
     }
     contentKeyToResolve = cfg.reply_content_key;
@@ -168,4 +188,5 @@ export const VALID_ACTION_TYPES: IntentActionType[] = [
   'set_attribute',
   'assign_mission',
   'complete_mission',
+  'increment_mission_progress',
 ];

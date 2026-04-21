@@ -171,7 +171,8 @@ export type IntentActionType =
   | 'reply_content'
   | 'set_attribute'
   | 'assign_mission'
-  | 'complete_mission';
+  | 'complete_mission'
+  | 'increment_mission_progress';
 
 export interface ReplyContentAction {
   content_key: string;
@@ -188,23 +189,48 @@ export interface MissionAction {
   reply_content_key?: string;
 }
 
+export interface IncrementMissionAction {
+  mission_key: string;
+  step?: number;
+  reply_content_key?: string;
+}
+
+// Actions that run when a mission completes. Reply-type actions are
+// intentionally not included: completion can be triggered asynchronously
+// (attribute auto-complete, progress reach), where there's no reply token.
+export type MissionCompleteAction =
+  | { type: 'set_attribute'; key: string; value: string }
+  | { type: 'assign_mission'; mission_key: string };
+
+export interface AutoCompleteRule {
+  attribute_key: string;
+  match_value?: string;
+}
+
 export interface CreateMissionTemplateInput {
   key: string;
   name: string;
   description?: string;
+  progress_target?: number;
+  auto_complete_on_attribute?: AutoCompleteRule | null;
+  on_complete_actions?: MissionCompleteAction[];
 }
 
 export interface UpdateMissionTemplateInput {
   key?: string;
   name?: string;
   description?: string | null;
+  progress_target?: number;
+  auto_complete_on_attribute?: AutoCompleteRule | null;
+  on_complete_actions?: MissionCompleteAction[];
   is_active?: boolean;
 }
 
 export type IntentActionConfig =
   | ReplyContentAction
   | SetAttributeAction
-  | MissionAction;
+  | MissionAction
+  | IncrementMissionAction;
 
 export interface CreateIntentRuleInput {
   name: string;

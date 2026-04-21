@@ -68,7 +68,8 @@ export type IntentActionType =
   | 'reply_content'
   | 'set_attribute'
   | 'assign_mission'
-  | 'complete_mission';
+  | 'complete_mission'
+  | 'increment_mission_progress';
 
 export interface IntentRule {
   id: string;
@@ -84,10 +85,20 @@ export interface IntentRule {
     value?: string;
     reply_content_key?: string;
     mission_key?: string;
+    step?: number;
   };
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export type MissionCompleteAction =
+  | { type: 'set_attribute'; key: string; value: string }
+  | { type: 'assign_mission'; mission_key: string };
+
+export interface AutoCompleteRule {
+  attribute_key: string;
+  match_value?: string;
 }
 
 export interface MissionTemplate {
@@ -96,6 +107,9 @@ export interface MissionTemplate {
   key: string;
   name: string;
   description: string | null;
+  progress_target: number;
+  auto_complete_on_attribute: AutoCompleteRule | null;
+  on_complete_actions: MissionCompleteAction[];
   is_active: boolean;
   created_at: string;
   updated_at: string;

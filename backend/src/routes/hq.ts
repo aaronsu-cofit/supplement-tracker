@@ -3,9 +3,10 @@ import type { HonoEnv } from '../types.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import {
   getAllModules, updateModule, getAllUsers, updateUserRole, getHQStats,
-  getUserAttributes, setUserAttribute, deleteUserAttribute,
+  getUserAttributes, deleteUserAttribute,
   getUserMissionAssignments,
 } from '../lib/db.js';
+import { setUserAttributeWithHooks } from '../lib/missions.js';
 
 const hq = new Hono<HonoEnv>();
 hq.use('*', authMiddleware);
@@ -79,7 +80,7 @@ hq.put('/users/:userId/attributes/:key', async (c) => {
     const key = c.req.param('key');
     const body = await c.req.json().catch(() => ({}));
     const value = typeof body.value === 'string' ? body.value : null;
-    const attribute = await setUserAttribute(userId, key, value);
+    const attribute = await setUserAttributeWithHooks(userId, key, value);
     return c.json({ attribute });
   } catch (error) {
     console.error('Failed to set user attribute:', error);

@@ -278,19 +278,27 @@ model IntentRule {
 }
 
 // Product-scoped mission blueprints. `key` is the product-scoped slug
-// that intent rules / flow nodes reference to assign or complete missions.
-// Rewards are intentionally not modelled here — compose them via the
-// intent action's optional reply_content_key, since any reward beyond a
-// reply can be expressed through set_attribute/scenario enrollment.
+// that intent rules / flow nodes reference. Three axes of "depth":
+//   - progress_target: multi-step missions (target > 1 → user increments
+//     before completion)
+//   - auto_complete_on_attribute: { attribute_key, match_value? } — when
+//     user's attribute is set (optionally to exact value), pending
+//     assignments for this template auto-complete
+//   - on_complete_actions: array run on completion regardless of trigger
+//     path. Supported: set_attribute, assign_mission (chain). Keeps
+//     rewards declarative on the template so any path completes the same way.
 model MissionTemplate {
-  id          String   @id @default(cuid()) @db.VarChar(30)
-  product_id  String   @db.VarChar(30)
-  key         String   @db.VarChar(100)
-  name        String   @db.VarChar(200)
-  description String?
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  id                         String   @id @default(cuid()) @db.VarChar(30)
+  product_id                 String   @db.VarChar(30)
+  key                        String   @db.VarChar(100)
+  name                       String   @db.VarChar(200)
+  description                String?
+  progress_target            Int      @default(1)
+  auto_complete_on_attribute Json?
+  on_complete_actions        Json     @default("[]")
+  is_active                  Boolean  @default(true)
+  created_at                 DateTime @default(now())
+  updated_at                 DateTime @updatedAt
 
   product     Product             @relation(fields: [product_id], references: [id], onDelete: Cascade)
   assignments MissionAssignment[]
@@ -304,13 +312,17 @@ model MissionTemplate {
 // (or pending → abandoned). A user can only have one active (non-
 // completed/abandoned) assignment per template at a time; re-assign
 // after completion creates a new row so we keep history.
+// progress_target is snapshotted from the template at assignment time
+// so later edits to the template don't change an in-flight assignment.
 model MissionAssignment {
-  id           String    @id @default(cuid()) @db.VarChar(30)
-  user_id      String    @db.VarChar(64)
-  template_id  String    @db.VarChar(30)
-  status       String    @default("pending") @db.VarChar(20)
-  assigned_at  DateTime  @default(now())
-  completed_at DateTime?
+  id               String    @id @default(cuid()) @db.VarChar(30)
+  user_id          String    @db.VarChar(64)
+  template_id      String    @db.VarChar(30)
+  status           String    @default("pending") @db.VarChar(20)
+  progress_current Int       @default(0)
+  progress_target  Int       @default(1)
+  assigned_at      DateTime  @default(now())
+  completed_at     DateTime?
 
   template MissionTemplate @relation(fields: [template_id], references: [id], onDelete: Cascade)
 

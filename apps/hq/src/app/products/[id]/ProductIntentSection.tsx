@@ -19,9 +19,10 @@ interface FormShape {
   attr_key: string;
   attr_value: string;
   attr_reply_content_key: string;
-  // assign_mission / complete_mission
+  // assign_mission / complete_mission / increment_mission_progress
   mission_key: string;
   mission_reply_content_key: string;
+  mission_step: number;
   is_active: boolean;
 }
 
@@ -37,6 +38,7 @@ const EMPTY: FormShape = {
   attr_reply_content_key: '',
   mission_key: '',
   mission_reply_content_key: '',
+  mission_step: 1,
   is_active: true,
 };
 
@@ -52,10 +54,11 @@ function formToPayload(f: FormShape): Record<string, unknown> {
       ...(f.attr_reply_content_key.trim() && { reply_content_key: f.attr_reply_content_key.trim() }),
     };
   } else {
-    // assign_mission | complete_mission
+    // assign_mission | complete_mission | increment_mission_progress
     action_config = {
       mission_key: f.mission_key.trim(),
       ...(f.mission_reply_content_key.trim() && { reply_content_key: f.mission_reply_content_key.trim() }),
+      ...(f.action_type === 'increment_mission_progress' && { step: Math.max(1, f.mission_step || 1) }),
     };
   }
   return {
@@ -83,6 +86,7 @@ function ruleToForm(r: IntentRule): FormShape {
     attr_reply_content_key: cfg.reply_content_key ?? '',
     mission_key: cfg.mission_key ?? '',
     mission_reply_content_key: cfg.reply_content_key ?? '',
+    mission_step: cfg.step ?? 1,
     is_active: r.is_active,
   };
 }
@@ -198,6 +202,7 @@ export default function ProductIntentSection({ productId }: Props) {
           <option value="set_attribute">設定使用者屬性</option>
           <option value="assign_mission">指派任務</option>
           <option value="complete_mission">完成任務</option>
+          <option value="increment_mission_progress">遞增任務進度</option>
         </select>
       </div>
       <input className="hq-input" placeholder="patterns（逗號分隔，如：預約, 要預約）" value={form.patterns}
@@ -220,6 +225,16 @@ export default function ProductIntentSection({ productId }: Props) {
         <div className="grid grid-cols-2 gap-2">
           <input className="hq-input" placeholder="mission key（任務庫的 key）" value={form.mission_key}
             onChange={e => setForm({ ...form, mission_key: e.target.value })} />
+          <input className="hq-input" placeholder="回覆 content key（選填）" value={form.mission_reply_content_key}
+            onChange={e => setForm({ ...form, mission_reply_content_key: e.target.value })} />
+        </div>
+      )}
+      {form.action_type === 'increment_mission_progress' && (
+        <div className="grid grid-cols-3 gap-2">
+          <input className="hq-input" placeholder="mission key" value={form.mission_key}
+            onChange={e => setForm({ ...form, mission_key: e.target.value })} />
+          <input type="number" min={1} className="hq-input" placeholder="step（預設 1）" value={form.mission_step}
+            onChange={e => setForm({ ...form, mission_step: Math.max(1, Number(e.target.value) || 1) })} />
           <input className="hq-input" placeholder="回覆 content key（選填）" value={form.mission_reply_content_key}
             onChange={e => setForm({ ...form, mission_reply_content_key: e.target.value })} />
         </div>
@@ -330,6 +345,15 @@ export default function ProductIntentSection({ productId }: Props) {
                     {r.action_type === 'complete_mission' && (
                       <>
                         完成任務：<code className="bg-slate-100 px-1 rounded">{r.action_config.mission_key}</code>
+                        {r.action_config.reply_content_key && (
+                          <> + 回覆 <code className="bg-slate-100 px-1 rounded">{r.action_config.reply_content_key}</code></>
+                        )}
+                      </>
+                    )}
+                    {r.action_type === 'increment_mission_progress' && (
+                      <>
+                        遞增進度：<code className="bg-slate-100 px-1 rounded">{r.action_config.mission_key}</code>
+                        {r.action_config.step && r.action_config.step !== 1 && <> ×{r.action_config.step}</>}
                         {r.action_config.reply_content_key && (
                           <> + 回覆 <code className="bg-slate-100 px-1 rounded">{r.action_config.reply_content_key}</code></>
                         )}

@@ -181,12 +181,15 @@ function validateIntentRuleInput(body: Record<string, unknown>, requireAll: bool
       if (cfg.reply_content_key != null && typeof cfg.reply_content_key !== 'string') {
         return 'reply_content_key 需為字串';
       }
-    } else if (type === 'assign_mission' || type === 'complete_mission') {
+    } else if (type === 'assign_mission' || type === 'complete_mission' || type === 'increment_mission_progress') {
       if (typeof cfg.mission_key !== 'string' || !cfg.mission_key.trim()) {
         return `${type} action_config 需含 mission_key`;
       }
       if (cfg.reply_content_key != null && typeof cfg.reply_content_key !== 'string') {
         return 'reply_content_key 需為字串';
+      }
+      if (type === 'increment_mission_progress' && cfg.step != null && (typeof cfg.step !== 'number' || cfg.step < 1)) {
+        return 'step 需為 >= 1 的數字';
       }
     }
   }
@@ -255,22 +258,63 @@ products.get('/:productId/missions', async (c) => {
   return c.json({ missions });
 });
 
+function validateMissionPayload(body: Record<string, unknown>, requireKeyAndName: boolean): string | null {
+  if (requireKeyAndName) {
+    if (!body.key || typeof body.key !== 'string') return '請提供 key';
+    if (!body.name || typeof body.name !== 'string') return '請提供 name';
+  }
+  if (body.key != null && typeof body.key === 'string' && !KEY_REGEX.test(body.key)) {
+    return 'key 只能包含英數、點、底線、連字號，開頭需為英數';
+  }
+  if (body.progress_target != null) {
+    if (typeof body.progress_target !== 'number' || body.progress_target < 1 || !Number.isInteger(body.progress_target)) {
+      return 'progress_target 需為 >= 1 的整數';
+    }
+  }
+  if (body.auto_complete_on_attribute !== undefined && body.auto_complete_on_attribute !== null) {
+    if (typeof body.auto_complete_on_attribute !== 'object') return 'auto_complete_on_attribute 需為物件';
+    const rule = body.auto_complete_on_attribute as Record<string, unknown>;
+    if (typeof rule.attribute_key !== 'string' || !rule.attribute_key.trim()) {
+      return 'auto_complete_on_attribute.attribute_key 需為非空字串';
+    }
+    if (rule.match_value != null && typeof rule.match_value !== 'string') {
+      return 'auto_complete_on_attribute.match_value 需為字串';
+    }
+  }
+  if (body.on_complete_actions !== undefined) {
+    if (!Array.isArray(body.on_complete_actions)) return 'on_complete_actions 需為陣列';
+    for (const raw of body.on_complete_actions) {
+      if (!raw || typeof raw !== 'object') return 'on_complete_actions 項目需為物件';
+      const a = raw as Record<string, unknown>;
+      if (a.type === 'set_attribute') {
+        if (typeof a.key !== 'string' || !a.key.trim()) return 'set_attribute 需 key';
+        if (typeof a.value !== 'string') return 'set_attribute 需 value（字串）';
+      } else if (a.type === 'assign_mission') {
+        if (typeof a.mission_key !== 'string' || !a.mission_key.trim()) return 'assign_mission 需 mission_key';
+      } else {
+        return 'on_complete_actions.type 需為 set_attribute 或 assign_mission';
+      }
+    }
+  }
+  return null;
+}
+
 // POST /api/products/:productId/missions
 products.post('/:productId/missions', async (c) => {
   const productId = c.req.param('productId');
   const product = await getProductById(productId);
   if (!product) return c.json({ error: '找不到此 Product' }, 404);
   const body = await c.req.json();
-  if (!body.key || typeof body.key !== 'string') return c.json({ error: '請提供 key' }, 400);
-  if (!KEY_REGEX.test(body.key)) {
-    return c.json({ error: 'key 只能包含英數、點、底線、連字號，開頭需為英數' }, 400);
-  }
-  if (!body.name || typeof body.name !== 'string') return c.json({ error: '請提供 name' }, 400);
+  const validationError = validateMissionPayload(body, true);
+  if (validationError) return c.json({ error: validationError }, 400);
   try {
     const mission = await createMissionTemplate(productId, {
       key: body.key,
       name: body.name,
       description: body.description,
+      progress_target: body.progress_target,
+      auto_complete_on_attribute: body.auto_complete_on_attribute,
+      on_complete_actions: body.on_complete_actions,
     });
     return c.json({ mission }, 201);
   } catch (e: unknown) {
@@ -283,9 +327,8 @@ products.post('/:productId/missions', async (c) => {
 products.patch('/:productId/missions/:id', async (c) => {
   const id = c.req.param('id');
   const body = await c.req.json();
-  if (body.key && !KEY_REGEX.test(body.key)) {
-    return c.json({ error: 'key 格式不合法' }, 400);
-  }
+  const validationError = validateMissionPayload(body, false);
+  if (validationError) return c.json({ error: validationError }, 400);
   try {
     const mission = await updateMissionTemplate(id, body);
     return c.json({ mission });

@@ -1094,6 +1094,12 @@ export async function createMissionTemplate(productId: string, data: CreateMissi
       key: data.key,
       name: data.name,
       description: data.description ?? null,
+      progress_target: data.progress_target ?? 1,
+      auto_complete_on_attribute:
+        data.auto_complete_on_attribute == null
+          ? Prisma.JsonNull
+          : (data.auto_complete_on_attribute as unknown as Prisma.InputJsonValue),
+      on_complete_actions: (data.on_complete_actions ?? []) as unknown as Prisma.InputJsonValue,
     },
   });
 }
@@ -1105,6 +1111,16 @@ export async function updateMissionTemplate(id: string, data: UpdateMissionTempl
       ...(data.key != null && { key: data.key }),
       ...(data.name != null && { name: data.name }),
       ...(data.description !== undefined && { description: data.description }),
+      ...(data.progress_target != null && { progress_target: data.progress_target }),
+      ...(data.auto_complete_on_attribute !== undefined && {
+        auto_complete_on_attribute:
+          data.auto_complete_on_attribute === null
+            ? Prisma.JsonNull
+            : (data.auto_complete_on_attribute as unknown as Prisma.InputJsonValue),
+      }),
+      ...(data.on_complete_actions !== undefined && {
+        on_complete_actions: data.on_complete_actions as unknown as Prisma.InputJsonValue,
+      }),
       ...(data.is_active !== undefined && { is_active: data.is_active }),
     },
   });
@@ -1128,30 +1144,85 @@ export async function deleteMissionTemplate(id: string): Promise<{ success: bool
  * Assign a mission to a user. If the user already has a pending assignment
  * for this template, returns that one (idempotent). Past completed/abandoned
  * assignments are preserved as history; a new pending row is created.
+ * progress_target is snapshotted from the template so later template edits
+ * don't change an in-flight assignment.
  */
 export async function assignMission(userId: string, templateId: string) {
   const existing = await db().missionAssignment.findFirst({
     where: { user_id: userId, template_id: templateId, status: 'pending' },
   });
   if (existing) return existing;
+  const template = await db().missionTemplate.findUnique({
+    where: { id: templateId },
+    select: { progress_target: true },
+  });
+  const target = Math.max(1, template?.progress_target ?? 1);
   return db().missionAssignment.create({
-    data: { user_id: userId, template_id: templateId, status: 'pending' },
+    data: {
+      user_id: userId,
+      template_id: templateId,
+      status: 'pending',
+      progress_current: 0,
+      progress_target: target,
+    },
   });
 }
 
 /**
- * Mark the user's most-recent pending assignment for this template as
- * completed. Returns the updated row, or null if no pending assignment.
+ * Mark a specific assignment completed. Low-level — callers should go
+ * through the `completeMissionAssignment` wrapper in lib/missions.ts so
+ * on_complete_actions run.
  */
-export async function completeMission(userId: string, templateId: string) {
-  const pending = await db().missionAssignment.findFirst({
+export async function markMissionAssignmentCompleted(assignmentId: string) {
+  return db().missionAssignment.update({
+    where: { id: assignmentId },
+    data: { status: 'completed', completed_at: new Date() },
+  });
+}
+
+/**
+ * Return the user's most-recent pending assignment for this template
+ * (or null). Used by intent completion and progress increment paths.
+ */
+export async function getPendingAssignment(userId: string, templateId: string) {
+  return db().missionAssignment.findFirst({
     where: { user_id: userId, template_id: templateId, status: 'pending' },
     orderBy: { assigned_at: 'desc' },
   });
-  if (!pending) return null;
+}
+
+export async function incrementAssignmentProgress(assignmentId: string, step: number) {
   return db().missionAssignment.update({
-    where: { id: pending.id },
-    data: { status: 'completed', completed_at: new Date() },
+    where: { id: assignmentId },
+    data: { progress_current: { increment: step } },
+  });
+}
+
+/**
+ * Find all pending assignments for the user whose template declares an
+ * auto_complete_on_attribute rule matching the given attribute key.
+ * Filtering by match_value is done in-process since it's optional.
+ */
+export async function getPendingAssignmentsForAttribute(userId: string, attributeKey: string) {
+  return db().missionAssignment.findMany({
+    where: {
+      user_id: userId,
+      status: 'pending',
+      template: {
+        auto_complete_on_attribute: { path: ['attribute_key'], equals: attributeKey },
+      },
+    },
+    include: {
+      template: {
+        select: {
+          id: true,
+          key: true,
+          product_id: true,
+          auto_complete_on_attribute: true,
+          on_complete_actions: true,
+        },
+      },
+    },
   });
 }
 
