@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiFetch } from '../api';
 
 const ModuleContext = createContext<{ modules: any[]; isLoading: boolean; error: string | null; getModule: (id: any) => any }>({ modules: [], isLoading: true, error: null, getModule: () => null });
@@ -9,10 +9,10 @@ export function useModules() {
   return useContext(ModuleContext);
 }
 
-export function ModuleProvider({ children }) {
-  const [modules, setModules] = useState([]);
+export function ModuleProvider({ children }: { children: React.ReactNode }) {
+  const [modules, setModules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -24,7 +24,7 @@ export function ModuleProvider({ children }) {
         if (isMounted) setModules(data.modules || []);
       } catch (err) {
         console.error('Error fetching modules:', err);
-        if (isMounted) setError(err.message);
+        if (isMounted) setError(err instanceof Error ? err.message : String(err));
       } finally {
         if (isMounted) setIsLoading(false);
       }

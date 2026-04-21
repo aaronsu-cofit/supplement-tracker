@@ -3,7 +3,13 @@
 import React, { useEffect, useState, createContext, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
-export const LiffContext = createContext({
+export const LiffContext = createContext<{
+  liff: any | null;
+  profile: any | null;
+  isInitialized: boolean;
+  isInLineClient: boolean;
+  error: any | null;
+}>({
   liff: null,
   profile: null,
   isInitialized: false,
@@ -16,7 +22,13 @@ export function useLiff() {
 }
 
 export default function LiffProvider({ children, liffId: propLiffId }: { children: React.ReactNode; liffId?: string }) {
-  const [liffState, setLiffState] = useState({
+  const [liffState, setLiffState] = useState<{
+    liff: any | null;
+    profile: any | null;
+    isInitialized: boolean;
+    isInLineClient: boolean;
+    error: any | null;
+  }>({
     liff: null,
     profile: null,
     isInitialized: false,

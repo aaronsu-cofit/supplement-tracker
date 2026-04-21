@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useLiff } from '../liff/LiffProvider';
 import { apiFetch } from '../api';
 
@@ -24,7 +24,7 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-export default function AuthProvider({ children }) {
+export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState(null);
   const [isSessionChecked, setIsSessionChecked] = useState(false);
   const [isLineLoginFinished, setIsLineLoginFinished] = useState(false);
@@ -81,7 +81,7 @@ export default function AuthProvider({ children }) {
 
   const isLoading = !isSessionChecked || !liffInitialized || !isLineLoginFinished;
 
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (email: string, password: string) => {
     const res = await apiFetch('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
@@ -92,7 +92,7 @@ export default function AuthProvider({ children }) {
     return data;
   }, []);
 
-  const register = useCallback(async (email, password, displayName) => {
+  const register = useCallback(async (email: string, password: string, displayName: string) => {
     const res = await apiFetch('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, displayName }),
