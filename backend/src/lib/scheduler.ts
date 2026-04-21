@@ -38,6 +38,24 @@ export interface DailyCycleOptions {
   includeMenuReeval?: boolean;
 }
 
+export interface DryRunAction {
+  scenario_id: string;
+  scenario_name: string;
+  node_id: string;
+  node_type: string;
+  day: number;
+  description: string;
+  already_delivered: boolean;
+  warning?: string;
+}
+
+export interface DryRunResult {
+  user_id: string;
+  as_of: string;
+  actions: DryRunAction[];
+  notes: string[];
+}
+
 /**
  * Runs the daily cycle: push messages + (optional) menu re-evaluation.
  * Call this from a cron tick or from the manual trigger button. Menu
@@ -306,4 +324,146 @@ async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
   }
 
   return { sent, skipped, errors, enrollmentsConsidered: enrollments.length };
+}
+
+/**
+ * Simulate what the scheduler would do for a user on a given day without
+ * any side effects. Returns a flat list of actions per active
+ * enrollment, each tagged with whether the delivery was already claimed
+ * (so the real run would skip it). Useful for previewing scenarios
+ * before turning them on, and for diagnosing why a user didn't receive
+ * an expected message.
+ *
+ * Reuses all the flow finders used by the real scheduler so the two
+ * stay in lockstep — if a new node type is added there, it needs to be
+ * described here too.
+ */
+export interface DryRunOptions {
+  userId: string;
+  scenarioId?: string;
+  asOf?: Date;
+}
+
+export async function dryRunScheduler(opts: DryRunOptions): Promise<DryRunResult> {
+  const { userId, scenarioId } = opts;
+  const now = opts.asOf ?? new Date();
+  const actions: DryRunAction[] = [];
+  const notes: string[] = [];
+
+  const user = await import('./db.js').then(m => m.findUserById(userId));
+  if (!user) {
+    return { user_id: userId, as_of: now.toISOString(), actions, notes: ['使用者不存在'] };
+  }
+  const tz = user.timezone || 'Asia/Taipei';
+
+  // Fetch enrollments — filter to a single scenario if caller specified one
+  const { db } = await import('./db.js');
+  const enrollments = await db().enrollment.findMany({
+    where: {
+      user_id: userId,
+      status: 'active',
+      ...(scenarioId != null && { scenario_id: scenarioId }),
+      scenario: { is_active: true },
+    },
+    include: {
+      scenario: { select: { id: true, name: true, oa_id: true, flow_nodes: true, flow_edges: true } },
+    },
+  });
+  if (enrollments.length === 0) {
+    notes.push(scenarioId ? '使用者尚未加入此劇本' : '使用者目前沒有任何活躍的劇本加入紀錄');
+    return { user_id: userId, as_of: now.toISOString(), actions, notes };
+  }
+
+  for (const enr of enrollments) {
+    const daysSinceEnrollment = daysBetweenInTz(enr.enrolled_at, now, tz);
+    const nodes: FlowNode[] = Array.isArray(enr.scenario.flow_nodes)
+      ? (enr.scenario.flow_nodes as unknown as FlowNode[]) : [];
+    const edges: FlowEdge[] = Array.isArray(enr.scenario.flow_edges)
+      ? (enr.scenario.flow_edges as unknown as FlowEdge[]) : [];
+
+    // Look up OA to resolve contentKey / mission_key product scope
+    const oaIdNum = parseInt(enr.scenario.oa_id, 10);
+    const oa = Number.isFinite(oaIdNum)
+      ? await db().lineOA.findUnique({ where: { id: oaIdNum }, select: { id: true, product_id: true } })
+      : null;
+
+    const describe = async (node: FlowNode, day: number): Promise<DryRunAction> => {
+      const existing = await db().messageDelivery.findUnique({
+        where: {
+          user_id_scenario_id_node_id: {
+            user_id: userId, scenario_id: enr.scenario.id, node_id: node.id,
+          },
+        },
+      });
+      const base = {
+        scenario_id: enr.scenario.id,
+        scenario_name: enr.scenario.name,
+        node_id: node.id,
+        node_type: node.type ?? 'unknown',
+        day,
+        already_delivered: !!existing,
+      };
+      const d = node.data ?? {};
+      switch (node.type) {
+        case 'push-message-node':
+          if (d.contentKey) {
+            if (!oa?.product_id) return { ...base, description: `推播 → ${d.contentKey}`, warning: 'OA 未綁定產品，content_key 將無法解析' };
+            const ci = await db().contentItem.findUnique({
+              where: { product_id_key: { product_id: oa.product_id, key: d.contentKey } },
+            });
+            if (!ci) return { ...base, description: `推播 → ${d.contentKey}`, warning: `content_key "${d.contentKey}" 不存在於產品` };
+            if (!ci.is_active) return { ...base, description: `推播 → ${d.contentKey}`, warning: `content_key "${d.contentKey}" 已停用` };
+            return { ...base, description: `推播 → ${d.contentKey}: ${(ci.body ?? '').slice(0, 40)}` };
+          }
+          if (d.type === 'image') return { ...base, description: `推播圖片 ${d.imageUrl ?? '(缺 URL)'}`, warning: d.imageUrl ? undefined : 'imageUrl 未設定' };
+          if (d.type === 'sticker') return { ...base, description: `貼圖 ${d.stickerPackageId ?? '?'}/${d.stickerId ?? '?'}`, warning: d.stickerPackageId && d.stickerId ? undefined : 'sticker id 不完整' };
+          return {
+            ...base,
+            description: d.message ? `推播 "${d.message.slice(0, 40)}"` : '推播（未設內容）',
+            warning: d.message ? undefined : 'message 未設定',
+          };
+        case 'ai-skill-node':
+          return { ...base, description: `AI 技能 ${d.agentId ?? '(未設 agent)'}`, warning: d.agentId ? undefined : 'agentId 未設定' };
+        case 'menu-change-node':
+          return { ...base, description: `切換選單 ${d.menuName ?? '(未設選單)'}`, warning: d.menuName ? undefined : 'menuName 未設定' };
+        case 'mission-assign-node': {
+          if (!oa?.product_id) return { ...base, description: `指派任務 ${d.missionKey ?? ''}`, warning: 'OA 未綁定產品' };
+          if (!d.missionKey) return { ...base, description: '指派任務', warning: 'missionKey 未設定' };
+          const mt = await db().missionTemplate.findUnique({
+            where: { product_id_key: { product_id: oa.product_id, key: d.missionKey } },
+          });
+          if (!mt) return { ...base, description: `指派任務 ${d.missionKey}`, warning: `mission_key "${d.missionKey}" 不存在` };
+          if (!mt.is_active) return { ...base, description: `指派任務 ${d.missionKey}`, warning: `mission_key "${d.missionKey}" 已停用` };
+          return { ...base, description: `指派任務 ${d.missionKey}: ${mt.name}` };
+        }
+        case 'streak-increment-node':
+          if (!oa?.product_id) return { ...base, description: `連續天數 +1 (${d.streakKey ?? ''})`, warning: 'OA 未綁定產品' };
+          return { ...base, description: `連續天數 +1 (${d.streakKey ?? '(未設)'})`, warning: d.streakKey ? undefined : 'streakKey 未設定' };
+        case 'set-attribute-node':
+          return {
+            ...base,
+            description: `設定屬性 ${d.attributeKey ?? '(未設)'}=${d.value ?? ''}`,
+            warning: d.attributeKey ? undefined : 'attributeKey 未設定',
+          };
+        default:
+          return { ...base, description: `(未知節點類型 ${node.type})`, warning: '未知節點類型' };
+      }
+    };
+
+    const pushNodes = findPushNodesForDay(nodes, edges, daysSinceEnrollment);
+    const aiNodes = findAiSkillNodesForDay(nodes, edges, daysSinceEnrollment);
+    const missionNodes = findMissionAssignNodesForDay(nodes, edges, daysSinceEnrollment);
+    const streakNodes = findStreakIncrementNodesForDay(nodes, edges, daysSinceEnrollment);
+    const attrNodes = findSetAttributeNodesForDay(nodes, edges, daysSinceEnrollment);
+
+    const all = [...pushNodes, ...aiNodes, ...missionNodes, ...streakNodes, ...attrNodes];
+    if (all.length === 0) {
+      notes.push(`劇本「${enr.scenario.name}」: 第 ${daysSinceEnrollment} 天無動作節點`);
+    }
+    for (const n of all) {
+      actions.push(await describe(n, daysSinceEnrollment));
+    }
+  }
+
+  return { user_id: userId, as_of: now.toISOString(), actions, notes };
 }

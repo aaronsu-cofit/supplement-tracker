@@ -146,6 +146,7 @@ export default function OaScenariosTab({ oaId, oa }: Props) {
             key={selected.id}
             scenario={selected}
             productId={oa?.product_id ?? null}
+            oaId={oaId}
             onSaved={handleSaved}
             onToggleActive={() => handleToggleActive(selected)}
             onEnrollAll={() => handleEnrollAll(selected)}

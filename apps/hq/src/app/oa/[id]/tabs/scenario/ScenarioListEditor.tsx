@@ -20,10 +20,13 @@ import {
   nodeTypeIcon,
   summarizeNode,
 } from './actionEditors';
+import { lintAction, countIssues } from './lint';
+import DryRunModal from './DryRunModal';
 
 interface Props {
   scenario: Scenario;
   productId: string | null;
+  oaId: string;
   onSaved: (updated: Scenario) => void;
   onToggleActive: () => void;
   onEnrollAll: () => void;
@@ -42,6 +45,7 @@ const ACTION_NODE_TYPES: Array<{ type: ScenarioNodeType; label: string }> = [
 export default function ScenarioListEditor({
   scenario,
   productId,
+  oaId,
   onSaved,
   onToggleActive,
   onEnrollAll,
@@ -57,6 +61,7 @@ export default function ScenarioListEditor({
   const [editingActionId, setEditingActionId] = useState<string | null>(null);
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [missions, setMissions] = useState<MissionTemplate[]>([]);
+  const [dryRunOpen, setDryRunOpen] = useState(false);
 
   // Reset when the selected scenario changes from outside
   useEffect(() => {
@@ -79,6 +84,16 @@ export default function ScenarioListEditor({
       .then(d => setMissions(d.missions ?? []))
       .catch(() => {});
   }, [productId]);
+
+  const lintCtx = useMemo(
+    () => ({ productId, contentItems, missions }),
+    [productId, contentItems, missions],
+  );
+
+  const totalIssues = useMemo(
+    () => days.reduce((n, d) => n + countIssues(d.actions, lintCtx), 0),
+    [days, lintCtx],
+  );
 
   const dirty = useMemo(() => {
     const base = fromListModel(toListModel(scenario.flow_nodes ?? [], scenario.flow_edges ?? []));
@@ -200,6 +215,11 @@ export default function ScenarioListEditor({
               className="text-xs px-3 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50">
               全體加入
             </button>
+            <button onClick={() => setDryRunOpen(true)}
+              className="text-xs px-3 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50"
+              title="模擬某位使用者當日會收到什麼">
+              預覽
+            </button>
             <button onClick={onOpenInWizard}
               className="text-xs px-3 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50"
               title="切換到進階流程圖編輯器">
@@ -207,6 +227,11 @@ export default function ScenarioListEditor({
             </button>
           </div>
         </div>
+        {totalIssues > 0 && (
+          <div className="hq-alert hq-alert-error text-xs">
+            此劇本有 <strong>{totalIssues}</strong> 個設定警告，請展開各動作節點以查看（滑鼠移到警告圖示看詳情）。
+          </div>
+        )}
         {!productId && (
           <div className="hq-alert hq-alert-error text-xs">
             此 OA 尚未綁定產品；指派任務、連續天數、設定屬性等動作在排程時會被跳過。建議到設定頁綁定產品後再使用這些動作。
@@ -262,9 +287,14 @@ export default function ScenarioListEditor({
                     <ul className="flex flex-col gap-2 pl-4">
                       {day.actions.map((action, actionIdx) => {
                         const isEditing = editingActionId === action.id;
+                        const issues = lintAction(action, lintCtx);
                         return (
                           <li key={action.id}
-                            className="border border-slate-200 rounded-lg p-2 bg-slate-50/50 flex flex-col gap-2">
+                            className={`border rounded-lg p-2 flex flex-col gap-2 ${
+                              issues.length > 0
+                                ? 'border-amber-300 bg-amber-50/60'
+                                : 'border-slate-200 bg-slate-50/50'
+                            }`}>
                             <div className="flex items-center justify-between flex-wrap gap-2">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span>{nodeTypeIcon(action.type)}</span>
@@ -272,6 +302,13 @@ export default function ScenarioListEditor({
                                   {nodeTypeLabel(action.type)}
                                 </span>
                                 <span className="text-sm text-slate-700">{summarizeNode(action)}</span>
+                                {issues.length > 0 && (
+                                  <span
+                                    className="text-amber-700 text-xs cursor-help"
+                                    title={issues.map(i => i.message).join('\n')}>
+                                    ⚠ {issues.length}
+                                  </span>
+                                )}
                               </div>
                               <div className="flex items-center gap-1">
                                 <button onClick={() => setEditingActionId(isEditing ? null : action.id)}
@@ -284,6 +321,11 @@ export default function ScenarioListEditor({
                                 </button>
                               </div>
                             </div>
+                            {issues.length > 0 && (
+                              <ul className="text-xs text-amber-800 flex flex-col gap-0.5 pl-6">
+                                {issues.map((i, n) => <li key={n}>⚠ {i.message}</li>)}
+                              </ul>
+                            )}
                             {isEditing && renderEditor(action, dayIdx, actionIdx)}
                           </li>
                         );
@@ -321,6 +363,10 @@ export default function ScenarioListEditor({
           {saving ? '儲存中…' : '儲存'}
         </button>
       </div>
+
+      {dryRunOpen && (
+        <DryRunModal scenarioId={scenario.id} oaId={oaId} onClose={() => setDryRunOpen(false)} />
+      )}
     </div>
   );
 }
