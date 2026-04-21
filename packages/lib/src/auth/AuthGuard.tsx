@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useAuth } from './AuthProvider';
 import { useLiff } from '../liff/LiffProvider';
 import { useEffect } from 'react';
@@ -18,7 +19,7 @@ import { useEffect } from 'react';
  * @param {string[]} publicPaths  - Optional path prefixes that don't require auth (default: [])
  * @param {boolean}  lineOnly     - When true, use liff.login() directly instead of redirecting to portal login
  */
-export default function AuthGuard({ children, loginUrl, publicPaths = [], lineOnly = false }) {
+export default function AuthGuard({ children, loginUrl, publicPaths = [], lineOnly = false }: { children: React.ReactNode; loginUrl: string; publicPaths?: string[]; lineOnly?: boolean }) {
   const { isAuthenticated, isLoading } = useAuth();
   const { liff, isInitialized: liffInitialized } = useLiff();
 
