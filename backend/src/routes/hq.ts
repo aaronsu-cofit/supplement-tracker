@@ -5,6 +5,7 @@ import {
   getAllModules, updateModule, getAllUsers, updateUserRole, getHQStats,
   getUserAttributes, deleteUserAttribute,
   getUserMissionAssignments,
+  getUserStreaks, getUserBadges,
 } from '../lib/db.js';
 import { setUserAttributeWithHooks } from '../lib/missions.js';
 
@@ -110,6 +111,30 @@ hq.get('/users/:userId/missions', async (c) => {
   } catch (error) {
     console.error('Failed to fetch user missions:', error);
     return c.json({ error: 'Failed to fetch missions' }, 500);
+  }
+});
+
+// GET /api/hq/users/:userId/streaks
+hq.get('/users/:userId/streaks', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const streaks = await getUserStreaks(userId);
+    return c.json({ streaks });
+  } catch (error) {
+    console.error('Failed to fetch user streaks:', error);
+    return c.json({ error: 'Failed to fetch streaks' }, 500);
+  }
+});
+
+// GET /api/hq/users/:userId/badges
+hq.get('/users/:userId/badges', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const badges = await getUserBadges(userId);
+    return c.json({ badges });
+  } catch (error) {
+    console.error('Failed to fetch user badges:', error);
+    return c.json({ error: 'Failed to fetch badges' }, 500);
   }
 });
 

@@ -23,6 +23,9 @@ interface FormShape {
   mission_key: string;
   mission_reply_content_key: string;
   mission_step: number;
+  // increment_streak
+  streak_key: string;
+  streak_reply_content_key: string;
   is_active: boolean;
 }
 
@@ -39,6 +42,8 @@ const EMPTY: FormShape = {
   mission_key: '',
   mission_reply_content_key: '',
   mission_step: 1,
+  streak_key: '',
+  streak_reply_content_key: '',
   is_active: true,
 };
 
@@ -52,6 +57,11 @@ function formToPayload(f: FormShape): Record<string, unknown> {
       key: f.attr_key.trim(),
       value: f.attr_value,
       ...(f.attr_reply_content_key.trim() && { reply_content_key: f.attr_reply_content_key.trim() }),
+    };
+  } else if (f.action_type === 'increment_streak') {
+    action_config = {
+      streak_key: f.streak_key.trim(),
+      ...(f.streak_reply_content_key.trim() && { reply_content_key: f.streak_reply_content_key.trim() }),
     };
   } else {
     // assign_mission | complete_mission | increment_mission_progress
@@ -87,6 +97,8 @@ function ruleToForm(r: IntentRule): FormShape {
     mission_key: cfg.mission_key ?? '',
     mission_reply_content_key: cfg.reply_content_key ?? '',
     mission_step: cfg.step ?? 1,
+    streak_key: cfg.streak_key ?? '',
+    streak_reply_content_key: cfg.reply_content_key ?? '',
     is_active: r.is_active,
   };
 }
@@ -203,6 +215,7 @@ export default function ProductIntentSection({ productId }: Props) {
           <option value="assign_mission">指派任務</option>
           <option value="complete_mission">完成任務</option>
           <option value="increment_mission_progress">遞增任務進度</option>
+          <option value="increment_streak">遞增連續天數</option>
         </select>
       </div>
       <input className="hq-input" placeholder="patterns（逗號分隔，如：預約, 要預約）" value={form.patterns}
@@ -237,6 +250,14 @@ export default function ProductIntentSection({ productId }: Props) {
             onChange={e => setForm({ ...form, mission_step: Math.max(1, Number(e.target.value) || 1) })} />
           <input className="hq-input" placeholder="回覆 content key（選填）" value={form.mission_reply_content_key}
             onChange={e => setForm({ ...form, mission_reply_content_key: e.target.value })} />
+        </div>
+      )}
+      {form.action_type === 'increment_streak' && (
+        <div className="grid grid-cols-2 gap-2">
+          <input className="hq-input" placeholder="streak key（如 daily_checkin）" value={form.streak_key}
+            onChange={e => setForm({ ...form, streak_key: e.target.value })} />
+          <input className="hq-input" placeholder="回覆 content key（選填）" value={form.streak_reply_content_key}
+            onChange={e => setForm({ ...form, streak_reply_content_key: e.target.value })} />
         </div>
       )}
       <label className="flex items-center gap-2 text-sm">
@@ -354,6 +375,14 @@ export default function ProductIntentSection({ productId }: Props) {
                       <>
                         遞增進度：<code className="bg-slate-100 px-1 rounded">{r.action_config.mission_key}</code>
                         {r.action_config.step && r.action_config.step !== 1 && <> ×{r.action_config.step}</>}
+                        {r.action_config.reply_content_key && (
+                          <> + 回覆 <code className="bg-slate-100 px-1 rounded">{r.action_config.reply_content_key}</code></>
+                        )}
+                      </>
+                    )}
+                    {r.action_type === 'increment_streak' && (
+                      <>
+                        連續天數 +1：<code className="bg-slate-100 px-1 rounded">{r.action_config.streak_key}</code>
                         {r.action_config.reply_content_key && (
                           <> + 回覆 <code className="bg-slate-100 px-1 rounded">{r.action_config.reply_content_key}</code></>
                         )}

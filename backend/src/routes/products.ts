@@ -19,7 +19,13 @@ import {
   createMissionTemplate,
   updateMissionTemplate,
   deleteMissionTemplate,
+  getBadgeTemplatesForProduct,
+  createBadgeTemplate,
+  updateBadgeTemplate,
+  deleteBadgeTemplate,
 } from '../lib/db.js';
+import { VALID_BADGE_CRITERIA_TYPES } from '../lib/gamification.js';
+import type { BadgeCriteria } from '../types.js';
 import { VALID_MATCH_TYPES, VALID_ACTION_TYPES } from '../lib/intent.js';
 import type { IntentMatchType, IntentActionType } from '../types.js';
 
@@ -191,6 +197,13 @@ function validateIntentRuleInput(body: Record<string, unknown>, requireAll: bool
       if (type === 'increment_mission_progress' && cfg.step != null && (typeof cfg.step !== 'number' || cfg.step < 1)) {
         return 'step 需為 >= 1 的數字';
       }
+    } else if (type === 'increment_streak') {
+      if (typeof cfg.streak_key !== 'string' || !cfg.streak_key.trim()) {
+        return 'increment_streak 需含 streak_key';
+      }
+      if (cfg.reply_content_key != null && typeof cfg.reply_content_key !== 'string') {
+        return 'reply_content_key 需為字串';
+      }
     }
   }
   if (body.priority !== undefined && typeof body.priority !== 'number') return 'priority 需為數字';
@@ -291,8 +304,10 @@ function validateMissionPayload(body: Record<string, unknown>, requireKeyAndName
         if (typeof a.value !== 'string') return 'set_attribute 需 value（字串）';
       } else if (a.type === 'assign_mission') {
         if (typeof a.mission_key !== 'string' || !a.mission_key.trim()) return 'assign_mission 需 mission_key';
+      } else if (a.type === 'increment_streak') {
+        if (typeof a.streak_key !== 'string' || !a.streak_key.trim()) return 'increment_streak 需 streak_key';
       } else {
-        return 'on_complete_actions.type 需為 set_attribute 或 assign_mission';
+        return 'on_complete_actions.type 需為 set_attribute / assign_mission / increment_streak';
       }
     }
   }
@@ -343,6 +358,90 @@ products.patch('/:productId/missions/:id', async (c) => {
 products.delete('/:productId/missions/:id', async (c) => {
   const id = c.req.param('id');
   await deleteMissionTemplate(id);
+  return c.json({ success: true });
+});
+
+// ─── Badge Templates ────────────────────────────────────────────────────────
+
+function validateBadgePayload(body: Record<string, unknown>, requireAll: boolean): string | null {
+  if (requireAll || body.key !== undefined) {
+    if (typeof body.key !== 'string' || !body.key.trim()) return '請提供 key';
+    if (!KEY_REGEX.test(body.key)) return 'key 格式不合法';
+  }
+  if (requireAll || body.name !== undefined) {
+    if (typeof body.name !== 'string' || !body.name.trim()) return '請提供 name';
+  }
+  if (body.icon != null && typeof body.icon !== 'string') return 'icon 需為字串';
+  if (requireAll || body.criteria !== undefined) {
+    if (!body.criteria || typeof body.criteria !== 'object') return 'criteria 需為物件';
+    const crit = body.criteria as Record<string, unknown>;
+    if (typeof crit.type !== 'string' || !VALID_BADGE_CRITERIA_TYPES.includes(crit.type as BadgeCriteria['type'])) {
+      return `criteria.type 需為 ${VALID_BADGE_CRITERIA_TYPES.join('/')}`;
+    }
+    if (crit.type === 'streak_reached') {
+      if (typeof crit.streak_key !== 'string' || !crit.streak_key.trim()) return 'streak_reached 需 streak_key';
+      if (typeof crit.threshold !== 'number' || crit.threshold < 1 || !Number.isInteger(crit.threshold)) {
+        return 'threshold 需為 >= 1 的整數';
+      }
+    } else if (crit.type === 'mission_completed') {
+      if (typeof crit.mission_key !== 'string' || !crit.mission_key.trim()) return 'mission_completed 需 mission_key';
+    }
+  }
+  return null;
+}
+
+// GET /api/products/:productId/badges
+products.get('/:productId/badges', async (c) => {
+  const productId = c.req.param('productId');
+  const product = await getProductById(productId);
+  if (!product) return c.json({ error: '找不到此 Product' }, 404);
+  const badges = await getBadgeTemplatesForProduct(productId);
+  return c.json({ badges });
+});
+
+// POST /api/products/:productId/badges
+products.post('/:productId/badges', async (c) => {
+  const productId = c.req.param('productId');
+  const product = await getProductById(productId);
+  if (!product) return c.json({ error: '找不到此 Product' }, 404);
+  const body = await c.req.json();
+  const validationError = validateBadgePayload(body, true);
+  if (validationError) return c.json({ error: validationError }, 400);
+  try {
+    const badge = await createBadgeTemplate(productId, {
+      key: body.key,
+      name: body.name,
+      description: body.description,
+      icon: body.icon,
+      criteria: body.criteria as BadgeCriteria,
+    });
+    return c.json({ badge }, 201);
+  } catch (e: unknown) {
+    if ((e as { code?: string })?.code === 'P2002') return c.json({ error: '此 badge key 已存在' }, 409);
+    throw e;
+  }
+});
+
+// PATCH /api/products/:productId/badges/:id
+products.patch('/:productId/badges/:id', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json();
+  const validationError = validateBadgePayload(body, false);
+  if (validationError) return c.json({ error: validationError }, 400);
+  try {
+    const badge = await updateBadgeTemplate(id, body);
+    return c.json({ badge });
+  } catch (e: unknown) {
+    if ((e as { code?: string })?.code === 'P2025') return c.json({ error: '找不到此徽章' }, 404);
+    if ((e as { code?: string })?.code === 'P2002') return c.json({ error: '此 badge key 已存在' }, 409);
+    throw e;
+  }
+});
+
+// DELETE /api/products/:productId/badges/:id
+products.delete('/:productId/badges/:id', async (c) => {
+  const id = c.req.param('id');
+  await deleteBadgeTemplate(id);
   return c.json({ success: true });
 });
 

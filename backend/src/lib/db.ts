@@ -21,6 +21,9 @@ import type {
   UpdateIntentRuleInput,
   CreateMissionTemplateInput,
   UpdateMissionTemplateInput,
+  CreateBadgeTemplateInput,
+  UpdateBadgeTemplateInput,
+  BadgeCriteria,
 } from '../types.js';
 
 let _prisma: PrismaClient | undefined;
@@ -1232,6 +1235,158 @@ export async function getUserMissionAssignments(userId: string) {
     orderBy: { assigned_at: 'desc' },
     include: {
       template: { select: { id: true, key: true, name: true, product_id: true } },
+    },
+  });
+}
+
+// ============================================
+// Gamification: streaks
+// ============================================
+export async function getUserStreak(productId: string, userId: string, streakKey: string) {
+  return db().userStreak.findUnique({
+    where: {
+      product_id_user_id_streak_key: {
+        product_id: productId,
+        user_id: userId,
+        streak_key: streakKey,
+      },
+    },
+  });
+}
+
+export async function upsertStreak(
+  productId: string,
+  userId: string,
+  streakKey: string,
+  countCurrent: number,
+  countBest: number,
+  lastOccurredOn: Date,
+) {
+  return db().userStreak.upsert({
+    where: {
+      product_id_user_id_streak_key: {
+        product_id: productId,
+        user_id: userId,
+        streak_key: streakKey,
+      },
+    },
+    create: {
+      product_id: productId,
+      user_id: userId,
+      streak_key: streakKey,
+      count_current: countCurrent,
+      count_best: countBest,
+      last_occurred_on: lastOccurredOn,
+    },
+    update: {
+      count_current: countCurrent,
+      count_best: countBest,
+      last_occurred_on: lastOccurredOn,
+    },
+  });
+}
+
+export async function getUserStreaks(userId: string) {
+  return db().userStreak.findMany({
+    where: { user_id: userId },
+    orderBy: [{ updated_at: 'desc' }],
+  });
+}
+
+// ============================================
+// Gamification: badge templates
+// ============================================
+export async function getBadgeTemplatesForProduct(productId: string) {
+  return db().badgeTemplate.findMany({
+    where: { product_id: productId },
+    orderBy: [{ is_active: 'desc' }, { key: 'asc' }],
+  });
+}
+
+export async function getActiveBadgeTemplatesForProduct(productId: string) {
+  return db().badgeTemplate.findMany({
+    where: { product_id: productId, is_active: true },
+  });
+}
+
+export async function createBadgeTemplate(productId: string, data: CreateBadgeTemplateInput) {
+  return db().badgeTemplate.create({
+    data: {
+      product_id: productId,
+      key: data.key,
+      name: data.name,
+      description: data.description ?? null,
+      icon: data.icon ?? null,
+      criteria: data.criteria as unknown as Prisma.InputJsonValue,
+    },
+  });
+}
+
+export async function updateBadgeTemplate(id: string, data: UpdateBadgeTemplateInput) {
+  return db().badgeTemplate.update({
+    where: { id },
+    data: {
+      ...(data.key != null && { key: data.key }),
+      ...(data.name != null && { name: data.name }),
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.icon !== undefined && { icon: data.icon }),
+      ...(data.criteria != null && { criteria: data.criteria as unknown as Prisma.InputJsonValue }),
+      ...(data.is_active !== undefined && { is_active: data.is_active }),
+    },
+  });
+}
+
+export async function deleteBadgeTemplate(id: string): Promise<{ success: boolean }> {
+  try {
+    await db().badgeTemplate.delete({ where: { id } });
+  } catch (err) {
+    if ((err as { code?: string })?.code === 'P2025') return { success: true };
+    throw err;
+  }
+  return { success: true };
+}
+
+// ============================================
+// Gamification: earned user badges
+// ============================================
+
+/**
+ * Award a badge to a user. Uniqueness constraint makes this naturally
+ * idempotent — a P2002 means already earned, which we treat as success.
+ */
+export async function awardBadge(userId: string, templateId: string): Promise<{ awarded: boolean }> {
+  try {
+    await db().userBadge.create({ data: { user_id: userId, template_id: templateId } });
+    return { awarded: true };
+  } catch (err) {
+    if ((err as { code?: string })?.code === 'P2002') return { awarded: false };
+    throw err;
+  }
+}
+
+export async function getUserBadges(userId: string) {
+  return db().userBadge.findMany({
+    where: { user_id: userId },
+    orderBy: { earned_at: 'desc' },
+    include: {
+      template: {
+        select: { id: true, key: true, name: true, icon: true, product_id: true, description: true },
+      },
+    },
+  });
+}
+
+/**
+ * Find active badge templates in a product whose criteria type matches,
+ * for use by the gamification evaluator. Returns raw criteria JSON; the
+ * evaluator in lib/gamification.ts filters further by streak_key/mission_key.
+ */
+export async function getBadgeTemplatesByCriteriaType(productId: string, criteriaType: BadgeCriteria['type']) {
+  return db().badgeTemplate.findMany({
+    where: {
+      product_id: productId,
+      is_active: true,
+      criteria: { path: ['type'], equals: criteriaType },
     },
   });
 }

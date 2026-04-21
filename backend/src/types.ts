@@ -172,7 +172,8 @@ export type IntentActionType =
   | 'set_attribute'
   | 'assign_mission'
   | 'complete_mission'
-  | 'increment_mission_progress';
+  | 'increment_mission_progress'
+  | 'increment_streak';
 
 export interface ReplyContentAction {
   content_key: string;
@@ -195,12 +196,18 @@ export interface IncrementMissionAction {
   reply_content_key?: string;
 }
 
+export interface IncrementStreakAction {
+  streak_key: string;
+  reply_content_key?: string;
+}
+
 // Actions that run when a mission completes. Reply-type actions are
 // intentionally not included: completion can be triggered asynchronously
 // (attribute auto-complete, progress reach), where there's no reply token.
 export type MissionCompleteAction =
   | { type: 'set_attribute'; key: string; value: string }
-  | { type: 'assign_mission'; mission_key: string };
+  | { type: 'assign_mission'; mission_key: string }
+  | { type: 'increment_streak'; streak_key: string };
 
 export interface AutoCompleteRule {
   attribute_key: string;
@@ -230,7 +237,29 @@ export type IntentActionConfig =
   | ReplyContentAction
   | SetAttributeAction
   | MissionAction
-  | IncrementMissionAction;
+  | IncrementMissionAction
+  | IncrementStreakAction;
+
+export type BadgeCriteria =
+  | { type: 'streak_reached'; streak_key: string; threshold: number }
+  | { type: 'mission_completed'; mission_key: string };
+
+export interface CreateBadgeTemplateInput {
+  key: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  criteria: BadgeCriteria;
+}
+
+export interface UpdateBadgeTemplateInput {
+  key?: string;
+  name?: string;
+  description?: string | null;
+  icon?: string | null;
+  criteria?: BadgeCriteria;
+  is_active?: boolean;
+}
 
 export interface CreateIntentRuleInput {
   name: string;

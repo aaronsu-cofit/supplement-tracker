@@ -8,6 +8,7 @@ import {
   setUserAttribute,
   logEngagementEvent,
 } from './db.js';
+import { incrementStreak, evaluateMissionBadges } from './gamification.js';
 import type { MissionCompleteAction, AutoCompleteRule } from '../types.js';
 
 // ─── Pure logic (unit-testable without DB) ──────────────────────────────────
@@ -50,6 +51,8 @@ export function parseCompleteActions(raw: unknown): MissionCompleteAction[] {
       out.push({ type: 'set_attribute', key: e.key, value: e.value });
     } else if (e.type === 'assign_mission' && typeof e.mission_key === 'string') {
       out.push({ type: 'assign_mission', mission_key: e.mission_key });
+    } else if (e.type === 'increment_streak' && typeof e.streak_key === 'string') {
+      out.push({ type: 'increment_streak', streak_key: e.streak_key });
     }
   }
   return out;
@@ -91,6 +94,8 @@ async function runCompleteActions(ctx: CompletionContext): Promise<void> {
           continue;
         }
         await assignMission(ctx.userId, nextTemplate.id);
+      } else if (action.type === 'increment_streak') {
+        await incrementStreak(ctx.productId, ctx.userId, action.streak_key);
       }
     } catch (err) {
       console.error('[missions] on_complete action error:', err);
@@ -102,11 +107,13 @@ async function runCompleteActions(ctx: CompletionContext): Promise<void> {
  * Complete an assignment and run all side effects. This is the single
  * entry point for completions; intent/progress/auto-complete paths all
  * funnel through here so on_complete_actions always fire exactly once.
+ * missionKey is used to trigger badge evaluation after completion.
  */
 export async function completeMissionAssignment(
   productId: string,
   userId: string,
   assignmentId: string,
+  missionKey: string,
   rawActions: unknown,
   depth = 0,
 ): Promise<void> {
@@ -117,8 +124,11 @@ export async function completeMissionAssignment(
     if ((err as { code?: string })?.code === 'P2025') return;
     throw err;
   }
-  logEngagementEvent(userId, 'mission_completed', assignmentId).catch(err =>
+  logEngagementEvent(userId, 'mission_completed', `${missionKey}:${assignmentId}`).catch(err =>
     console.error('[missions] log engagement error:', err),
+  );
+  evaluateMissionBadges(productId, userId, missionKey).catch(err =>
+    console.error('[missions] evaluateMissionBadges error:', err),
   );
   const actions = parseCompleteActions(rawActions);
   if (actions.length === 0) return;
@@ -142,6 +152,7 @@ export async function completeMissionByKey(
     productId,
     userId,
     pending.id,
+    template.key,
     template.on_complete_actions,
   );
   return { completed: true };
@@ -165,7 +176,13 @@ export async function incrementMissionProgress(
 
   const updated = await incrementAssignmentProgress(pending.id, Math.max(1, step));
   if (shouldCompleteFromProgress(updated.progress_current, updated.progress_target)) {
-    await completeMissionAssignment(productId, userId, pending.id, template.on_complete_actions);
+    await completeMissionAssignment(
+      productId,
+      userId,
+      pending.id,
+      template.key,
+      template.on_complete_actions,
+    );
     return { incremented: true, completed: true };
   }
   return { incremented: true, completed: false };
@@ -191,6 +208,7 @@ async function runAttributeAutoCompleteHook(
       p.template.product_id,
       userId,
       p.id,
+      p.template.key,
       p.template.on_complete_actions,
       depth,
     );

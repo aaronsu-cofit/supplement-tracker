@@ -221,6 +221,8 @@ model Product {
   content_items      ContentItem[]
   intent_rules       IntentRule[]
   mission_templates  MissionTemplate[]
+  badge_templates    BadgeTemplate[]
+  user_streaks       UserStreak[]
 
   @@map("products")
 }
@@ -329,6 +331,69 @@ model MissionAssignment {
   @@index([user_id, status], name: "idx_mission_assignments_user_status")
   @@index([template_id], name: "idx_mission_assignments_template")
   @@map("mission_assignments")
+}
+
+// Per-(product, user, streak_key) counter of consecutive days the user
+// triggered the streak event. last_occurred_on is a date (no time) in
+// the user's timezone; `incrementStreak` in lib/gamification.ts handles
+// the "already counted today / continuing yesterday / resetting" logic.
+model UserStreak {
+  id               Int      @id @default(autoincrement())
+  product_id       String   @db.VarChar(30)
+  user_id          String   @db.VarChar(64)
+  streak_key       String   @db.VarChar(100)
+  count_current    Int      @default(0)
+  count_best       Int      @default(0)
+  last_occurred_on DateTime? @db.Date
+  updated_at       DateTime @updatedAt
+
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@unique([product_id, user_id, streak_key])
+  @@index([product_id, streak_key], name: "idx_user_streaks_product_key")
+  @@map("user_streaks")
+}
+
+// Product-scoped badge blueprints. `criteria` describes how a badge is
+// earned:
+//   { type: 'streak_reached', streak_key, threshold }
+//   { type: 'mission_completed', mission_key }
+// Evaluation happens after streak increments and mission completions
+// (see lib/gamification.ts).
+model BadgeTemplate {
+  id          String   @id @default(cuid()) @db.VarChar(30)
+  product_id  String   @db.VarChar(30)
+  key         String   @db.VarChar(100)
+  name        String   @db.VarChar(200)
+  description String?
+  icon        String?  @db.VarChar(50)
+  criteria    Json
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  product     Product     @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  user_badges UserBadge[]
+
+  @@unique([product_id, key])
+  @@index([product_id], name: "idx_badge_templates_product")
+  @@map("badge_templates")
+}
+
+// Earned-badge records. Unique on (user_id, template_id) so each badge
+// is awarded at most once per user.
+model UserBadge {
+  id          Int      @id @default(autoincrement())
+  user_id     String   @db.VarChar(64)
+  template_id String   @db.VarChar(30)
+  earned_at   DateTime @default(now())
+
+  template BadgeTemplate @relation(fields: [template_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, template_id])
+  @@index([user_id], name: "idx_user_badges_user")
+  @@index([template_id], name: "idx_user_badges_template")
+  @@map("user_badges")
 }
 
 // Arbitrary per-user key/value attributes (e.g. primary_concern,

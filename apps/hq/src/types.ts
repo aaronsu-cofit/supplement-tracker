@@ -69,7 +69,8 @@ export type IntentActionType =
   | 'set_attribute'
   | 'assign_mission'
   | 'complete_mission'
-  | 'increment_mission_progress';
+  | 'increment_mission_progress'
+  | 'increment_streak';
 
 export interface IntentRule {
   id: string;
@@ -86,6 +87,7 @@ export interface IntentRule {
     reply_content_key?: string;
     mission_key?: string;
     step?: number;
+    streak_key?: string;
   };
   is_active: boolean;
   created_at: string;
@@ -94,7 +96,8 @@ export interface IntentRule {
 
 export type MissionCompleteAction =
   | { type: 'set_attribute'; key: string; value: string }
-  | { type: 'assign_mission'; mission_key: string };
+  | { type: 'assign_mission'; mission_key: string }
+  | { type: 'increment_streak'; streak_key: string };
 
 export interface AutoCompleteRule {
   attribute_key: string;
@@ -110,6 +113,23 @@ export interface MissionTemplate {
   progress_target: number;
   auto_complete_on_attribute: AutoCompleteRule | null;
   on_complete_actions: MissionCompleteAction[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type BadgeCriteria =
+  | { type: 'streak_reached'; streak_key: string; threshold: number }
+  | { type: 'mission_completed'; mission_key: string };
+
+export interface BadgeTemplate {
+  id: string;
+  product_id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  criteria: BadgeCriteria;
   is_active: boolean;
   created_at: string;
   updated_at: string;

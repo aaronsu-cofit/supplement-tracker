@@ -162,10 +162,10 @@ export default function ProductMissionSection({ productId }: Props) {
       setForm({ ...form, on_complete_actions: arr });
     };
     const addAction = (type: MissionCompleteAction['type']) => {
-      const next: MissionCompleteAction =
-        type === 'set_attribute'
-          ? { type: 'set_attribute', key: '', value: '' }
-          : { type: 'assign_mission', mission_key: '' };
+      let next: MissionCompleteAction;
+      if (type === 'set_attribute') next = { type: 'set_attribute', key: '', value: '' };
+      else if (type === 'assign_mission') next = { type: 'assign_mission', mission_key: '' };
+      else next = { type: 'increment_streak', streak_key: '' };
       setForm({ ...form, on_complete_actions: [...form.on_complete_actions, next] });
     };
 
@@ -180,7 +180,7 @@ export default function ProductMissionSection({ productId }: Props) {
         {form.on_complete_actions.map((a, idx) => (
           <div key={idx} className="flex items-center gap-2 flex-wrap bg-white border border-slate-200 rounded px-2 py-1">
             <span className="text-xs font-mono text-slate-500">{idx + 1}.</span>
-            {a.type === 'set_attribute' ? (
+            {a.type === 'set_attribute' && (
               <>
                 <span className="text-xs text-slate-600">設定屬性</span>
                 <input className="hq-input text-sm flex-1 min-w-[120px]" placeholder="key"
@@ -191,7 +191,8 @@ export default function ProductMissionSection({ productId }: Props) {
                   value={a.value}
                   onChange={e => updateAction(idx, { ...a, value: e.target.value })} />
               </>
-            ) : (
+            )}
+            {a.type === 'assign_mission' && (
               <>
                 <span className="text-xs text-slate-600">指派任務（鏈）</span>
                 <input className="hq-input text-sm flex-1 min-w-[120px]" placeholder="mission_key"
@@ -199,11 +200,19 @@ export default function ProductMissionSection({ productId }: Props) {
                   onChange={e => updateAction(idx, { ...a, mission_key: e.target.value })} />
               </>
             )}
+            {a.type === 'increment_streak' && (
+              <>
+                <span className="text-xs text-slate-600">連續天數 +1</span>
+                <input className="hq-input text-sm flex-1 min-w-[120px]" placeholder="streak_key"
+                  value={a.streak_key}
+                  onChange={e => updateAction(idx, { ...a, streak_key: e.target.value })} />
+              </>
+            )}
             <button onClick={() => removeAction(idx)}
               className="text-xs text-red-600 hover:underline">移除</button>
           </div>
         ))}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => addAction('set_attribute')}
             className="text-xs px-2 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50">
             + 設定屬性
@@ -211,6 +220,10 @@ export default function ProductMissionSection({ productId }: Props) {
           <button onClick={() => addAction('assign_mission')}
             className="text-xs px-2 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50">
             + 指派下一個任務
+          </button>
+          <button onClick={() => addAction('increment_streak')}
+            className="text-xs px-2 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50">
+            + 連續天數 +1
           </button>
         </div>
       </div>
@@ -345,10 +358,14 @@ export default function ProductMissionSection({ productId }: Props) {
                       {m.on_complete_actions.map((a, i) => (
                         <span key={i} className="pl-3">
                           {i + 1}.{' '}
-                          {a.type === 'set_attribute' ? (
+                          {a.type === 'set_attribute' && (
                             <>設定 <code className="bg-slate-100 px-1 rounded">{a.key}={a.value}</code></>
-                          ) : (
+                          )}
+                          {a.type === 'assign_mission' && (
                             <>指派 <code className="bg-slate-100 px-1 rounded">{a.mission_key}</code></>
+                          )}
+                          {a.type === 'increment_streak' && (
+                            <>連續 <code className="bg-slate-100 px-1 rounded">{a.streak_key}</code> +1</>
                           )}
                         </span>
                       ))}

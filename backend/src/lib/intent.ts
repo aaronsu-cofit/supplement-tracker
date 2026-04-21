@@ -10,6 +10,7 @@ import {
   incrementMissionProgress,
   setUserAttributeWithHooks,
 } from './missions.js';
+import { incrementStreak } from './gamification.js';
 import type {
   IntentMatchType,
   IntentActionType,
@@ -17,6 +18,7 @@ import type {
   SetAttributeAction,
   MissionAction,
   IncrementMissionAction,
+  IncrementStreakAction,
   IntentActionConfig,
 } from '../types.js';
 
@@ -162,6 +164,16 @@ export async function runIntent(
       }
     }
     contentKeyToResolve = cfg.reply_content_key;
+  } else if (match.actionType === 'increment_streak') {
+    const cfg = match.actionConfig as IncrementStreakAction;
+    if (cfg.streak_key) {
+      try {
+        await incrementStreak(productId, userId, cfg.streak_key);
+      } catch (err) {
+        console.error('[intent] increment_streak error:', err);
+      }
+    }
+    contentKeyToResolve = cfg.reply_content_key;
   }
 
   if (contentKeyToResolve) {
@@ -189,4 +201,5 @@ export const VALID_ACTION_TYPES: IntentActionType[] = [
   'assign_mission',
   'complete_mission',
   'increment_mission_progress',
+  'increment_streak',
 ];
