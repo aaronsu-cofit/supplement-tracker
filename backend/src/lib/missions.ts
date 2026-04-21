@@ -9,6 +9,7 @@ import {
   logEngagementEvent,
 } from './db.js';
 import { incrementStreak, evaluateMissionBadges } from './gamification.js';
+import { evaluateJourneys } from './journey.js';
 import type { MissionCompleteAction, AutoCompleteRule } from '../types.js';
 
 // ─── Pure logic (unit-testable without DB) ──────────────────────────────────
@@ -86,7 +87,7 @@ async function runCompleteActions(ctx: CompletionContext): Promise<void> {
   for (const action of ctx.actions) {
     try {
       if (action.type === 'set_attribute') {
-        await setUserAttributeWithHooks(ctx.userId, action.key, action.value, depth + 1);
+        await setUserAttributeWithHooks(ctx.userId, action.key, action.value, depth + 1, ctx.productId);
       } else if (action.type === 'assign_mission') {
         const nextTemplate = await getMissionTemplateByKey(ctx.productId, action.mission_key);
         if (!nextTemplate || !nextTemplate.is_active) {
@@ -129,6 +130,9 @@ export async function completeMissionAssignment(
   );
   evaluateMissionBadges(productId, userId, missionKey).catch(err =>
     console.error('[missions] evaluateMissionBadges error:', err),
+  );
+  evaluateJourneys(productId, userId, { type: 'mission_completed', key: missionKey }).catch(err =>
+    console.error('[missions] evaluateJourneys error:', err),
   );
   const actions = parseCompleteActions(rawActions);
   if (actions.length === 0) return;
@@ -216,20 +220,30 @@ async function runAttributeAutoCompleteHook(
 }
 
 /**
- * Wrapper over db.setUserAttribute that additionally runs the mission
- * auto-complete hook. All code paths that set attributes (intent router,
- * hq admin UI, mission on_complete chain) should call this instead of
- * the raw db function.
+ * Wrapper over db.setUserAttribute that additionally runs:
+ *   - mission auto-complete hook (always)
+ *   - journey transition evaluator (only when productId is known, since
+ *     journeys are product-scoped)
+ *
+ * All code paths that set attributes (intent router, hq admin UI,
+ * mission on_complete chain, scheduler set-attribute-node) should call
+ * this instead of the raw db function.
  */
 export async function setUserAttributeWithHooks(
   userId: string,
   key: string,
   value: string | null,
   depth = 0,
+  productId?: string | null,
 ) {
   const result = await setUserAttribute(userId, key, value);
   runAttributeAutoCompleteHook(userId, key, value, depth).catch(err =>
     console.error('[missions] auto-complete hook error:', err),
   );
+  if (productId) {
+    evaluateJourneys(productId, userId, { type: 'attribute_set', key, value }).catch(err =>
+      console.error('[missions] evaluateJourneys (attr) error:', err),
+    );
+  }
   return result;
 }

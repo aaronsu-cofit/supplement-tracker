@@ -8,6 +8,7 @@ import ProductContentSection from './ProductContentSection';
 import ProductIntentSection from './ProductIntentSection';
 import ProductMissionSection from './ProductMissionSection';
 import ProductBadgeSection from './ProductBadgeSection';
+import ProductJourneySection from './ProductJourneySection';
 
 interface Props {
   id: string;
@@ -159,11 +160,13 @@ export default function ProductDetailClient({ id }: Props) {
 
       <ProductBadgeSection productId={id} />
 
+      <ProductJourneySection productId={id} />
+
       <ProductIntentSection productId={id} />
 
       <div className="hq-card flex flex-col gap-2 text-sm text-slate-500">
         <h3 className="font-semibold text-lg text-slate-900">其他設定（即將推出）</h3>
-        <p>後續會加入：劇本庫、Journey 狀態機。這些設定會由綁定此產品的所有 OA 共用。</p>
+        <p>劇本庫請到綁定此產品的 LINE OA 各自設定。</p>
       </div>
     </div>
   );

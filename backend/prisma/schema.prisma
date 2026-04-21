@@ -223,6 +223,7 @@ model Product {
   mission_templates  MissionTemplate[]
   badge_templates    BadgeTemplate[]
   user_streaks       UserStreak[]
+  journey_templates  JourneyTemplate[]
 
   @@map("products")
 }
@@ -394,6 +395,47 @@ model UserBadge {
   @@index([user_id], name: "idx_user_badges_user")
   @@index([template_id], name: "idx_user_badges_template")
   @@map("user_badges")
+}
+
+// Product-scoped journey blueprint. `phases` is an ordered array of
+// { key, name, description?, icon? }. `transitions` is an array of
+// { from_phase?, to_phase, trigger } where from_phase undefined means
+// "from any phase (including no phase)". Trigger types: mission_completed
+// { mission_key }, attribute_equals { attribute_key, value },
+// badge_earned { badge_key }. Evaluated after the event fires.
+model JourneyTemplate {
+  id          String   @id @default(cuid()) @db.VarChar(30)
+  product_id  String   @db.VarChar(30)
+  key         String   @db.VarChar(100)
+  name        String   @db.VarChar(200)
+  description String?
+  phases      Json
+  transitions Json
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@unique([product_id, key])
+  @@index([product_id], name: "idx_journey_templates_product")
+  @@map("journey_templates")
+}
+
+// Per-(product, user, journey_key) current phase. Unique on the tuple
+// so a user is in exactly one phase per journey at a time.
+model UserJourneyPhase {
+  id          Int      @id @default(autoincrement())
+  product_id  String   @db.VarChar(30)
+  user_id     String   @db.VarChar(64)
+  journey_key String   @db.VarChar(100)
+  phase_key   String   @db.VarChar(100)
+  entered_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@unique([product_id, user_id, journey_key])
+  @@index([product_id, journey_key, phase_key], name: "idx_user_journey_phase")
+  @@map("user_journey_phases")
 }
 
 // Arbitrary per-user key/value attributes (e.g. primary_concern,

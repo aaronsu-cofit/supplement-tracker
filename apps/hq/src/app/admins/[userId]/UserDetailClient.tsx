@@ -8,6 +8,7 @@ import type {
   UserMissionAssignment,
   UserStreakRow,
   UserBadgeRow,
+  UserJourneyPhaseRow,
   EngagementEventRow,
 } from '../../../types';
 
@@ -21,6 +22,7 @@ export default function UserDetailClient({ userId }: Props) {
   const [missions, setMissions] = useState<UserMissionAssignment[]>([]);
   const [streaks, setStreaks] = useState<UserStreakRow[]>([]);
   const [badges, setBadges] = useState<UserBadgeRow[]>([]);
+  const [journeys, setJourneys] = useState<UserJourneyPhaseRow[]>([]);
   const [events, setEvents] = useState<EngagementEventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,12 +33,13 @@ export default function UserDetailClient({ userId }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const [uRes, aRes, mRes, sRes, bRes, eRes] = await Promise.all([
+      const [uRes, aRes, mRes, sRes, bRes, jRes, eRes] = await Promise.all([
         apiFetch(`/api/hq/users/${userId}`),
         apiFetch(`/api/hq/users/${userId}/attributes`),
         apiFetch(`/api/hq/users/${userId}/missions`),
         apiFetch(`/api/hq/users/${userId}/streaks`),
         apiFetch(`/api/hq/users/${userId}/badges`),
+        apiFetch(`/api/hq/users/${userId}/journeys`),
         apiFetch(`/api/hq/users/${userId}/engagement`),
       ]);
       if (!uRes.ok) throw new Error(`User lookup failed: ${uRes.status}`);
@@ -46,6 +49,7 @@ export default function UserDetailClient({ userId }: Props) {
       setMissions((await mRes.json()).missions ?? []);
       setStreaks((await sRes.json()).streaks ?? []);
       setBadges((await bRes.json()).badges ?? []);
+      setJourneys((await jRes.json()).phases ?? []);
       setEvents((await eRes.json()).events ?? []);
     } catch (err) {
       console.error('[user-detail] load error', err);
@@ -230,6 +234,28 @@ export default function UserDetailClient({ userId }: Props) {
                   <code className="text-xs text-slate-500 font-mono">{b.template.key}</code>
                   <span className="text-xs text-slate-400">{new Date(b.earned_at).toLocaleString()}</span>
                 </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Journey phases */}
+      <div className="hq-card flex flex-col gap-3">
+        <h3 className="font-semibold text-lg">Journey 現況（{journeys.length}）</h3>
+        {journeys.length === 0 ? (
+          <p className="text-sm text-slate-400">尚無 Journey 狀態</p>
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {journeys.map(j => (
+              <li key={j.id} className="flex items-center justify-between border-b border-slate-100 last:border-0 py-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <code className="bg-slate-100 px-1.5 rounded font-mono text-sm">{j.journey_key}</code>
+                  <span className="text-sm">目前 phase：<strong>{j.phase_key}</strong></span>
+                </div>
+                <span className="text-xs text-slate-400">
+                  進入於 {new Date(j.entered_at).toLocaleString()}
+                </span>
               </li>
             ))}
           </ul>

@@ -261,6 +261,46 @@ export interface UpdateBadgeTemplateInput {
   is_active?: boolean;
 }
 
+// ─── Journey state machine ──────────────────────────────────────────────────
+
+export interface JourneyPhase {
+  key: string;
+  name: string;
+  description?: string;
+  icon?: string;
+}
+
+export type JourneyTrigger =
+  | { type: 'mission_completed'; mission_key: string }
+  | { type: 'attribute_equals'; attribute_key: string; value: string }
+  | { type: 'badge_earned'; badge_key: string };
+
+export interface JourneyTransition {
+  // undefined means "from any phase (including no current phase)" — used
+  // to describe the entry transition that drops a new user into their
+  // first phase.
+  from_phase?: string;
+  to_phase: string;
+  trigger: JourneyTrigger;
+}
+
+export interface CreateJourneyTemplateInput {
+  key: string;
+  name: string;
+  description?: string;
+  phases: JourneyPhase[];
+  transitions: JourneyTransition[];
+}
+
+export interface UpdateJourneyTemplateInput {
+  key?: string;
+  name?: string;
+  description?: string | null;
+  phases?: JourneyPhase[];
+  transitions?: JourneyTransition[];
+  is_active?: boolean;
+}
+
 export interface CreateIntentRuleInput {
   name: string;
   priority?: number;

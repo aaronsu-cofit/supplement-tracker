@@ -7,6 +7,7 @@ import {
   logEngagementEvent,
 } from './db.js';
 import { localDateInTz, daysBetweenInTz } from './time.js';
+import { evaluateJourneys } from './journey.js';
 import type { BadgeCriteria } from '../types.js';
 
 // ─── Pure streak logic ──────────────────────────────────────────────────────
@@ -151,6 +152,9 @@ export async function evaluateStreakBadges(
         logEngagementEvent(userId, 'badge_earned', `${t.key}:streak`).catch(err =>
           console.error('[gamification] log badge engagement error:', err),
         );
+        evaluateJourneys(productId, userId, { type: 'badge_earned', key: t.key }).catch(err =>
+          console.error('[gamification] evaluateJourneys error:', err),
+        );
       }
     } catch (err) {
       console.error('[gamification] awardBadge error:', err);
@@ -177,6 +181,9 @@ export async function evaluateMissionBadges(
       if (awarded) {
         logEngagementEvent(userId, 'badge_earned', `${t.key}:mission`).catch(err =>
           console.error('[gamification] log badge engagement error:', err),
+        );
+        evaluateJourneys(productId, userId, { type: 'badge_earned', key: t.key }).catch(err =>
+          console.error('[gamification] evaluateJourneys error:', err),
         );
       }
     } catch (err) {

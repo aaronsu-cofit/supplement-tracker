@@ -194,6 +194,49 @@ export interface BadgeTemplate {
   updated_at: string;
 }
 
+// ─── Journey state machine ──────────────────────────────────────────────────
+
+export interface JourneyPhase {
+  key: string;
+  name: string;
+  description?: string;
+  icon?: string;
+}
+
+export type JourneyTrigger =
+  | { type: 'mission_completed'; mission_key: string }
+  | { type: 'attribute_equals'; attribute_key: string; value: string }
+  | { type: 'badge_earned'; badge_key: string };
+
+export interface JourneyTransition {
+  from_phase?: string;
+  to_phase: string;
+  trigger: JourneyTrigger;
+}
+
+export interface JourneyTemplate {
+  id: string;
+  product_id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  phases: JourneyPhase[];
+  transitions: JourneyTransition[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserJourneyPhaseRow {
+  id: number;
+  product_id: string;
+  user_id: string;
+  journey_key: string;
+  phase_key: string;
+  entered_at: string;
+  updated_at: string;
+}
+
 // ─── Scenarios (list-view) ──────────────────────────────────────────────────
 
 export type ScenarioNodeType =

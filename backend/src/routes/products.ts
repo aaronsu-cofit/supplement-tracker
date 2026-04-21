@@ -23,9 +23,14 @@ import {
   createBadgeTemplate,
   updateBadgeTemplate,
   deleteBadgeTemplate,
+  getJourneyTemplatesForProduct,
+  createJourneyTemplate,
+  updateJourneyTemplate,
+  deleteJourneyTemplate,
 } from '../lib/db.js';
 import { VALID_BADGE_CRITERIA_TYPES } from '../lib/gamification.js';
-import type { BadgeCriteria } from '../types.js';
+import { validatePhases, validateTransitions } from '../lib/journey.js';
+import type { BadgeCriteria, JourneyPhase, JourneyTransition } from '../types.js';
 import { VALID_MATCH_TYPES, VALID_ACTION_TYPES } from '../lib/intent.js';
 import type { IntentMatchType, IntentActionType } from '../types.js';
 
@@ -442,6 +447,86 @@ products.patch('/:productId/badges/:id', async (c) => {
 products.delete('/:productId/badges/:id', async (c) => {
   const id = c.req.param('id');
   await deleteBadgeTemplate(id);
+  return c.json({ success: true });
+});
+
+// ─── Journey Templates ──────────────────────────────────────────────────────
+
+function validateJourneyPayload(body: Record<string, unknown>, requireAll: boolean): string | null {
+  if (requireAll || body.key !== undefined) {
+    if (typeof body.key !== 'string' || !body.key.trim()) return '請提供 key';
+    if (!KEY_REGEX.test(body.key)) return 'key 格式不合法';
+  }
+  if (requireAll || body.name !== undefined) {
+    if (typeof body.name !== 'string' || !body.name.trim()) return '請提供 name';
+  }
+  const phases = body.phases as JourneyPhase[] | undefined;
+  const transitions = body.transitions as JourneyTransition[] | undefined;
+  if (requireAll || phases !== undefined) {
+    if (!phases) return 'phases 必填';
+    const phaseError = validatePhases(phases);
+    if (phaseError) return phaseError;
+  }
+  if (requireAll || transitions !== undefined) {
+    if (!transitions) return 'transitions 必填';
+    const tError = validateTransitions(transitions, phases ?? []);
+    if (tError) return tError;
+  }
+  return null;
+}
+
+// GET /api/products/:productId/journeys
+products.get('/:productId/journeys', async (c) => {
+  const productId = c.req.param('productId');
+  const product = await getProductById(productId);
+  if (!product) return c.json({ error: '找不到此 Product' }, 404);
+  const journeys = await getJourneyTemplatesForProduct(productId);
+  return c.json({ journeys });
+});
+
+// POST /api/products/:productId/journeys
+products.post('/:productId/journeys', async (c) => {
+  const productId = c.req.param('productId');
+  const product = await getProductById(productId);
+  if (!product) return c.json({ error: '找不到此 Product' }, 404);
+  const body = await c.req.json();
+  const err = validateJourneyPayload(body, true);
+  if (err) return c.json({ error: err }, 400);
+  try {
+    const journey = await createJourneyTemplate(productId, {
+      key: body.key,
+      name: body.name,
+      description: body.description,
+      phases: body.phases,
+      transitions: body.transitions,
+    });
+    return c.json({ journey }, 201);
+  } catch (e: unknown) {
+    if ((e as { code?: string })?.code === 'P2002') return c.json({ error: '此 journey key 已存在' }, 409);
+    throw e;
+  }
+});
+
+// PATCH /api/products/:productId/journeys/:id
+products.patch('/:productId/journeys/:id', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json();
+  const err = validateJourneyPayload(body, false);
+  if (err) return c.json({ error: err }, 400);
+  try {
+    const journey = await updateJourneyTemplate(id, body);
+    return c.json({ journey });
+  } catch (e: unknown) {
+    if ((e as { code?: string })?.code === 'P2025') return c.json({ error: '找不到此 journey' }, 404);
+    if ((e as { code?: string })?.code === 'P2002') return c.json({ error: '此 journey key 已存在' }, 409);
+    throw e;
+  }
+});
+
+// DELETE /api/products/:productId/journeys/:id
+products.delete('/:productId/journeys/:id', async (c) => {
+  const id = c.req.param('id');
+  await deleteJourneyTemplate(id);
   return c.json({ success: true });
 });
 

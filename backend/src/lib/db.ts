@@ -24,6 +24,8 @@ import type {
   CreateBadgeTemplateInput,
   UpdateBadgeTemplateInput,
   BadgeCriteria,
+  CreateJourneyTemplateInput,
+  UpdateJourneyTemplateInput,
 } from '../types.js';
 
 let _prisma: PrismaClient | undefined;
@@ -1418,5 +1420,99 @@ export async function getBadgeTemplatesByCriteriaType(productId: string, criteri
       is_active: true,
       criteria: { path: ['type'], equals: criteriaType },
     },
+  });
+}
+
+// ============================================
+// Journey: templates
+// ============================================
+export async function getJourneyTemplatesForProduct(productId: string) {
+  return db().journeyTemplate.findMany({
+    where: { product_id: productId },
+    orderBy: [{ is_active: 'desc' }, { key: 'asc' }],
+  });
+}
+
+export async function getActiveJourneyTemplatesForProduct(productId: string) {
+  return db().journeyTemplate.findMany({
+    where: { product_id: productId, is_active: true },
+  });
+}
+
+export async function createJourneyTemplate(productId: string, data: CreateJourneyTemplateInput) {
+  return db().journeyTemplate.create({
+    data: {
+      product_id: productId,
+      key: data.key,
+      name: data.name,
+      description: data.description ?? null,
+      phases: data.phases as unknown as Prisma.InputJsonValue,
+      transitions: data.transitions as unknown as Prisma.InputJsonValue,
+    },
+  });
+}
+
+export async function updateJourneyTemplate(id: string, data: UpdateJourneyTemplateInput) {
+  return db().journeyTemplate.update({
+    where: { id },
+    data: {
+      ...(data.key != null && { key: data.key }),
+      ...(data.name != null && { name: data.name }),
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.phases !== undefined && { phases: data.phases as unknown as Prisma.InputJsonValue }),
+      ...(data.transitions !== undefined && { transitions: data.transitions as unknown as Prisma.InputJsonValue }),
+      ...(data.is_active !== undefined && { is_active: data.is_active }),
+    },
+  });
+}
+
+export async function deleteJourneyTemplate(id: string): Promise<{ success: boolean }> {
+  try {
+    await db().journeyTemplate.delete({ where: { id } });
+  } catch (err) {
+    if ((err as { code?: string })?.code === 'P2025') return { success: true };
+    throw err;
+  }
+  return { success: true };
+}
+
+// ============================================
+// Journey: user phase state
+// ============================================
+export async function getUserJourneyPhase(productId: string, userId: string, journeyKey: string) {
+  return db().userJourneyPhase.findUnique({
+    where: {
+      product_id_user_id_journey_key: {
+        product_id: productId, user_id: userId, journey_key: journeyKey,
+      },
+    },
+  });
+}
+
+export async function upsertUserJourneyPhase(
+  productId: string, userId: string, journeyKey: string, phaseKey: string,
+) {
+  const now = new Date();
+  return db().userJourneyPhase.upsert({
+    where: {
+      product_id_user_id_journey_key: {
+        product_id: productId, user_id: userId, journey_key: journeyKey,
+      },
+    },
+    create: {
+      product_id: productId,
+      user_id: userId,
+      journey_key: journeyKey,
+      phase_key: phaseKey,
+      entered_at: now,
+    },
+    update: { phase_key: phaseKey, entered_at: now },
+  });
+}
+
+export async function getUserJourneyPhases(userId: string) {
+  return db().userJourneyPhase.findMany({
+    where: { user_id: userId },
+    orderBy: { updated_at: 'desc' },
   });
 }

@@ -123,7 +123,7 @@ export async function runIntent(
     const cfg = match.actionConfig as SetAttributeAction;
     if (cfg.key) {
       try {
-        await setUserAttributeWithHooks(userId, cfg.key, cfg.value ?? null);
+        await setUserAttributeWithHooks(userId, cfg.key, cfg.value ?? null, 0, productId);
       } catch (err) {
         console.error('[intent] set_attribute error:', err);
       }

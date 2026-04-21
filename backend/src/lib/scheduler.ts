@@ -313,7 +313,7 @@ async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
         const claimed = await tryClaimDelivery(userId, enr.scenario.id, aNode.id);
         if (!claimed) { skipped++; continue; }
         try {
-          await setUserAttributeWithHooks(userId, attributeKey, aNode.data?.value ?? null);
+          await setUserAttributeWithHooks(userId, attributeKey, aNode.data?.value ?? null, 0, oa.product_id);
           sent++;
         } catch (err) {
           await releaseDelivery(userId, enr.scenario.id, aNode.id);

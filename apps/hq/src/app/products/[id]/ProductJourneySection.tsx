@@ -1,0 +1,412 @@
+'use client';
+import { apiFetch } from '@vitera/lib';
+import { useCallback, useEffect, useState } from 'react';
+import type {
+  JourneyTemplate,
+  JourneyPhase,
+  JourneyTransition,
+  JourneyTrigger,
+} from '../../../types';
+
+interface Props {
+  productId: string;
+}
+
+interface FormShape {
+  key: string;
+  name: string;
+  description: string;
+  phases: JourneyPhase[];
+  transitions: JourneyTransition[];
+  is_active: boolean;
+}
+
+const EMPTY: FormShape = {
+  key: '',
+  name: '',
+  description: '',
+  phases: [
+    { key: 'onboarding', name: '起始' },
+    { key: 'active', name: '進行中' },
+  ],
+  transitions: [],
+  is_active: true,
+};
+
+function toForm(j: JourneyTemplate): FormShape {
+  return {
+    key: j.key,
+    name: j.name,
+    description: j.description ?? '',
+    phases: j.phases ?? [],
+    transitions: j.transitions ?? [],
+    is_active: j.is_active,
+  };
+}
+
+function fromForm(f: FormShape) {
+  return {
+    key: f.key.trim(),
+    name: f.name.trim(),
+    description: f.description || null,
+    phases: f.phases,
+    transitions: f.transitions,
+    is_active: f.is_active,
+  };
+}
+
+const TRIGGER_TYPE_LABELS: Record<JourneyTrigger['type'], string> = {
+  mission_completed: '完成任務',
+  attribute_equals: '屬性等於',
+  badge_earned: '取得徽章',
+};
+
+function triggerSummary(tr: JourneyTrigger): string {
+  switch (tr.type) {
+    case 'mission_completed': return `完成任務 ${tr.mission_key}`;
+    case 'attribute_equals': return `屬性 ${tr.attribute_key}=${tr.value}`;
+    case 'badge_earned': return `取得徽章 ${tr.badge_key}`;
+  }
+}
+
+export default function ProductJourneySection({ productId }: Props) {
+  const [journeys, setJourneys] = useState<JourneyTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [addForm, setAddForm] = useState<FormShape>(EMPTY);
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<FormShape>(EMPTY);
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    apiFetch(`/api/products/${productId}/journeys`)
+      .then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<{ journeys: JourneyTemplate[] }>;
+      })
+      .then(({ journeys: d }) => setJourneys(d ?? []))
+      .catch(err => {
+        console.error('[product/journeys] error', err);
+        setError('無法載入 Journey');
+      })
+      .finally(() => setLoading(false));
+  }, [productId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleAdd = async () => {
+    if (!addForm.key.trim() || !addForm.name.trim()) {
+      setAddError('請填 key 與 name');
+      return;
+    }
+    setAdding(true);
+    setAddError(null);
+    try {
+      const res = await apiFetch(`/api/products/${productId}/journeys`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fromForm(addForm)),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setAddForm(EMPTY);
+      setShowAdd(false);
+      load();
+    } catch (err) {
+      setAddError((err as Error).message);
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const saveEdit = async (id: string) => {
+    setSavingId(id);
+    try {
+      const res = await apiFetch(`/api/products/${productId}/journeys/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fromForm(editForm)),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setEditingId(null);
+      load();
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const handleDelete = async (j: JourneyTemplate) => {
+    if (!window.confirm(`刪除 Journey「${j.key}」？`)) return;
+    try {
+      const res = await apiFetch(`/api/products/${productId}/journeys/${j.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      load();
+    } catch (err) {
+      alert((err as Error).message);
+    }
+  };
+
+  const renderPhases = (form: FormShape, setForm: (f: FormShape) => void) => {
+    const updatePhase = (idx: number, patch: Partial<JourneyPhase>) => {
+      const arr = [...form.phases];
+      arr[idx] = { ...arr[idx], ...patch };
+      setForm({ ...form, phases: arr });
+    };
+    const removePhase = (idx: number) => {
+      setForm({ ...form, phases: form.phases.filter((_, i) => i !== idx) });
+    };
+    const addPhase = () => {
+      setForm({ ...form, phases: [...form.phases, { key: '', name: '' }] });
+    };
+
+    return (
+      <div className="flex flex-col gap-2 border border-slate-200 rounded p-2 bg-white">
+        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Phases（依序）</label>
+        {form.phases.map((p, i) => (
+          <div key={i} className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-mono text-slate-400 w-6">{i + 1}.</span>
+            <input className="hq-input text-sm flex-1 min-w-[100px]" placeholder="key"
+              value={p.key} onChange={e => updatePhase(i, { key: e.target.value })} />
+            <input className="hq-input text-sm flex-1 min-w-[120px]" placeholder="name"
+              value={p.name} onChange={e => updatePhase(i, { name: e.target.value })} />
+            <input className="hq-input text-sm w-16" placeholder="icon"
+              value={p.icon ?? ''} onChange={e => updatePhase(i, { icon: e.target.value || undefined })} />
+            <button onClick={() => removePhase(i)}
+              className="text-xs text-red-600 hover:underline">移除</button>
+          </div>
+        ))}
+        <div>
+          <button onClick={addPhase}
+            className="text-xs px-2 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50">
+            + 新增 phase
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderTransitions = (form: FormShape, setForm: (f: FormShape) => void) => {
+    const phaseKeys = form.phases.map(p => p.key).filter(Boolean);
+    const updateTransition = (idx: number, next: JourneyTransition) => {
+      const arr = [...form.transitions];
+      arr[idx] = next;
+      setForm({ ...form, transitions: arr });
+    };
+    const removeTransition = (idx: number) => {
+      setForm({ ...form, transitions: form.transitions.filter((_, i) => i !== idx) });
+    };
+    const addTransition = () => {
+      const initial: JourneyTransition = {
+        to_phase: phaseKeys[0] ?? '',
+        trigger: { type: 'mission_completed', mission_key: '' },
+      };
+      setForm({ ...form, transitions: [...form.transitions, initial] });
+    };
+
+    return (
+      <div className="flex flex-col gap-2 border border-slate-200 rounded p-2 bg-white">
+        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Transitions（依序比對，第一個命中者勝）</label>
+        {form.transitions.length === 0 && (
+          <p className="text-xs text-slate-400">尚無 transition — 無法推進使用者，請至少新增一條</p>
+        )}
+        {form.transitions.map((t, i) => (
+          <div key={i} className="flex flex-col gap-1.5 border border-slate-100 rounded p-2 bg-slate-50/60">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-slate-500">當</span>
+              <select className="hq-input text-sm"
+                value={t.trigger.type}
+                onChange={e => {
+                  const type = e.target.value as JourneyTrigger['type'];
+                  const newTrigger: JourneyTrigger =
+                    type === 'mission_completed' ? { type, mission_key: '' } :
+                    type === 'badge_earned' ? { type, badge_key: '' } :
+                    { type, attribute_key: '', value: '' };
+                  updateTransition(i, { ...t, trigger: newTrigger });
+                }}>
+                {Object.entries(TRIGGER_TYPE_LABELS).map(([k, label]) => (
+                  <option key={k} value={k}>{label}</option>
+                ))}
+              </select>
+              {t.trigger.type === 'mission_completed' && (
+                <input className="hq-input text-sm flex-1 min-w-[120px]" placeholder="mission_key"
+                  value={t.trigger.mission_key}
+                  onChange={e => updateTransition(i, { ...t, trigger: { ...t.trigger, mission_key: e.target.value } as JourneyTrigger })} />
+              )}
+              {t.trigger.type === 'badge_earned' && (
+                <input className="hq-input text-sm flex-1 min-w-[120px]" placeholder="badge_key"
+                  value={t.trigger.badge_key}
+                  onChange={e => updateTransition(i, { ...t, trigger: { ...t.trigger, badge_key: e.target.value } as JourneyTrigger })} />
+              )}
+              {t.trigger.type === 'attribute_equals' && (
+                <>
+                  <input className="hq-input text-sm flex-1 min-w-[100px]" placeholder="attribute_key"
+                    value={t.trigger.attribute_key}
+                    onChange={e => updateTransition(i, { ...t, trigger: { ...t.trigger, attribute_key: e.target.value } as JourneyTrigger })} />
+                  <span className="text-slate-400">=</span>
+                  <input className="hq-input text-sm flex-1 min-w-[80px]" placeholder="value"
+                    value={t.trigger.value}
+                    onChange={e => updateTransition(i, { ...t, trigger: { ...t.trigger, value: e.target.value } as JourneyTrigger })} />
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-slate-500">從</span>
+              <select className="hq-input text-sm"
+                value={t.from_phase ?? '__ANY__'}
+                onChange={e => {
+                  const v = e.target.value;
+                  updateTransition(i, { ...t, from_phase: v === '__ANY__' ? undefined : v });
+                }}>
+                <option value="__ANY__">（任何 phase，含新使用者）</option>
+                {phaseKeys.map(k => <option key={k} value={k}>{k}</option>)}
+              </select>
+              <span className="text-xs text-slate-500">→</span>
+              <select className="hq-input text-sm"
+                value={t.to_phase}
+                onChange={e => updateTransition(i, { ...t, to_phase: e.target.value })}>
+                {phaseKeys.map(k => <option key={k} value={k}>{k}</option>)}
+              </select>
+              <button onClick={() => removeTransition(i)}
+                className="text-xs text-red-600 hover:underline ml-auto">移除</button>
+            </div>
+          </div>
+        ))}
+        <div>
+          <button onClick={addTransition}
+            disabled={phaseKeys.length === 0}
+            className="text-xs px-2 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50">
+            + 新增 transition
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderForm = (form: FormShape, setForm: (f: FormShape) => void) => (
+    <>
+      <div className="grid grid-cols-2 gap-2">
+        <input className="hq-input" placeholder="key（英數底線連字號）"
+          value={form.key} onChange={e => setForm({ ...form, key: e.target.value })} />
+        <input className="hq-input" placeholder="Journey 名稱"
+          value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+      </div>
+      <input className="hq-input" placeholder="說明（選填）"
+        value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+      {renderPhases(form, setForm)}
+      {renderTransitions(form, setForm)}
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={form.is_active}
+          onChange={e => setForm({ ...form, is_active: e.target.checked })} />
+        <span>啟用</span>
+      </label>
+    </>
+  );
+
+  return (
+    <div className="hq-card flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-lg">Journey 狀態機（{journeys.length}）</h3>
+        <button
+          onClick={() => setShowAdd(v => !v)}
+          className="text-sm px-3 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50"
+        >
+          {showAdd ? '取消' : '+ 新增 Journey'}
+        </button>
+      </div>
+      <p className="text-xs text-slate-500">
+        一個 Journey 定義一串命名的 phase 和轉移規則。使用者在完成任務、設定屬性、取得徽章時自動轉換 phase。
+      </p>
+
+      {showAdd && (
+        <div className="border border-slate-200 rounded-lg p-3 flex flex-col gap-2 bg-slate-50">
+          {renderForm(addForm, setAddForm)}
+          {addError && <p className="text-sm text-red-600">{addError}</p>}
+          <div>
+            <button onClick={handleAdd} disabled={adding} className="hq-btn-primary text-sm">
+              {adding ? '新增中...' : '確認新增'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {error && <div className="hq-alert hq-alert-error">{error}</div>}
+
+      {loading ? (
+        <p className="text-sm text-slate-500">載入中...</p>
+      ) : journeys.length === 0 ? (
+        <p className="text-sm text-slate-500">尚無 Journey</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {journeys.map(j => (
+            <li key={j.id} className="border border-slate-200 rounded-lg p-3 flex flex-col gap-2">
+              {editingId === j.id ? (
+                <>
+                  {renderForm(editForm, setEditForm)}
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => saveEdit(j.id)} disabled={savingId === j.id}
+                      className="hq-btn-primary text-sm">
+                      {savingId === j.id ? '儲存中...' : '儲存'}
+                    </button>
+                    <button onClick={() => setEditingId(null)}
+                      className="text-sm px-3 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50">
+                      取消
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <code className="bg-slate-100 px-1.5 rounded font-mono text-sm">{j.key}</code>
+                      <span className="font-semibold">{j.name}</span>
+                      {!j.is_active && <span className="hq-badge hq-badge-gray">停用</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => { setEditingId(j.id); setEditForm(toForm(j)); }}
+                        className="text-xs px-2 py-0.5 rounded border border-slate-300 bg-white hover:bg-slate-50">
+                        編輯
+                      </button>
+                      <button onClick={() => handleDelete(j)}
+                        className="text-xs px-2 py-0.5 rounded border border-red-300 text-red-600 bg-white hover:bg-red-50">
+                        刪除
+                      </button>
+                    </div>
+                  </div>
+                  {j.description && <p className="text-sm text-slate-600">{j.description}</p>}
+                  <div className="flex items-center gap-1 flex-wrap text-xs">
+                    {j.phases.map((p, i) => (
+                      <span key={p.key} className="flex items-center gap-1">
+                        {i > 0 && <span className="text-slate-300">→</span>}
+                        <span className="bg-slate-100 px-1.5 py-0.5 rounded">
+                          {p.icon && <span className="mr-1">{p.icon}</span>}
+                          {p.name}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                  {j.transitions.length > 0 && (
+                    <ul className="text-xs text-slate-600 flex flex-col gap-0.5 pl-3">
+                      {j.transitions.map((t, i) => (
+                        <li key={i}>
+                          {i + 1}. {triggerSummary(t.trigger)} · {t.from_phase ?? '任何'} → <strong>{t.to_phase}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

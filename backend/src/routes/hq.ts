@@ -6,6 +6,7 @@ import {
   getUserAttributes, deleteUserAttribute,
   getUserMissionAssignments,
   getUserStreaks, getUserBadges,
+  getUserJourneyPhases,
   findUserById, db,
 } from '../lib/db.js';
 import { setUserAttributeWithHooks } from '../lib/missions.js';
@@ -169,6 +170,18 @@ hq.get('/users/:userId/badges', async (c) => {
   } catch (error) {
     console.error('Failed to fetch user badges:', error);
     return c.json({ error: 'Failed to fetch badges' }, 500);
+  }
+});
+
+// GET /api/hq/users/:userId/journeys
+hq.get('/users/:userId/journeys', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const phases = await getUserJourneyPhases(userId);
+    return c.json({ phases });
+  } catch (error) {
+    console.error('Failed to fetch user journeys:', error);
+    return c.json({ error: 'Failed to fetch journeys' }, 500);
   }
 });
 
