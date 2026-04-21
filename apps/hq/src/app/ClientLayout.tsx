@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: "/", label: "系統總覽" },
   { href: "/oa", label: "LINE OA" },
   { href: "/admins", label: "管理員" },
+  { href: "/manual", label: "操作手冊" },
 ];
 
 // Pages that want full-height canvas (no hq-content padding wrapper)
