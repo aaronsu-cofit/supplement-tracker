@@ -19,7 +19,7 @@ env:
   # K8s Manifests Repository
   K8S_REPO: Cofit/cofit-k8s-applications
   K8S_BRANCH: main
-  KUSTOMIZE_FILE: apps/vitera/vitera-women-healing-room/overlays/staging/kustomization.yaml
+  KUSTOMIZE_FILE: apps/vitera/vitera-women/overlays/staging/kustomization.yaml
 
   # Build Args
   NEXT_PUBLIC_API_URL: https://vitera-api-staging.cofit.me
