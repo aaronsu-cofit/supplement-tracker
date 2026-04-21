@@ -15,6 +15,8 @@ import type {
   UpdateTemplateInput,
   CreateProductInput,
   UpdateProductInput,
+  CreateContentItemInput,
+  UpdateContentItemInput,
 } from '../types.js';
 
 let _prisma: PrismaClient | undefined;
@@ -949,6 +951,59 @@ export async function deleteUserAttribute(userId: string, key: string): Promise<
     await db().userAttribute.delete({
       where: { user_id_key: { user_id: userId, key } },
     });
+  } catch (err) {
+    if ((err as { code?: string })?.code === 'P2025') return { success: true };
+    throw err;
+  }
+  return { success: true };
+}
+
+// ============================================
+// Content Items (per-product content library)
+// ============================================
+export async function getContentItemsForProduct(productId: string) {
+  return db().contentItem.findMany({
+    where: { product_id: productId },
+    orderBy: [{ is_active: 'desc' }, { key: 'asc' }],
+  });
+}
+
+export async function getContentItemByKey(productId: string, key: string) {
+  return db().contentItem.findUnique({
+    where: { product_id_key: { product_id: productId, key } },
+  });
+}
+
+export async function createContentItem(productId: string, data: CreateContentItemInput) {
+  return db().contentItem.create({
+    data: {
+      product_id: productId,
+      key: data.key,
+      type: data.type ?? 'text',
+      title: data.title ?? null,
+      body: data.body ?? null,
+      metadata: (data.metadata as Prisma.InputJsonValue) ?? Prisma.JsonNull,
+    },
+  });
+}
+
+export async function updateContentItem(id: string, data: UpdateContentItemInput) {
+  return db().contentItem.update({
+    where: { id },
+    data: {
+      ...(data.key != null && { key: data.key }),
+      ...(data.type != null && { type: data.type }),
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.body !== undefined && { body: data.body }),
+      ...(data.metadata !== undefined && { metadata: (data.metadata as Prisma.InputJsonValue) ?? Prisma.JsonNull }),
+      ...(data.is_active !== undefined && { is_active: data.is_active }),
+    },
+  });
+}
+
+export async function deleteContentItem(id: string): Promise<{ success: boolean }> {
+  try {
+    await db().contentItem.delete({ where: { id } });
   } catch (err) {
     if ((err as { code?: string })?.code === 'P2025') return { success: true };
     throw err;

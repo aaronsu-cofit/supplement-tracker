@@ -48,6 +48,21 @@ export interface ProductWithOAs extends Product {
   oas: Array<{ id: string | number; name: string; is_active: boolean }>;
 }
 
+export type ContentItemType = 'text' | 'flex' | 'card';
+
+export interface ContentItem {
+  id: string;
+  product_id: string;
+  key: string;
+  type: ContentItemType;
+  title: string | null;
+  body: string | null;
+  metadata: unknown;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Zone {
   id: string;
   position: string;

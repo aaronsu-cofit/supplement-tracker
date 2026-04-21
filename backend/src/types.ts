@@ -147,6 +147,25 @@ export interface UpdateProductInput {
   is_active?: boolean;
 }
 
+export type ContentItemType = 'text' | 'flex' | 'card';
+
+export interface CreateContentItemInput {
+  key: string;
+  type?: ContentItemType;
+  title?: string;
+  body?: string;
+  metadata?: unknown;
+}
+
+export interface UpdateContentItemInput {
+  key?: string;
+  type?: ContentItemType;
+  title?: string | null;
+  body?: string | null;
+  metadata?: unknown;
+  is_active?: boolean;
+}
+
 export interface CreateTemplateInput {
   name: string;
   zones: unknown;

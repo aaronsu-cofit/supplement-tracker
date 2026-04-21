@@ -217,9 +217,35 @@ model Product {
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 
-  oas LineOA[]
+  oas           LineOA[]
+  content_items ContentItem[]
 
   @@map("products")
+}
+
+// Shareable content items owned by a Product. `key` is a product-scoped
+// slug used by flows/push nodes to reference content by name instead of
+// hard-coding text. `type` indicates rendering form: 'text' (plain string),
+// 'flex' (LINE flex JSON in metadata), 'card' (structured card in metadata).
+// Keeps text copy and structured cards out of the scenario JSON so ops can
+// edit content without touching flows.
+model ContentItem {
+  id         String   @id @default(cuid()) @db.VarChar(30)
+  product_id String   @db.VarChar(30)
+  key        String   @db.VarChar(100)
+  type       String   @default("text") @db.VarChar(50)
+  title      String?  @db.VarChar(200)
+  body       String?  @db.Text
+  metadata   Json?
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@unique([product_id, key])
+  @@index([product_id], name: "idx_content_items_product")
+  @@map("content_items")
 }
 
 // Arbitrary per-user key/value attributes (e.g. primary_concern,
