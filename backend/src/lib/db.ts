@@ -799,21 +799,51 @@ export async function getActiveEnrollmentsList(limit = 50, oaId?: number) {
  * Recent deliveries. When oaId is provided, restricts to scenarios of that
  * OA (plus legacy 'default') via a subquery on scenario_id.
  */
+/**
+ * Recent deliveries with each row enriched by the scenario name and the
+ * matching flow node's type and a small data snapshot. Node-level detail
+ * lives in the scenario's flow_nodes JSON, so we batch-fetch scenarios
+ * once and resolve locally. Callers that don't need the enrichment can
+ * still use the raw shape — the base fields are unchanged.
+ */
 export async function getRecentDeliveries(limit = 50, oaId?: number) {
-  if (oaId == null) {
-    return db().messageDelivery.findMany({ orderBy: { delivered_at: 'desc' }, take: limit });
+  async function fetchRows() {
+    if (oaId == null) {
+      return db().messageDelivery.findMany({ orderBy: { delivered_at: 'desc' }, take: limit });
+    }
+    const scenarioIds = (
+      await db().coBlocksScenario.findMany({
+        where: { OR: [{ oa_id: oaId.toString() }, { oa_id: 'default' }] },
+        select: { id: true },
+      })
+    ).map(s => s.id);
+    if (scenarioIds.length === 0) return [];
+    return db().messageDelivery.findMany({
+      where: { scenario_id: { in: scenarioIds } },
+      orderBy: { delivered_at: 'desc' },
+      take: limit,
+    });
   }
-  const scenarioIds = (
-    await db().coBlocksScenario.findMany({
-      where: { OR: [{ oa_id: oaId.toString() }, { oa_id: 'default' }] },
-      select: { id: true },
-    })
-  ).map(s => s.id);
-  if (scenarioIds.length === 0) return [];
-  return db().messageDelivery.findMany({
-    where: { scenario_id: { in: scenarioIds } },
-    orderBy: { delivered_at: 'desc' },
-    take: limit,
+  const rows = await fetchRows();
+  if (rows.length === 0) return rows;
+  const uniqueScenarioIds = Array.from(new Set(rows.map(r => r.scenario_id)));
+  const scenarios = await db().coBlocksScenario.findMany({
+    where: { id: { in: uniqueScenarioIds } },
+    select: { id: true, name: true, flow_nodes: true },
+  });
+  const byId = new Map(scenarios.map(s => [s.id, s]));
+  return rows.map(r => {
+    const scenario = byId.get(r.scenario_id);
+    const nodes = Array.isArray(scenario?.flow_nodes)
+      ? (scenario!.flow_nodes as Array<{ id: string; type?: string; data?: Record<string, unknown> }>)
+      : [];
+    const node = nodes.find(n => n.id === r.node_id);
+    return {
+      ...r,
+      scenario_name: scenario?.name ?? null,
+      node_type: node?.type ?? null,
+      node_data: node?.data ?? null,
+    };
   });
 }
 
