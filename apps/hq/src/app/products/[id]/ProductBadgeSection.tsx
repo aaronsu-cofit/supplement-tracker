@@ -1,8 +1,54 @@
 'use client';
 import { apiFetch } from '@vitera/lib';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BadgeTemplate, BadgeCriteria } from '../../../types';
 import HelpModal, { HelpButton } from './HelpModal';
+import { BadgeIcon } from './badgeIcon';
+
+/**
+ * Small upload button that reads a chosen image and produces a data:
+ * URI suitable for the icon column. Enforces a 20 KB cap since the
+ * icon is stored inline in the DB — larger images should go to object
+ * storage and be referenced by URL.
+ */
+const MAX_ICON_BYTES = 20 * 1024;
+function IconUploadButton({ onPicked }: { onPicked: (dataUri: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = async (file: File) => {
+    if (file.size > MAX_ICON_BYTES) {
+      alert(`圖片太大（${Math.round(file.size / 1024)} KB）— 請壓到 20 KB 以內，或改用 URL 放外部圖床。`);
+      return;
+    }
+    const dataUri = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    }).catch(err => {
+      alert(`讀取失敗：${(err as Error).message}`);
+      return null;
+    });
+    if (dataUri) onPicked(dataUri);
+  };
+
+  return (
+    <>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden"
+        onChange={e => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+          if (inputRef.current) inputRef.current.value = '';
+        }} />
+      <button type="button"
+        onClick={() => inputRef.current?.click()}
+        className="shrink-0 text-xs px-2 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50"
+        title="上傳圖片（≤ 20 KB，存為 data URI）">
+        📁 上傳
+      </button>
+    </>
+  );
+}
 
 interface Props {
   productId: string;
@@ -159,10 +205,19 @@ export default function ProductBadgeSection({ productId }: Props) {
         <input className="hq-input" placeholder="徽章名稱（必填）"
           value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <input className="hq-input" placeholder="icon（emoji 或 URL，選填）"
-          value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })} />
-        <input className="hq-input" placeholder="說明（選填）"
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-slate-500 shrink-0 w-12">Icon</label>
+          <input className="hq-input text-sm flex-1 font-mono" placeholder="emoji（🏆）/ URL / data: URI（選填）"
+            value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })} />
+          {form.icon && (
+            <span className="shrink-0 w-8 h-8 flex items-center justify-center border border-slate-200 rounded bg-white">
+              <BadgeIcon icon={form.icon} size={22} />
+            </span>
+          )}
+          <IconUploadButton onPicked={dataUri => setForm({ ...form, icon: dataUri })} />
+        </div>
+        <input className="hq-input text-sm" placeholder="說明（選填）"
           value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
       </div>
       <div className="flex flex-col gap-2 border border-slate-200 rounded p-2 bg-white">
@@ -224,8 +279,13 @@ export default function ProductBadgeSection({ productId }: Props) {
           <div>
             <strong>Icon</strong>
             <p className="text-xs text-slate-500 mt-1">
-              可填 emoji（如 🏆🔥⭐）或圖片 URL。在使用者狀態頁顯示。
+              三種填法，編輯器會自動判斷並渲染：
             </p>
+            <ul className="list-disc pl-5 text-xs text-slate-600 mt-1 flex flex-col gap-0.5">
+              <li>Emoji：如 <code className="bg-slate-100 px-1 rounded">🏆</code>、<code className="bg-slate-100 px-1 rounded">🔥</code>、<code className="bg-slate-100 px-1 rounded">⭐</code></li>
+              <li>URL：<code className="bg-slate-100 px-1 rounded">https://...</code> 或 <code className="bg-slate-100 px-1 rounded">http://...</code>，適合放外部 CDN 圖</li>
+              <li>base64 data URI：<code className="bg-slate-100 px-1 rounded">data:image/png;base64,...</code>，按「📁 上傳」選檔會自動轉成這種格式（限 20 KB 內）</li>
+            </ul>
           </div>
           <div>
             <strong>Criteria 類型</strong>
@@ -296,7 +356,7 @@ export default function ProductBadgeSection({ productId }: Props) {
                 <>
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
-                      {b.icon && <span className="text-xl">{b.icon}</span>}
+                      {b.icon && <BadgeIcon icon={b.icon} size={22} />}
                       <code className="bg-slate-100 px-1.5 rounded font-mono text-sm">{b.key}</code>
                       <span className="font-semibold">{b.name}</span>
                       {!b.is_active && <span className="hq-badge hq-badge-gray">停用</span>}

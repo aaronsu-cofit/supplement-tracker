@@ -10,6 +10,7 @@ import type {
   UserBadgeRow,
   UserJourneyPhaseRow,
 } from '../../../../types';
+import { BadgeIcon } from '../../../products/[id]/badgeIcon';
 
 interface Props {
   userId: string;
@@ -175,7 +176,7 @@ export default function UserInfoPanel({ userId }: Props) {
               <span key={b.id}
                 className="text-xs bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 flex items-center gap-1"
                 title={b.template.description ?? ''}>
-                <span>{b.template.icon || '🏅'}</span>
+                <BadgeIcon icon={b.template.icon} size={16} />
                 <span>{b.template.name}</span>
               </span>
             ))}

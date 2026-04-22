@@ -12,6 +12,7 @@ import type {
   EngagementEventRow,
   MessageLogRow,
 } from '../../../types';
+import { BadgeIcon } from '../../products/[id]/badgeIcon';
 
 interface Props {
   userId: string;
@@ -232,7 +233,7 @@ export default function UserDetailClient({ userId }: Props) {
           <ul className="flex flex-wrap gap-2">
             {badges.map(b => (
               <li key={b.id} className="border border-slate-200 rounded-lg px-3 py-2 flex items-center gap-2 bg-slate-50">
-                {b.template.icon && <span className="text-xl">{b.template.icon}</span>}
+                {b.template.icon && <BadgeIcon icon={b.template.icon} size={24} />}
                 <div className="flex flex-col">
                   <span className="font-semibold text-sm">{b.template.name}</span>
                   <code className="text-xs text-slate-500 font-mono">{b.template.key}</code>

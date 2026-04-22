@@ -367,7 +367,9 @@ model BadgeTemplate {
   key         String   @db.VarChar(100)
   name        String   @db.VarChar(200)
   description String?
-  icon        String?  @db.VarChar(50)
+  // Stored as TEXT to fit: emoji (1-4 chars), URL (~100 chars), or
+  // data: URI (base64 image, can be tens of KB).
+  icon        String?  @db.Text
   criteria    Json
   is_active   Boolean  @default(true)
   created_at  DateTime @default(now())
