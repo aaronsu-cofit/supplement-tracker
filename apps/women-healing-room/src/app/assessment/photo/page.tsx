@@ -10,19 +10,48 @@ export default function PhotoScan() {
   const [step, setStep] = useState<"intro" | "readyToScan" | "scanning" | "done">("intro");
   const [scanText, setScanText] = useState("正在抓取臉部特徵點...");
   const [cameraError, setCameraError] = useState(false);
+  const [cameraErrorType, setCameraErrorType] = useState<"denied" | "unsupported" | "error" | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   const startCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraErrorType("unsupported");
+      setCameraError(true);
+      setStep("readyToScan");
+      return;
+    }
+
     try {
+      // Check if permission was previously denied (Android won't re-prompt if denied)
+      if (navigator.permissions) {
+        try {
+          const permStatus = await navigator.permissions.query({ name: "camera" as PermissionName });
+          if (permStatus.state === "denied") {
+            setCameraErrorType("denied");
+            setCameraError(true);
+            setStep("readyToScan");
+            return;
+          }
+        } catch {
+          // Permissions API not supported, proceed to getUserMedia
+        }
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" },
       });
       streamRef.current = stream;
       setStep("readyToScan");
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Camera error:", err);
+      const errorName = err instanceof Error ? err.name : "";
+      if (errorName === "NotAllowedError" || errorName === "PermissionDeniedError") {
+        setCameraErrorType("denied");
+      } else {
+        setCameraErrorType("error");
+      }
       setCameraError(true);
       setStep("readyToScan");
     }
@@ -117,8 +146,23 @@ export default function PhotoScan() {
               <video ref={videoRef} autoPlay playsInline muted className={styles.liveVideo} />
             ) : (
               <div className={styles.fallbackBox}>
-                ⚠️ 無法存取相機，已降級為模擬介面<br />
-                (請確認瀏覽器已給予相機權限)
+                {cameraErrorType === "denied" ? (
+                  <>
+                    🔒 相機權限遭拒絕<br />
+                    請前往手機的<strong>設定 → 瀏覽器 → 權限 → 相機</strong>，
+                    將此網站改為「允許」後重新整理頁面。
+                  </>
+                ) : cameraErrorType === "unsupported" ? (
+                  <>
+                    ⚠️ 瀏覽器不支援相機存取<br />
+                    請使用 Chrome 或 Safari，並確認網站使用 HTTPS 連線。
+                  </>
+                ) : (
+                  <>
+                    ⚠️ 無法存取相機，已降級為模擬介面<br />
+                    (請確認瀏覽器已給予相機權限)
+                  </>
+                )}
               </div>
             )}
 
