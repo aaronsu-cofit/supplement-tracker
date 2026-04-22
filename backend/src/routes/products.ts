@@ -316,6 +316,9 @@ function validateMissionPayload(body: Record<string, unknown>, requireKeyAndName
       }
     }
   }
+  if (body.notify_content_key != null && typeof body.notify_content_key !== 'string') {
+    return 'notify_content_key 需為字串';
+  }
   return null;
 }
 
@@ -335,6 +338,7 @@ products.post('/:productId/missions', async (c) => {
       progress_target: body.progress_target,
       auto_complete_on_attribute: body.auto_complete_on_attribute,
       on_complete_actions: body.on_complete_actions,
+      notify_content_key: body.notify_content_key,
     });
     return c.json({ mission }, 201);
   } catch (e: unknown) {
@@ -392,6 +396,9 @@ function validateBadgePayload(body: Record<string, unknown>, requireAll: boolean
       if (typeof crit.mission_key !== 'string' || !crit.mission_key.trim()) return 'mission_completed 需 mission_key';
     }
   }
+  if (body.notify_content_key != null && typeof body.notify_content_key !== 'string') {
+    return 'notify_content_key 需為字串';
+  }
   return null;
 }
 
@@ -419,6 +426,7 @@ products.post('/:productId/badges', async (c) => {
       description: body.description,
       icon: body.icon,
       criteria: body.criteria as BadgeCriteria,
+      notify_content_key: body.notify_content_key,
     });
     return c.json({ badge }, 201);
   } catch (e: unknown) {

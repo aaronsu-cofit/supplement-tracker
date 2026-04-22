@@ -1135,6 +1135,7 @@ export async function createMissionTemplate(productId: string, data: CreateMissi
           ? Prisma.JsonNull
           : (data.auto_complete_on_attribute as unknown as Prisma.InputJsonValue),
       on_complete_actions: (data.on_complete_actions ?? []) as unknown as Prisma.InputJsonValue,
+      notify_content_key: data.notify_content_key ?? null,
     },
   });
 }
@@ -1156,6 +1157,7 @@ export async function updateMissionTemplate(id: string, data: UpdateMissionTempl
       ...(data.on_complete_actions !== undefined && {
         on_complete_actions: data.on_complete_actions as unknown as Prisma.InputJsonValue,
       }),
+      ...(data.notify_content_key !== undefined && { notify_content_key: data.notify_content_key }),
       ...(data.is_active !== undefined && { is_active: data.is_active }),
     },
   });
@@ -1255,6 +1257,7 @@ export async function getPendingAssignmentsForAttribute(userId: string, attribut
           product_id: true,
           auto_complete_on_attribute: true,
           on_complete_actions: true,
+          notify_content_key: true,
         },
       },
     },
@@ -1350,6 +1353,7 @@ export async function createBadgeTemplate(productId: string, data: CreateBadgeTe
       description: data.description ?? null,
       icon: data.icon ?? null,
       criteria: data.criteria as unknown as Prisma.InputJsonValue,
+      notify_content_key: data.notify_content_key ?? null,
     },
   });
 }
@@ -1363,6 +1367,7 @@ export async function updateBadgeTemplate(id: string, data: UpdateBadgeTemplateI
       ...(data.description !== undefined && { description: data.description }),
       ...(data.icon !== undefined && { icon: data.icon }),
       ...(data.criteria != null && { criteria: data.criteria as unknown as Prisma.InputJsonValue }),
+      ...(data.notify_content_key !== undefined && { notify_content_key: data.notify_content_key }),
       ...(data.is_active !== undefined && { is_active: data.is_active }),
     },
   });

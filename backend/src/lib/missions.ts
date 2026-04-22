@@ -10,6 +10,7 @@ import {
 } from './db.js';
 import { incrementStreak, evaluateMissionBadges } from './gamification.js';
 import { evaluateJourneys } from './journey.js';
+import { pushContentToUser } from './notify.js';
 import type { MissionCompleteAction, AutoCompleteRule } from '../types.js';
 
 // ─── Pure logic (unit-testable without DB) ──────────────────────────────────
@@ -109,6 +110,9 @@ async function runCompleteActions(ctx: CompletionContext): Promise<void> {
  * entry point for completions; intent/progress/auto-complete paths all
  * funnel through here so on_complete_actions always fire exactly once.
  * missionKey is used to trigger badge evaluation after completion.
+ * notifyContentKey (if provided, copied from the template) triggers a
+ * LINE push of that content to the user after completion — so every
+ * completion path gets the same user-visible celebration.
  */
 export async function completeMissionAssignment(
   productId: string,
@@ -116,6 +120,7 @@ export async function completeMissionAssignment(
   assignmentId: string,
   missionKey: string,
   rawActions: unknown,
+  notifyContentKey: string | null | undefined,
   depth = 0,
 ): Promise<void> {
   try {
@@ -134,6 +139,10 @@ export async function completeMissionAssignment(
   evaluateJourneys(productId, userId, { type: 'mission_completed', key: missionKey }).catch(err =>
     console.error('[missions] evaluateJourneys error:', err),
   );
+  if (notifyContentKey) {
+    pushContentToUser(productId, userId, notifyContentKey, 'mission_notify', `${missionKey}:${assignmentId}`)
+      .catch(err => console.error('[missions] notify error:', err));
+  }
   const actions = parseCompleteActions(rawActions);
   if (actions.length === 0) return;
   await runCompleteActions({ productId, userId, assignmentId, actions, depth });
@@ -158,6 +167,7 @@ export async function completeMissionByKey(
     pending.id,
     template.key,
     template.on_complete_actions,
+    template.notify_content_key,
   );
   return { completed: true };
 }
@@ -186,6 +196,7 @@ export async function incrementMissionProgress(
       pending.id,
       template.key,
       template.on_complete_actions,
+      template.notify_content_key,
     );
     return { incremented: true, completed: true };
   }
@@ -214,6 +225,7 @@ async function runAttributeAutoCompleteHook(
       p.id,
       p.template.key,
       p.template.on_complete_actions,
+      p.template.notify_content_key,
       depth,
     );
   }

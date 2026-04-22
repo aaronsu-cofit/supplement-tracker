@@ -185,6 +185,7 @@ export interface MissionTemplate {
   progress_target: number;
   auto_complete_on_attribute: AutoCompleteRule | null;
   on_complete_actions: MissionCompleteAction[];
+  notify_content_key: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -202,6 +203,7 @@ export interface BadgeTemplate {
   description: string | null;
   icon: string | null;
   criteria: BadgeCriteria;
+  notify_content_key: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

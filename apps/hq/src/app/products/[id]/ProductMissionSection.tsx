@@ -17,6 +17,7 @@ interface FormShape {
   auto_complete_attribute_key: string;
   auto_complete_match_value: string; // empty means "any value"
   on_complete_actions: MissionCompleteAction[];
+  notify_content_key: string;
   is_active: boolean;
 }
 
@@ -29,6 +30,7 @@ const EMPTY: FormShape = {
   auto_complete_attribute_key: '',
   auto_complete_match_value: '',
   on_complete_actions: [],
+  notify_content_key: '',
   is_active: true,
 };
 
@@ -45,6 +47,7 @@ function formToPayload(f: FormShape) {
         }
       : null,
     on_complete_actions: f.on_complete_actions,
+    notify_content_key: f.notify_content_key.trim() || null,
     is_active: f.is_active,
   };
 }
@@ -59,6 +62,7 @@ function missionToForm(m: MissionTemplate): FormShape {
     auto_complete_attribute_key: m.auto_complete_on_attribute?.attribute_key ?? '',
     auto_complete_match_value: m.auto_complete_on_attribute?.match_value ?? '',
     on_complete_actions: m.on_complete_actions ?? [],
+    notify_content_key: m.notify_content_key ?? '',
     is_active: m.is_active,
   };
 }
@@ -266,6 +270,12 @@ export default function ProductMissionSection({ productId }: Props) {
         )}
       </div>
       {renderActions(form, setForm)}
+      <div className="flex items-center gap-2 flex-wrap text-sm">
+        <label className="text-slate-600 shrink-0">完成時推播內容：</label>
+        <input className="hq-input text-sm flex-1 min-w-[180px]" placeholder="content_key（選填，空白=不推播）"
+          value={form.notify_content_key}
+          onChange={e => setForm({ ...form, notify_content_key: e.target.value })} />
+      </div>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={form.is_active}
           onChange={e => setForm({ ...form, is_active: e.target.checked })} />
@@ -333,9 +343,15 @@ export default function ProductMissionSection({ productId }: Props) {
             </p>
           </div>
           <div>
+            <strong>完成時推播內容</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              填產品內容庫的 key（text 或 flex 皆可），任務完成時會自動 push 給使用者。所有完成路徑都會觸發（意圖、進度抵達、屬性自動完成、任務鏈）。推播走使用者最近互動的 OA，不需額外設定 OA。
+            </p>
+          </div>
+          <div>
             <strong>範例：3 天任務鏈</strong>
             <p className="text-xs text-slate-500 mt-1">
-              建 <code className="bg-slate-100 px-1 rounded">day1</code> 的 on_complete = <code className="bg-slate-100 px-1 rounded">[assign_mission day2, increment_streak daily]</code>；<code className="bg-slate-100 px-1 rounded">day2</code> on_complete 指向 <code className="bg-slate-100 px-1 rounded">day3</code>，以此類推。
+              建 <code className="bg-slate-100 px-1 rounded">day1</code> 的 on_complete = <code className="bg-slate-100 px-1 rounded">[assign_mission day2, increment_streak daily]</code>、notify_content_key = <code className="bg-slate-100 px-1 rounded">day1_done</code>；<code className="bg-slate-100 px-1 rounded">day2</code> on_complete 指向 <code className="bg-slate-100 px-1 rounded">day3</code>，以此類推。
             </p>
           </div>
         </HelpModal>
@@ -407,6 +423,11 @@ export default function ProductMissionSection({ productId }: Props) {
                     <p className="text-xs text-slate-500">
                       自動完成：屬性 <code className="bg-slate-100 px-1 rounded">{m.auto_complete_on_attribute.attribute_key}</code>
                       {m.auto_complete_on_attribute.match_value && <> = <code className="bg-slate-100 px-1 rounded">{m.auto_complete_on_attribute.match_value}</code></>}
+                    </p>
+                  )}
+                  {m.notify_content_key && (
+                    <p className="text-xs text-slate-500">
+                      完成時推播：<code className="bg-slate-100 px-1 rounded">{m.notify_content_key}</code>
                     </p>
                   )}
                   {m.on_complete_actions.length > 0 && (

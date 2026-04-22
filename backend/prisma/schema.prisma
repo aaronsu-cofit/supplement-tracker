@@ -299,6 +299,11 @@ model MissionTemplate {
   progress_target            Int      @default(1)
   auto_complete_on_attribute Json?
   on_complete_actions        Json     @default("[]")
+  // When non-null, look up this content key at completion and push the
+  // resolved text/flex to the user via the OA's channel access token.
+  // Works for all completion paths (intent, progress-reach, attribute
+  // auto-complete, chain). Null = no auto-notify.
+  notify_content_key         String?  @db.VarChar(100)
   is_active                  Boolean  @default(true)
   created_at                 DateTime @default(now())
   updated_at                 DateTime @updatedAt
@@ -371,6 +376,10 @@ model BadgeTemplate {
   // data: URI (base64 image, can be tens of KB).
   icon        String?  @db.Text
   criteria    Json
+  // Same semantics as MissionTemplate.notify_content_key — sends the
+  // referenced content item when the badge is awarded (once, since
+  // badges are unique-per-user).
+  notify_content_key String? @db.VarChar(100)
   is_active   Boolean  @default(true)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt

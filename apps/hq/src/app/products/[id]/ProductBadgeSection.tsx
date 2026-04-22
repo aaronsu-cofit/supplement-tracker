@@ -63,6 +63,7 @@ interface FormShape {
   streak_key: string;
   threshold: number;
   mission_key: string;
+  notify_content_key: string;
   is_active: boolean;
 }
 
@@ -75,6 +76,7 @@ const EMPTY: FormShape = {
   streak_key: '',
   threshold: 7,
   mission_key: '',
+  notify_content_key: '',
   is_active: true,
 };
 
@@ -89,6 +91,7 @@ function formToPayload(f: FormShape) {
     description: f.description || null,
     icon: f.icon || null,
     criteria,
+    notify_content_key: f.notify_content_key.trim() || null,
     is_active: f.is_active,
   };
 }
@@ -103,6 +106,7 @@ function badgeToForm(b: BadgeTemplate): FormShape {
     streak_key: b.criteria.type === 'streak_reached' ? b.criteria.streak_key : '',
     threshold: b.criteria.type === 'streak_reached' ? b.criteria.threshold : 7,
     mission_key: b.criteria.type === 'mission_completed' ? b.criteria.mission_key : '',
+    notify_content_key: b.notify_content_key ?? '',
     is_active: b.is_active,
   };
 }
@@ -240,6 +244,12 @@ export default function ProductBadgeSection({ productId }: Props) {
             value={form.mission_key} onChange={e => setForm({ ...form, mission_key: e.target.value })} />
         )}
       </div>
+      <div className="flex items-center gap-2 flex-wrap text-sm">
+        <label className="text-slate-600 shrink-0">取得時推播內容：</label>
+        <input className="hq-input text-sm flex-1 min-w-[180px]" placeholder="content_key（選填，空白=不推播）"
+          value={form.notify_content_key}
+          onChange={e => setForm({ ...form, notify_content_key: e.target.value })} />
+      </div>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={form.is_active}
           onChange={e => setForm({ ...form, is_active: e.target.checked })} />
@@ -305,9 +315,15 @@ export default function ProductBadgeSection({ productId }: Props) {
             </p>
           </div>
           <div>
+            <strong>取得時推播內容</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              填產品內容庫的 key（text 或 flex），徽章頒發的當下自動 push 給使用者。走使用者最近互動的 OA 發送。若不需要主動通知可留空。
+            </p>
+          </div>
+          <div>
             <strong>範例：7 日戰士</strong>
             <p className="text-xs text-slate-500 mt-1">
-              key <code className="bg-slate-100 px-1 rounded">seven_day</code>、icon 🔥、criteria streak_reached streak_key=<code className="bg-slate-100 px-1 rounded">daily</code> threshold=7。使用者連續打卡第 7 天自動取得。
+              key <code className="bg-slate-100 px-1 rounded">seven_day</code>、icon 🔥、criteria streak_reached streak_key=<code className="bg-slate-100 px-1 rounded">daily</code> threshold=7、notify_content_key=<code className="bg-slate-100 px-1 rounded">seven_day_card</code>。使用者連續打卡第 7 天自動取得並收到慶祝卡片。
             </p>
           </div>
         </HelpModal>
@@ -381,6 +397,11 @@ export default function ProductBadgeSection({ productId }: Props) {
                       <>取得條件：完成任務 <code className="bg-slate-100 px-1 rounded">{b.criteria.mission_key}</code></>
                     )}
                   </p>
+                  {b.notify_content_key && (
+                    <p className="text-xs text-slate-500">
+                      取得時推播：<code className="bg-slate-100 px-1 rounded">{b.notify_content_key}</code>
+                    </p>
+                  )}
                 </>
               )}
             </li>

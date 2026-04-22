@@ -9,7 +9,9 @@ export type MessageLogSource =
   | 'intent'
   | 'ai_agent'
   | 'scheduler_push'
-  | 'scheduler_ai';
+  | 'scheduler_ai'
+  | 'mission_notify'
+  | 'badge_notify';
 
 export interface LogInput {
   oaId: number;

@@ -221,6 +221,7 @@ export interface CreateMissionTemplateInput {
   progress_target?: number;
   auto_complete_on_attribute?: AutoCompleteRule | null;
   on_complete_actions?: MissionCompleteAction[];
+  notify_content_key?: string | null;
 }
 
 export interface UpdateMissionTemplateInput {
@@ -230,6 +231,7 @@ export interface UpdateMissionTemplateInput {
   progress_target?: number;
   auto_complete_on_attribute?: AutoCompleteRule | null;
   on_complete_actions?: MissionCompleteAction[];
+  notify_content_key?: string | null;
   is_active?: boolean;
 }
 
@@ -250,6 +252,7 @@ export interface CreateBadgeTemplateInput {
   description?: string;
   icon?: string;
   criteria: BadgeCriteria;
+  notify_content_key?: string | null;
 }
 
 export interface UpdateBadgeTemplateInput {
@@ -258,6 +261,7 @@ export interface UpdateBadgeTemplateInput {
   description?: string | null;
   icon?: string | null;
   criteria?: BadgeCriteria;
+  notify_content_key?: string | null;
   is_active?: boolean;
 }
 

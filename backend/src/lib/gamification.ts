@@ -8,6 +8,7 @@ import {
 } from './db.js';
 import { localDateInTz, daysBetweenInTz } from './time.js';
 import { evaluateJourneys } from './journey.js';
+import { pushContentToUser } from './notify.js';
 import type { BadgeCriteria } from '../types.js';
 
 // ─── Pure streak logic ──────────────────────────────────────────────────────
@@ -155,6 +156,10 @@ export async function evaluateStreakBadges(
         evaluateJourneys(productId, userId, { type: 'badge_earned', key: t.key }).catch(err =>
           console.error('[gamification] evaluateJourneys error:', err),
         );
+        if (t.notify_content_key) {
+          pushContentToUser(productId, userId, t.notify_content_key, 'badge_notify', t.key)
+            .catch(err => console.error('[gamification] notify error:', err));
+        }
       }
     } catch (err) {
       console.error('[gamification] awardBadge error:', err);
@@ -185,6 +190,10 @@ export async function evaluateMissionBadges(
         evaluateJourneys(productId, userId, { type: 'badge_earned', key: t.key }).catch(err =>
           console.error('[gamification] evaluateJourneys error:', err),
         );
+        if (t.notify_content_key) {
+          pushContentToUser(productId, userId, t.notify_content_key, 'badge_notify', t.key)
+            .catch(err => console.error('[gamification] notify error:', err));
+        }
       }
     } catch (err) {
       console.error('[gamification] awardBadge error:', err);
