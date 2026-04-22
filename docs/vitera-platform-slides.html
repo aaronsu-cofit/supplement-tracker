@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vitera 平台總覽</title>
+<style>
+  :root {
+    --bg: #0b0d17;
+    --bg-2: #14172a;
+    --fg: #e7e9f3;
+    --fg-muted: #8a8fa3;
+    --accent: #7c5cfc;
+    --accent-2: #5ce0d8;
+    --green: #4ade80;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --border: #252844;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, 'Noto Sans TC', BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  .deck {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 4rem 6rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0;
+    transform: translateX(40px);
+    transition: opacity 400ms ease, transform 400ms ease;
+    pointer-events: none;
+    overflow: auto;
+  }
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+  .slide.prev {
+    transform: translateX(-40px);
+  }
+  .label {
+    color: var(--accent);
+    font-size: 0.9rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    font-weight: 600;
+  }
+  h1 {
+    font-size: 4.5rem;
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+  }
+  h1 small {
+    display: block;
+    font-size: 1.25rem;
+    color: var(--fg-muted);
+    font-weight: 500;
+    letter-spacing: 0;
+    margin-top: 1rem;
+  }
+  h2 {
+    font-size: 2.75rem;
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 2rem;
+  }
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  p { font-size: 1.1rem; color: var(--fg-muted); line-height: 1.6; max-width: 60ch; }
+  p.lead { font-size: 1.35rem; color: var(--fg); max-width: 68ch; }
+  ul.bullets { list-style: none; font-size: 1.1rem; line-height: 1.8; }
+  ul.bullets li { padding-left: 1.25rem; position: relative; margin-bottom: 0.5rem; }
+  ul.bullets li::before {
+    content: "▸";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+  .card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+  }
+  .card h3 { color: var(--accent-2); }
+  .card p, .card ul { font-size: 0.95rem; }
+  .card ul.bullets li { font-size: 0.95rem; margin-bottom: 0.35rem; }
+  code, .code {
+    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    font-size: 0.9em;
+    background: #1a1d33;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--accent-2);
+  }
+  pre.code-block {
+    background: #0a0c18;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    font-size: 0.85rem;
+    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+  .tag {
+    display: inline-block;
+    background: #1a1d33;
+    color: var(--fg-muted);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    margin-right: 0.5rem;
+    letter-spacing: 0.05em;
+  }
+  .tag.green { color: var(--green); border: 1px solid color-mix(in srgb, var(--green) 30%, transparent); }
+  .tag.amber { color: var(--amber); border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent); }
+  .tag.accent { color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+  }
+  .pipeline .step {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+  }
+  .pipeline .arrow {
+    color: var(--accent);
+    font-size: 1.5rem;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0b0d17;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+  .footer {
+    position: fixed;
+    bottom: 1.25rem;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2rem;
+    color: var(--fg-muted);
+    font-size: 0.85rem;
+    pointer-events: none;
+  }
+  .footer .brand { font-weight: 600; color: var(--fg); }
+  .nav {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 2rem;
+    display: flex;
+    gap: 0.5rem;
+    pointer-events: auto;
+  }
+  .nav button {
+    background: var(--bg-2);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    width: 2rem; height: 2rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 150ms;
+  }
+  .nav button:hover { background: var(--accent); color: white; }
+  .progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: var(--accent);
+    transition: width 300ms ease;
+    z-index: 100;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+    padding: 1.5rem 1rem;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .stat .num {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--accent-2);
+    line-height: 1;
+  }
+  .stat .lbl {
+    color: var(--fg-muted);
+    font-size: 0.9rem;
+  }
+  .flow-diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.9rem;
+  }
+  .flow-diagram .row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .flow-diagram .box {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .flow-diagram .box.accent { border-color: var(--accent); color: var(--accent); }
+  .flow-diagram .box.green { border-color: var(--green); color: var(--green); }
+  .flow-diagram .arrow { color: var(--accent); }
+  .emoji-head { font-size: 2rem; margin-bottom: 0.5rem; }
+  @media print {
+    .slide { position: relative; opacity: 1; transform: none; pointer-events: auto; page-break-after: always; height: 100vh; }
+    .nav, .progress, .footer { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck"></div>
+<div class="footer">
+  <span class="brand">Vitera DTx Platform</span>
+  <span id="page-indicator">1 / 18</span>
+</div>
+<div class="nav">
+  <button onclick="prev()">‹</button>
+  <button onclick="next()">›</button>
+</div>
+
+<script>
+const slides = [
+  // 1 — Title
+  `<div style="text-align:center;margin:auto;max-width:800px">
+    <div class="hero-badge">LINE Bot + DTx 平台</div>
+    <h1>Vitera<small>一套可跨 OA 共用、涵蓋內容／任務／徽章／意圖／Journey 的 LINE Bot 平台</small></h1>
+    <p style="margin:2rem auto 0;font-size:1rem">2026-04 · 內部技術分享</p>
+  </div>`,
+
+  // 2 — Why
+  `<div>
+    <div class="label">問題</div>
+    <h2>為什麼需要平台？</h2>
+    <div class="grid2">
+      <div>
+        <p class="lead" style="margin-bottom:1.5rem">每次建一個 LINE Bot 都是「同樣的基礎設施、不同的內容」。</p>
+        <ul class="bullets">
+          <li>推播時程：Day 0 / Day 1 / Day 7...</li>
+          <li>使用者狀態：phase、連續天數、完成任務</li>
+          <li>對話路由：意圖分類、AI 顧問、知識庫引用</li>
+          <li>遊戲化：徽章、慶祝訊息</li>
+        </ul>
+      </div>
+      <div>
+        <p class="lead" style="margin-bottom:1.5rem">每做一個產品都要重寫，不划算。</p>
+        <ul class="bullets">
+          <li>內容要寫一次、用在多處</li>
+          <li>規則要在 UI 改、不是改 code</li>
+          <li>狀態要看得到、除錯要快</li>
+          <li>配置要可分享、跨產品搬運</li>
+        </ul>
+      </div>
+    </div>
+  </div>`,
+
+  // 3 — Architecture
+  `<div>
+    <div class="label">架構</div>
+    <h2>三層模型</h2>
+    <div class="grid3">
+      <div class="card">
+        <h3>① 資產層（Product）</h3>
+        <p>可複用的藍圖：</p>
+        <ul class="bullets">
+          <li>Content（text / flex）</li>
+          <li>Mission（任務藍圖）</li>
+          <li>Badge（徽章藍圖）</li>
+          <li>Intent Rule（意圖規則）</li>
+          <li>Journey（狀態機）</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>② 狀態層（User）</h3>
+        <p>每使用者當下的狀態：</p>
+        <ul class="bullets">
+          <li>UserAttribute（key/value）</li>
+          <li>MissionAssignment（進行中/完成）</li>
+          <li>UserStreak（連續天數）</li>
+          <li>UserBadge（已得徽章）</li>
+          <li>UserJourneyPhase（當前階段）</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>③ 驅動層（Trigger）</h3>
+        <p>把藍圖作用在狀態：</p>
+        <ul class="bullets">
+          <li>劇本（每日排程）</li>
+          <li>意圖規則（訊息進來）</li>
+          <li>Hook 連動（屬性→任務→徽章→Journey）</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:1.5rem">多個 LINE OA 共用同一個 Product，配置寫一次、多通道部署。</p>
+  </div>`,
+
+  // 4 — Product & OA binding
+  `<div>
+    <div class="label">Layer 1 · Product</div>
+    <h2>跨 OA 共用的配置包</h2>
+    <div class="grid2">
+      <div>
+        <p class="lead" style="margin-bottom:1.5rem">一個產品 = 一組完整的 DTx 配置：內容、任務、徽章、意圖、Journey。</p>
+        <ul class="bullets">
+          <li>多個 OA 可綁同一產品 → 同一份設定、不同通道</li>
+          <li>例：「女性健康室」產品可同時綁給 A 公司、B 診所、C 企業的 LINE OA</li>
+          <li>OA 未綁產品仍能跑 AI 顧問 → 平台功能「選擇加入」，不是強制</li>
+        </ul>
+      </div>
+      <div>
+        <pre class="code-block">Product: 21_day_wellness
+ ├─ ContentItems × 15
+ ├─ Missions × 21
+ ├─ Badges × 5
+ ├─ IntentRules × 12
+ ├─ Journey: default
+ │   └─ phases: onboarding → active → completed
+ └─ bound to OAs:
+     • OA#1 (A 公司)
+     • OA#2 (B 診所)</pre>
+      </div>
+    </div>
+  </div>`,
+
+  // 5 — Content Library
+  `<div>
+    <div class="label">Layer 2 · 內容庫</div>
+    <h2>可複用、可即時更新的訊息</h2>
+    <div class="grid2">
+      <div>
+        <ul class="bullets">
+          <li>兩種類型：<code>text</code>（純文字）、<code>flex</code>（LINE 卡片）</li>
+          <li>發送時才從 DB 取 → 改內容<strong>即時生效</strong>，不必改劇本/意圖</li>
+          <li>用 <code>key</code> 引用：劇本、意圖回覆、任務/徽章完成通知</li>
+          <li>Flex 編輯器內建 12 個官方範例（餐廳/收據/新聞/卡片/量表結果…）</li>
+          <li>即時 JSON 驗證 + 外連 LINE Flex Simulator</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color:var(--accent-2);margin-bottom:0.75rem">12 個 Flex 範例</h3>
+        <div class="grid2" style="gap:0.5rem">
+          <span class="tag">🍽️ 餐廳介紹</span>
+          <span class="tag">🧾 收據</span>
+          <span class="tag">📰 新聞摘要</span>
+          <span class="tag">✈️ 旅遊行程</span>
+          <span class="tag">🏨 飯店訂房</span>
+          <span class="tag">📅 活動通知</span>
+          <span class="tag">💳 付款成功</span>
+          <span class="tag">🛒 商品 Carousel</span>
+          <span class="tag">😊 問卷選項</span>
+          <span class="tag green">🎉 任務完成</span>
+          <span class="tag green">📊 PHQ-9 量表</span>
+          <span class="tag green">💧 每日提醒</span>
+        </div>
+      </div>
+    </div>
+  </div>`,
+
+  // 6 — Mission
+  `<div>
+    <div class="label">Layer 2 · 任務引擎</div>
+    <h2>任務（Mission）— 5 種能力</h2>
+    <div class="grid2" style="gap:1rem">
+      <div class="card">
+        <h3>🔢 多步進度</h3>
+        <p><code>progress_target = 3</code> → 意圖 <code>increment_mission_progress</code> 累到 3 才完成。例「喝 3 杯水」。</p>
+      </div>
+      <div class="card">
+        <h3>🏷️ 屬性自動完成</h3>
+        <p><code>auto_complete_on_attribute</code> → 屬性一被設到特定值，任務自動完成。適合問卷型。</p>
+      </div>
+      <div class="card">
+        <h3>🔗 完成動作鏈</h3>
+        <p><code>on_complete_actions[]</code>：設屬性、指派下一個任務（鏈結）、遞增連續天數。深度上限 5。</p>
+      </div>
+      <div class="card">
+        <h3>📬 完成時推播</h3>
+        <p><code>notify_content_key</code> → 任務完成自動 push 指定內容。所有完成路徑一致。</p>
+      </div>
+    </div>
+    <p style="margin-top:1.5rem">指派來源：意圖動作、劇本節點、其他任務的 on_complete 鏈結、對話頁手動指派、<code>/admins</code> 後台。</p>
+  </div>`,
+
+  // 7 — Streak + Badge
+  `<div>
+    <div class="label">Layer 2 · 遊戲化</div>
+    <h2>連續天數 + 徽章</h2>
+    <div class="grid2">
+      <div>
+        <h3 style="color:var(--accent-2);margin-bottom:0.75rem">🔥 Streak</h3>
+        <ul class="bullets">
+          <li>每個 <code>(product, user, streak_key)</code> 一份計數</li>
+          <li><strong>同日不重算</strong>、隔日 +1、斷天重置</li>
+          <li>用使用者 timezone 判定今/昨天</li>
+          <li>保留 count_best 最高紀錄</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color:var(--accent-2);margin-bottom:0.75rem">🏅 Badge</h3>
+        <ul class="bullets">
+          <li>兩種 criteria：<code>streak_reached</code>、<code>mission_completed</code></li>
+          <li>每人每徽章只得一次（unique constraint 冪等）</li>
+          <li>icon 支援 emoji / URL / base64 data URI（20KB 內）</li>
+          <li>取得時可自動推播慶祝卡片</li>
+        </ul>
+      </div>
+    </div>
+  </div>`,
+
+  // 8 — Intent Rule
+  `<div>
+    <div class="label">Layer 3 · 意圖路由</div>
+    <h2>使用者傳訊 → 路由</h2>
+    <p class="lead" style="margin-bottom:1.5rem">有綁產品的 OA 收到文字訊息，先比對意圖規則；未命中才落到 AI 顧問。</p>
+    <div class="pipeline">
+      <div class="step">📱 使用者傳訊息</div>
+      <div class="arrow">→</div>
+      <div class="step">🧭 Intent Rule 比對<br /><small style="color:var(--fg-muted)">keyword / exact / regex，依 priority 排序</small></div>
+      <div class="arrow">→</div>
+      <div class="step">⚡ 執行 action</div>
+    </div>
+    <div style="margin-top:1.5rem">
+      <h3 style="margin-bottom:0.75rem">7 種動作類型</h3>
+      <div class="grid4" style="gap:0.5rem">
+        <span class="tag accent">reply_content</span>
+        <span class="tag accent">set_attribute</span>
+        <span class="tag accent">assign_mission</span>
+        <span class="tag accent">complete_mission</span>
+        <span class="tag accent">increment_mission_progress</span>
+        <span class="tag accent">increment_streak</span>
+        <span class="tag accent">change_menu</span>
+      </div>
+    </div>
+  </div>`,
+
+  // 9 — Journey
+  `<div>
+    <div class="label">Layer 2 · Journey 狀態機</div>
+    <h2>使用者在哪個階段？</h2>
+    <div class="grid2">
+      <div>
+        <p class="lead" style="margin-bottom:1.5rem">一串命名的 phase + 轉移規則。使用者的 phase 在三種事件發生時自動推進。</p>
+        <ul class="bullets">
+          <li>三種觸發器：<code>mission_completed</code>、<code>attribute_equals</code>、<code>badge_earned</code></li>
+          <li><code>from_phase</code> 省略 = 任何 phase（含新使用者入口）</li>
+          <li>同 journey 內第一個命中的規則勝出</li>
+          <li>engagement events 記 <code>journey_transition</code> 可追蹤</li>
+        </ul>
+      </div>
+      <div>
+        <pre class="code-block">phases: [
+  onboarding,
+  active,
+  completed
+]
+
+transitions: [
+  attribute_equals onboarded=yes
+    → onboarding,
+  mission_completed day1_task
+    from onboarding → active,
+  badge_earned graduation
+    from active → completed
+]</pre>
+      </div>
+    </div>
+  </div>`,
+
+  // 10 — Scenario
+  `<div>
+    <div class="label">Layer 3 · 劇本</div>
+    <h2>按日自動排程</h2>
+    <div class="grid2">
+      <div>
+        <p class="lead" style="margin-bottom:1.5rem">以使用者 <code>enrolled_at</code> 起算 Day N，到該日排程器自動觸發所有動作。</p>
+        <ul class="bullets">
+          <li>用使用者 timezone 算天數（不是 server UTC）</li>
+          <li>List-view 編輯器（預設）+ 流程圖編輯器（進階）</li>
+          <li>冪等：同 <code>(user, scenario, node)</code> 不重送</li>
+          <li>cron 預設 <code>Asia/Taipei 09:00</code> 每日跑</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin-bottom:0.75rem">六種排程動作節點</h3>
+        <ul style="list-style:none;font-size:0.95rem;line-height:1.8">
+          <li>📨 訊息（text/image/sticker/flex）</li>
+          <li>🤖 AI 技能（排程呼叫 agent）</li>
+          <li>📋 切換選單</li>
+          <li>🎯 指派任務</li>
+          <li>🔥 連續天數 +1</li>
+          <li>🏷️ 設定屬性</li>
+        </ul>
+      </div>
+    </div>
+  </div>`,
+
+  // 11 — Cascades
+  `<div>
+    <div class="label">串接</div>
+    <h2>Hook 連動：一個事件啟動整個鏈</h2>
+    <div class="flow-diagram">
+      <div class="row">
+        <div class="box accent">使用者說「我喝完了」</div>
+        <div class="arrow">→</div>
+        <div class="box">意圖規則匹配 → increment_mission_progress</div>
+      </div>
+      <div class="row">
+        <div class="box">進度 3/3 → 任務自動完成</div>
+        <div class="arrow">→</div>
+        <div class="box green">on_complete_actions 依序跑</div>
+      </div>
+      <div class="row">
+        <div class="box">set_attribute phase_done=true</div>
+        <div class="arrow">→</div>
+        <div class="box">assign_mission day2_task</div>
+        <div class="arrow">→</div>
+        <div class="box">increment_streak daily</div>
+      </div>
+      <div class="row">
+        <div class="box green">連續 7 天 → badge 自動頒發</div>
+        <div class="arrow">→</div>
+        <div class="box accent">Journey phase 轉 completed</div>
+      </div>
+      <div class="row">
+        <div class="box">badge.notify_content_key</div>
+        <div class="arrow">→</div>
+        <div class="box accent">LINE push 慶祝 flex 卡片 🎉</div>
+      </div>
+    </div>
+    <p style="margin-top:1.5rem">每個 hook 都 fire-and-forget，錯誤不會阻擋主流程。</p>
+  </div>`,
+
+  // 12 — Conversations
+  `<div>
+    <div class="label">營運工具 · 對話頁</div>
+    <h2>看訊息 + 改狀態，一站搞定</h2>
+    <p class="lead" style="margin-bottom:1.5rem">OA 工作區「對話」tab 三欄佈局：使用者列表 / 對話泡泡 / 即時狀態面板。</p>
+    <div class="grid3">
+      <div class="card">
+        <h3>左欄</h3>
+        <ul class="bullets">
+          <li>使用者列表依最近活動排序</li>
+          <li>可 user_id 搜尋</li>
+          <li>切換使用者自動載入</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>中欄</h3>
+        <ul class="bullets">
+          <li>inbound / outbound 雙向泡泡</li>
+          <li>flex 可展開看 JSON</li>
+          <li>source 標記（意圖/AI/排程/通知…）</li>
+          <li>自動捲到最新訊息</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>右欄（可編輯）</h3>
+        <ul class="bullets">
+          <li>屬性 ✎ 編輯 / ✕ 刪除 / + 新增</li>
+          <li>任務 ✕ 放棄 / + 指派</li>
+          <li>徽章 ✕ 撤回</li>
+          <li>改後觸發跟使用者自己一樣的 hook</li>
+        </ul>
+      </div>
+    </div>
+  </div>`,
+
+  // 13 — Observability
+  `<div>
+    <div class="label">營運工具 · 觀察</div>
+    <h2>除錯利器</h2>
+    <div class="grid3">
+      <div class="card">
+        <h3>🧪 Lint</h3>
+        <p>劇本編輯器內建：偵測 content_key / mission_key 引用錯誤、flex JSON 格式、型別不匹配。警告直接標在動作節點上。</p>
+      </div>
+      <div class="card">
+        <h3>👁️ Dry-run</h3>
+        <p>輸入 user_id + 日期 → 排程器模擬會觸發什麼，不實際發送、不改 DB。已交付的標灰。</p>
+      </div>
+      <div class="card">
+        <h3>🚀 立即執行</h3>
+        <p>OA 概覽頁按鈕觸發 runDailyCycle，顯示 sent / skipped / errors，活動列表即時刷新。</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:1.5rem">
+      <h3>訊息流全紀錄</h3>
+      <p>所有 inbound 與 outbound 訊息都進 <code>message_log</code>：含 source（誰觸發）+ source_ref（哪條規則/節點）+ 完整 JSON。在對話頁和 <code>/admins</code> 都看得到。</p>
+    </div>
+  </div>`,
+
+  // 14 — Example scenario
+  `<div>
+    <div class="label">實例</div>
+    <h2>21 天健康習慣</h2>
+    <pre class="code-block">📦 Product: 21_day_wellness
+│
+├─ 📚 Content
+│   • welcome_msg (text)
+│   • day1_tip (flex card)
+│   • mission_done (flex 🎉)
+│   • graduation_card (flex 🏆)
+│
+├─ 🎯 Missions
+│   • day1_task → on_complete: assign day2
+│   • ... day21
+│
+├─ 🔥 Streaks: daily_checkin
+├─ 🏅 Badges
+│   • seven_day (streak_reached=7) + notify seven_day_card
+│   • graduate (mission_completed=day21) + notify graduation_card
+│
+├─ 🧭 Intent Rules
+│   • 「打卡」→ increment_streak daily + complete day_N
+│   • 「我做完了」→ complete_mission + reply mission_done
+│
+└─ 🗺️ Journey: wellness_21
+    phases: onboarding → active → graduated
+    transitions:
+      onboarded=yes      → onboarding
+      mission day1_done  → active
+      badge graduate     → graduated</pre>
+  </div>`,
+
+  // 15 — Platform stats
+  `<div>
+    <div class="label">目前規模</div>
+    <h2>平台累積</h2>
+    <div class="grid4" style="margin-bottom:2rem">
+      <div class="stat"><span class="num">10+</span><span class="lbl">資料表</span></div>
+      <div class="stat"><span class="num">110</span><span class="lbl">單元測試</span></div>
+      <div class="stat"><span class="num">14</span><span class="lbl">Migrations</span></div>
+      <div class="stat"><span class="num">30+</span><span class="lbl">Platform commits</span></div>
+    </div>
+    <h3 style="margin-bottom:0.75rem">核心 schema</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem">
+      <span class="tag">Product</span>
+      <span class="tag">ContentItem</span>
+      <span class="tag">MissionTemplate</span>
+      <span class="tag">MissionAssignment</span>
+      <span class="tag">UserStreak</span>
+      <span class="tag">BadgeTemplate</span>
+      <span class="tag">UserBadge</span>
+      <span class="tag">IntentRule</span>
+      <span class="tag">JourneyTemplate</span>
+      <span class="tag">UserJourneyPhase</span>
+      <span class="tag">UserAttribute</span>
+      <span class="tag">MessageLog</span>
+      <span class="tag">EngagementEvent</span>
+      <span class="tag">CoBlocksScenario</span>
+      <span class="tag">Enrollment</span>
+    </div>
+  </div>`,
+
+  // 16 — Ops workflow
+  `<div>
+    <div class="label">營運流程</div>
+    <h2>建一支產品從 0 到上線</h2>
+    <div style="display:flex;flex-direction:column;gap:0.75rem;font-size:1rem">
+      <div class="card">
+        <strong>1. 建 Product</strong>
+        <p style="color:var(--fg-muted);margin-top:0.25rem"><code>/products</code> → 新增產品，是「配置空殼」</p>
+      </div>
+      <div class="card">
+        <strong>2. 填配置</strong>
+        <p style="color:var(--fg-muted);margin-top:0.25rem">內容庫 → 任務 → 徽章 → Journey → 意圖規則（每節有「?」說明可看範例）</p>
+      </div>
+      <div class="card">
+        <strong>3. 綁 OA</strong>
+        <p style="color:var(--fg-muted);margin-top:0.25rem">OA 設定頁選產品；多個 OA 可共用</p>
+      </div>
+      <div class="card">
+        <strong>4. 建劇本</strong>
+        <p style="color:var(--fg-muted);margin-top:0.25rem">List-view 編輯每日動作，<strong>預覽</strong>按鈕先模擬，<strong>啟用 → 全體加入</strong></p>
+      </div>
+      <div class="card">
+        <strong>5. 觀察 + 調整</strong>
+        <p style="color:var(--fg-muted);margin-top:0.25rem">概覽看排程狀況，對話 tab 直接處理使用者問題</p>
+      </div>
+    </div>
+  </div>`,
+
+  // 17 — What's next
+  `<div>
+    <div class="label">下一步</div>
+    <h2>可能的擴充方向</h2>
+    <div class="grid2">
+      <div>
+        <h3 style="color:var(--accent-2)">短期（1-2 週）</h3>
+        <ul class="bullets">
+          <li>Per-product analytics 儀表板</li>
+          <li>Product 配置 JSON 匯出／匯入</li>
+          <li>Audit log（誰改了什麼）</li>
+          <li>完整端到端實機測試</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color:var(--accent-2)">中長期</h3>
+        <ul class="bullets">
+          <li>臨床問卷引擎（PHQ-9、GAD-7）</li>
+          <li>Consent / 退訂流程（DTx 合規）</li>
+          <li>臨床人員 dashboard（醫師/個管）</li>
+          <li>AI agent memory</li>
+          <li>AI 意圖分類（超越 keyword）</li>
+          <li>Webhook out（EHR / CRM 整合）</li>
+        </ul>
+      </div>
+    </div>
+  </div>`,
+
+  // 18 — Close
+  `<div style="text-align:center;margin:auto;max-width:700px">
+    <div class="hero-badge">🙏 Thank you</div>
+    <h1 style="font-size:3.5rem">平台就緒<small style="margin-top:1.5rem">產品設計、內容、意圖、任務、徽章、Journey — 都可以在 UI 直接設定、即時生效、全程追蹤。</small></h1>
+    <div style="margin-top:3rem;display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;font-size:0.9rem;color:var(--fg-muted)">
+      <div>📚 <a href="/manual" style="color:var(--accent-2)">/manual</a> 詳細操作手冊</div>
+      <div>📦 <a href="/products" style="color:var(--accent-2)">/products</a> 產品配置</div>
+      <div>💬 <a href="/oa" style="color:var(--accent-2)">/oa</a> LINE OA</div>
+    </div>
+  </div>`,
+];
+
+let current = 0;
+
+function render() {
+  const deck = document.getElementById('deck');
+  deck.innerHTML = slides.map((s, i) => {
+    const cls = i === current ? 'active' : (i < current ? 'prev' : '');
+    return `<div class="slide ${cls}" data-i="${i}">${s}</div>`;
+  }).join('');
+  document.getElementById('page-indicator').textContent = `${current + 1} / ${slides.length}`;
+  document.getElementById('progress').style.width = `${((current + 1) / slides.length) * 100}%`;
+}
+
+function next() { if (current < slides.length - 1) { current++; render(); } }
+function prev() { if (current > 0) { current--; render(); } }
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
+  else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+  else if (e.key === 'Home') { current = 0; render(); }
+  else if (e.key === 'End') { current = slides.length - 1; render(); }
+});
+
+render();
+</script>
+</body>
+</html>
