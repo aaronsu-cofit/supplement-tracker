@@ -1,6 +1,6 @@
 'use client';
 import { apiFetch } from '@vitera/lib';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MessageLogRow } from '../../../../types';
 import UserInfoPanel from './UserInfoPanel';
 
@@ -97,6 +97,16 @@ export default function OaConversationsTab({ oaId, productId }: Props) {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-scroll to the bottom (latest message) whenever the selected
+  // user's messages finish loading. Using instant scroll so the initial
+  // render doesn't animate visibly; subsequent loads behave the same.
+  useEffect(() => {
+    if (loadingMessages) return;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, loadingMessages]);
 
   const loadUsers = useCallback(() => {
     setLoadingUsers(true);
@@ -202,7 +212,7 @@ export default function OaConversationsTab({ oaId, productId }: Props) {
               </span>
               <span className="text-xs text-slate-400 whitespace-nowrap">· {messages.length} 則</span>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
               {loadingMessages ? (
                 <p className="text-xs text-slate-400 text-center">載入中...</p>
               ) : messages.length === 0 ? (
