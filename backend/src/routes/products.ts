@@ -216,6 +216,9 @@ function validateIntentRuleInput(body: Record<string, unknown>, requireAll: bool
       if (cfg.reply_content_key != null && typeof cfg.reply_content_key !== 'string') {
         return 'reply_content_key 需為字串';
       }
+    } else if (type === 'send_mission_checklist') {
+      // No required fields — checklist is generated server-side from
+      // user's current pending missions. action_config can be {}.
     }
   }
   if (body.priority !== undefined && typeof body.priority !== 'number') return 'priority 需為數字';

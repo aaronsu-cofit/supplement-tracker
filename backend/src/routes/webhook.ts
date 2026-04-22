@@ -17,6 +17,7 @@ import { logMessage, logOutboundLineMessage } from '../lib/messageLog.js'
 import { completeMissionByKey, incrementMissionProgress } from '../lib/missions.js'
 import { contentItemToMessage } from '../lib/flow.js'
 import { getContentItemByKey } from '../lib/db.js'
+import { buildMissionChecklist } from '../lib/checklist.js'
 
 const webhook = new Hono()
 
@@ -230,6 +231,7 @@ async function tryHandleStructuredPostback(
   if (act === 'complete_mission' || act === 'increment_mission') {
     const missionKey = params.get('key')
     const replyContentKey = params.get('reply_content') ?? undefined
+    const replyChecklist = params.get('reply_checklist') === '1'
     const step = Math.max(1, parseInt(params.get('step') ?? '1', 10) || 1)
 
     if (!oa.product_id) {
@@ -251,21 +253,53 @@ async function tryHandleStructuredPostback(
       console.error(`[webhook/postback] ${act} ${missionKey} error:`, err)
     }
 
-    // Optional explicit reply separate from the mission's notify_content_key
-    // (which fires inside completeMissionByKey via push, not reply token).
-    // When `reply_content` is set on the postback data, reply with that
-    // content on the reply token so the user gets an immediate ack.
-    if (replyContentKey) {
+    // Reply content resolution — two mutually exclusive modes:
+    //   reply_checklist=1 → build dynamic checklist from user's current
+    //     pending missions (bypasses content library; takes priority)
+    //   reply_content=<key> → fetch static ContentItem by key
+    // If both are set, reply_checklist wins.
+    let replyMsg: import('@line/bot-sdk').Message | null = null
+    let sourceRef = `${act}:${missionKey}`
+    if (replyChecklist) {
+      try {
+        replyMsg = await buildMissionChecklist(oa.product_id, userId)
+        sourceRef = `${act}:${missionKey}:checklist`
+      } catch (err) {
+        console.error('[webhook/postback] buildMissionChecklist error:', err)
+      }
+    } else if (replyContentKey) {
       try {
         const item = await getContentItemByKey(oa.product_id, replyContentKey)
-        const msg = item ? contentItemToMessage(item) : null
-        if (msg) {
-          await replyMessage(replyToken, msg, oa.channel_access_token)
-          logOutboundLineMessage(oa.id, userId, msg, 'postback_reply', `${act}:${missionKey}`)
-        }
+        replyMsg = item ? contentItemToMessage(item) : null
       } catch (err) {
         console.error('[webhook/postback] reply_content error:', err)
       }
+    }
+
+    if (replyMsg) {
+      try {
+        await replyMessage(replyToken, replyMsg, oa.channel_access_token)
+        logOutboundLineMessage(oa.id, userId, replyMsg, 'postback_reply', sourceRef)
+      } catch (err) {
+        console.error('[webhook/postback] replyMessage error:', err)
+      }
+    }
+    return true
+  }
+
+  if (act === 'show_checklist') {
+    if (!oa.product_id) {
+      console.warn(`[webhook/postback] show_checklist needs product_id but OA #${oa.id} has none`)
+      return true
+    }
+    try {
+      const msg = await buildMissionChecklist(oa.product_id, userId)
+      if (msg) {
+        await replyMessage(replyToken, msg, oa.channel_access_token)
+        logOutboundLineMessage(oa.id, userId, msg, 'postback_reply', 'show_checklist')
+      }
+    } catch (err) {
+      console.error('[webhook/postback] show_checklist error:', err)
     }
     return true
   }
