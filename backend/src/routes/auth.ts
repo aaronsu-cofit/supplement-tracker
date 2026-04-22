@@ -156,7 +156,7 @@ auth.post('/me', async (c) => {
   try {
     await initializeDatabase();
     const { lineUserId, displayName, pictureUrl } = await c.req.json<LineLoginRequestBody>();
-    if (!lineUserId) return c.json({ error: 'Missing lineUserId' }, 400);
+    if (!lineUserId) return c.json({ error: 'Unauthorized' }, 401);
 
     const user = await findOrCreateLineUser(lineUserId, displayName, pictureUrl);
     const token = await signToken(user.id);

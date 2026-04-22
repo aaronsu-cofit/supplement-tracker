@@ -21,7 +21,7 @@ import { useEffect } from 'react';
  */
 export default function AuthGuard({ children, loginUrl, publicPaths = [], lineOnly = false }: { children: React.ReactNode; loginUrl: string; publicPaths?: string[]; lineOnly?: boolean }) {
   const { isAuthenticated, isLoading } = useAuth();
-  const { liff, isInitialized: liffInitialized } = useLiff();
+  const { liff, isInitialized: liffInitialized, isInLineClient } = useLiff();
 
   useEffect(() => {
     if (isLoading) return;
@@ -31,14 +31,16 @@ export default function AuthGuard({ children, loginUrl, publicPaths = [], lineOn
     const isPublic = publicPaths.some((p) => pathname.startsWith(p));
     if (isPublic) return;
 
-    if (lineOnly && liff && liffInitialized) {
+    // Use liff.login() only when inside the LINE client (in-app browser).
+    // In a regular browser, fall through to portal login to avoid LIFF OAuth errors.
+    if (lineOnly && liff && liffInitialized && isInLineClient) {
       liff.login({ redirectUri: window.location.href });
       return;
     }
 
     const redirect = encodeURIComponent(window.location.href);
     window.location.href = `${loginUrl}?redirect=${redirect}`;
-  }, [isAuthenticated, isLoading, loginUrl, publicPaths, lineOnly, liff, liffInitialized]);
+  }, [isAuthenticated, isLoading, loginUrl, publicPaths, lineOnly, liff, liffInitialized, isInLineClient]);
 
   // Show nothing while checking auth or redirecting
   if (isLoading || !isAuthenticated) {

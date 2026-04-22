@@ -52,7 +52,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!liffInitialized) return;
 
-    if (profile && !user) {
+    if (profile && profile.userId && !user) {
       const loginWithLine = async () => {
         try {
           const res = await apiFetch('/api/auth/me', {
