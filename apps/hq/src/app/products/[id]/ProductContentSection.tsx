@@ -3,6 +3,8 @@ import { apiFetch } from '@vitera/lib';
 import { useCallback, useEffect, useState } from 'react';
 import type { ContentItem, ContentItemType } from '../../../types';
 import HelpModal, { HelpButton } from './HelpModal';
+import FlexExamplePicker from './FlexExamplePicker';
+import { FLEX_EXAMPLES } from './flexExamples';
 
 interface Props {
   productId: string;
@@ -41,17 +43,7 @@ function validateFlexJson(raw: string): FlexValidation {
   return { ok: true };
 }
 
-const EXAMPLE_FLEX_BUBBLE = `{
-  "type": "bubble",
-  "body": {
-    "type": "box",
-    "layout": "vertical",
-    "contents": [
-      { "type": "text", "text": "今日健康小貼士", "weight": "bold", "size": "lg" },
-      { "type": "text", "text": "每天喝 8 杯水，身體更有活力 💧", "wrap": true, "margin": "md" }
-    ]
-  }
-}`;
+const FLEX_EXAMPLE_COUNT = FLEX_EXAMPLES.length;
 
 export default function ProductContentSection({ productId }: Props) {
   const [items, setItems] = useState<ContentItem[]>([]);
@@ -65,6 +57,7 @@ export default function ProductContentSection({ productId }: Props) {
   const [editForm, setEditForm] = useState<FormShape>(EMPTY);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [examplePickerFor, setExamplePickerFor] = useState<null | 'add' | 'edit'>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -197,9 +190,9 @@ export default function ProductContentSection({ productId }: Props) {
             value={form.body} onChange={e => setForm({ ...form, body: e.target.value })} />
           <div className="flex items-center gap-2 flex-wrap text-xs">
             <button type="button"
-              onClick={() => setForm({ ...form, body: EXAMPLE_FLEX_BUBBLE })}
-              className="text-slate-500 hover:text-slate-900 underline">
-              插入範例 bubble
+              onClick={() => setExamplePickerFor(form === addForm ? 'add' : 'edit')}
+              className="text-xs px-2 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50 font-semibold">
+              選用範例（{FLEX_EXAMPLE_COUNT} 個）
             </button>
             <a href="https://developers.line.biz/flex-simulator/"
               target="_blank" rel="noopener noreferrer"
@@ -348,6 +341,19 @@ export default function ProductContentSection({ productId }: Props) {
             </li>
           ))}
         </ul>
+      )}
+
+      {examplePickerFor && (
+        <FlexExamplePicker
+          onClose={() => setExamplePickerFor(null)}
+          onPick={(json) => {
+            if (examplePickerFor === 'add') {
+              setAddForm(prev => ({ ...prev, body: json }));
+            } else {
+              setEditForm(prev => ({ ...prev, body: json }));
+            }
+          }}
+        />
       )}
     </div>
   );
