@@ -27,6 +27,9 @@ interface FormShape {
   // increment_streak
   streak_key: string;
   streak_reply_content_key: string;
+  // change_menu
+  menu_name: string;
+  menu_reply_content_key: string;
   is_active: boolean;
 }
 
@@ -45,6 +48,8 @@ const EMPTY: FormShape = {
   mission_step: 1,
   streak_key: '',
   streak_reply_content_key: '',
+  menu_name: '',
+  menu_reply_content_key: '',
   is_active: true,
 };
 
@@ -63,6 +68,11 @@ function formToPayload(f: FormShape): Record<string, unknown> {
     action_config = {
       streak_key: f.streak_key.trim(),
       ...(f.streak_reply_content_key.trim() && { reply_content_key: f.streak_reply_content_key.trim() }),
+    };
+  } else if (f.action_type === 'change_menu') {
+    action_config = {
+      menu_name: f.menu_name.trim(),
+      ...(f.menu_reply_content_key.trim() && { reply_content_key: f.menu_reply_content_key.trim() }),
     };
   } else {
     // assign_mission | complete_mission | increment_mission_progress
@@ -100,6 +110,8 @@ function ruleToForm(r: IntentRule): FormShape {
     mission_step: cfg.step ?? 1,
     streak_key: cfg.streak_key ?? '',
     streak_reply_content_key: cfg.reply_content_key ?? '',
+    menu_name: cfg.menu_name ?? '',
+    menu_reply_content_key: cfg.reply_content_key ?? '',
     is_active: r.is_active,
   };
 }
@@ -218,6 +230,7 @@ export default function ProductIntentSection({ productId }: Props) {
           <option value="complete_mission">完成任務</option>
           <option value="increment_mission_progress">遞增任務進度</option>
           <option value="increment_streak">遞增連續天數</option>
+          <option value="change_menu">切換 Rich Menu</option>
         </select>
       </div>
       <input className="hq-input" placeholder="patterns（逗號分隔，如：預約, 要預約）" value={form.patterns}
@@ -260,6 +273,14 @@ export default function ProductIntentSection({ productId }: Props) {
             onChange={e => setForm({ ...form, streak_key: e.target.value })} />
           <input className="hq-input" placeholder="回覆 content key（選填）" value={form.streak_reply_content_key}
             onChange={e => setForm({ ...form, streak_reply_content_key: e.target.value })} />
+        </div>
+      )}
+      {form.action_type === 'change_menu' && (
+        <div className="grid grid-cols-2 gap-2">
+          <input className="hq-input" placeholder="Rich Menu 名稱（需已部署）" value={form.menu_name}
+            onChange={e => setForm({ ...form, menu_name: e.target.value })} />
+          <input className="hq-input" placeholder="回覆 content key（選填）" value={form.menu_reply_content_key}
+            onChange={e => setForm({ ...form, menu_reply_content_key: e.target.value })} />
         </div>
       )}
       <label className="flex items-center gap-2 text-sm">
@@ -330,6 +351,9 @@ export default function ProductIntentSection({ productId }: Props) {
               <li>
                 <code className="bg-slate-100 px-1 rounded">increment_streak</code>：連續天數 +1（tz-aware、同日不重算）
               </li>
+              <li>
+                <code className="bg-slate-100 px-1 rounded">change_menu</code>：切換使用者的 LINE Rich Menu（依 OA 下已部署的模板名稱比對）
+              </li>
             </ul>
           </div>
           <div>
@@ -339,6 +363,7 @@ export default function ProductIntentSection({ productId }: Props) {
               <div>set_attribute → <code className="bg-slate-100 px-1 rounded">attribute_key</code> + <code className="bg-slate-100 px-1 rounded">value</code>（+ 選填 <code className="bg-slate-100 px-1 rounded">reply_content_key</code>）</div>
               <div>assign/complete/increment_mission → <code className="bg-slate-100 px-1 rounded">mission_key</code>（+ 選填回覆）</div>
               <div>increment_streak → <code className="bg-slate-100 px-1 rounded">streak_key</code>（+ 選填回覆）</div>
+              <div>change_menu → <code className="bg-slate-100 px-1 rounded">menu_name</code>（需與 OA 的 Rich Menu 模板名稱一致）（+ 選填回覆）</div>
             </div>
           </div>
           <div>
@@ -466,6 +491,14 @@ export default function ProductIntentSection({ productId }: Props) {
                     {r.action_type === 'increment_streak' && (
                       <>
                         連續天數 +1：<code className="bg-slate-100 px-1 rounded">{r.action_config.streak_key}</code>
+                        {r.action_config.reply_content_key && (
+                          <> + 回覆 <code className="bg-slate-100 px-1 rounded">{r.action_config.reply_content_key}</code></>
+                        )}
+                      </>
+                    )}
+                    {r.action_type === 'change_menu' && (
+                      <>
+                        切換 Rich Menu：<code className="bg-slate-100 px-1 rounded">{r.action_config.menu_name}</code>
                         {r.action_config.reply_content_key && (
                           <> + 回覆 <code className="bg-slate-100 px-1 rounded">{r.action_config.reply_content_key}</code></>
                         )}

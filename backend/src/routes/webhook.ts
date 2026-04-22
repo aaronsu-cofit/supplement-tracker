@@ -138,7 +138,10 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
     // matches, run its action and reply — don't fall through to the AI.
     if (oa.product_id) {
       try {
-        const intent = await runIntent(oa.product_id, lineUserId, messageText)
+        const intent = await runIntent(oa.product_id, lineUserId, messageText, {
+          oaId: oa.id,
+          channelAccessToken: oa.channel_access_token,
+        })
         if (intent) {
           if (intent.replyMessage) {
             await replyMessage(event.replyToken, intent.replyMessage, oa.channel_access_token)

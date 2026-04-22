@@ -209,6 +209,13 @@ function validateIntentRuleInput(body: Record<string, unknown>, requireAll: bool
       if (cfg.reply_content_key != null && typeof cfg.reply_content_key !== 'string') {
         return 'reply_content_key 需為字串';
       }
+    } else if (type === 'change_menu') {
+      if (typeof cfg.menu_name !== 'string' || !cfg.menu_name.trim()) {
+        return 'change_menu 需含 menu_name';
+      }
+      if (cfg.reply_content_key != null && typeof cfg.reply_content_key !== 'string') {
+        return 'reply_content_key 需為字串';
+      }
     }
   }
   if (body.priority !== undefined && typeof body.priority !== 'number') return 'priority 需為數字';

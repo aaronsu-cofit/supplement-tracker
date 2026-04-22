@@ -113,6 +113,40 @@ async function linkMenuToUser(token: string, userId: string, richMenuId: string)
   await client.linkRichMenuToUser(userId, richMenuId);
 }
 
+/**
+ * Direct-override menu assignment by template name. Used by the intent
+ * router's `change_menu` action and the scheduler's menu-change-node.
+ * Bypasses the rule/AI/fallback pipeline — caller explicitly says which
+ * menu. Returns { ok: false, reason } on failures (no deployed template
+ * with that name, LINE link call threw) so callers can surface a
+ * diagnostic without raising.
+ */
+export interface AssignMenuResult {
+  ok: boolean;
+  templateId?: number;
+  reason?: string;
+}
+
+export async function assignMenuByName(
+  oaId: number,
+  userId: string,
+  channelAccessToken: string,
+  menuName: string,
+): Promise<AssignMenuResult> {
+  const allTemplates = await getTemplatesForOA(oaId.toString());
+  const target = allTemplates.find(
+    t => t.name === menuName && !!t.line_rich_menu_id,
+  );
+  if (!target) return { ok: false, reason: `no deployed template named "${menuName}" on OA #${oaId}` };
+  try {
+    await linkMenuToUser(channelAccessToken, userId, target.line_rich_menu_id!);
+  } catch (err) {
+    return { ok: false, reason: `LINE link failed: ${(err as Error).message}` };
+  }
+  await upsertUserMenuAssignment(userId, oaId, target.id, 'manual');
+  return { ok: true, templateId: target.id };
+}
+
 export interface MenuReevalResult {
   evaluated: number;
   rule: number;

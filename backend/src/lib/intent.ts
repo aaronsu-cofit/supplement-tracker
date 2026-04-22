@@ -12,6 +12,7 @@ import {
 } from './missions.js';
 import { incrementStreak } from './gamification.js';
 import { contentItemToMessage } from './flow.js';
+import { assignMenuByName } from './menuEvaluator.js';
 import type {
   IntentMatchType,
   IntentActionType,
@@ -20,6 +21,7 @@ import type {
   MissionAction,
   IncrementMissionAction,
   IncrementStreakAction,
+  ChangeMenuAction,
   IntentActionConfig,
 } from '../types.js';
 
@@ -101,10 +103,22 @@ export interface IntentHandledResult {
  * executes the action and returns the reply text to send (or null if the
  * action had no reply, e.g. set_attribute without reply_content_key).
  */
+/**
+ * OA context needed by actions that hit LINE/channel-level APIs
+ * (change_menu). Passed in by the webhook handler which already has
+ * this info; other callers may omit and the channel-scoped actions
+ * will be skipped with a warning.
+ */
+export interface IntentRunContext {
+  oaId: number;
+  channelAccessToken: string;
+}
+
 export async function runIntent(
   productId: string,
   userId: string,
   text: string,
+  ctx?: IntentRunContext,
 ): Promise<IntentHandledResult | null> {
   const rules = await getActiveIntentRulesForProduct(productId);
   const match = findMatchingRule(text, rules);
@@ -174,6 +188,23 @@ export async function runIntent(
       }
     }
     contentKeyToResolve = cfg.reply_content_key;
+  } else if (match.actionType === 'change_menu') {
+    const cfg = match.actionConfig as ChangeMenuAction;
+    if (!ctx) {
+      console.warn(`[intent] change_menu rule ${match.ruleId} has no OA context — skipping`);
+    } else if (cfg.menu_name) {
+      try {
+        const result = await assignMenuByName(
+          ctx.oaId, userId, ctx.channelAccessToken, cfg.menu_name,
+        );
+        if (!result.ok) {
+          console.warn(`[intent] change_menu rule ${match.ruleId}: ${result.reason}`);
+        }
+      } catch (err) {
+        console.error('[intent] change_menu error:', err);
+      }
+    }
+    contentKeyToResolve = cfg.reply_content_key;
   }
 
   let replyMessage: import('@line/bot-sdk').Message | null = null;
@@ -206,4 +237,5 @@ export const VALID_ACTION_TYPES: IntentActionType[] = [
   'complete_mission',
   'increment_mission_progress',
   'increment_streak',
+  'change_menu',
 ];

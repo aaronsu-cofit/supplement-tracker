@@ -173,7 +173,8 @@ export type IntentActionType =
   | 'assign_mission'
   | 'complete_mission'
   | 'increment_mission_progress'
-  | 'increment_streak';
+  | 'increment_streak'
+  | 'change_menu';
 
 export interface ReplyContentAction {
   content_key: string;
@@ -198,6 +199,11 @@ export interface IncrementMissionAction {
 
 export interface IncrementStreakAction {
   streak_key: string;
+  reply_content_key?: string;
+}
+
+export interface ChangeMenuAction {
+  menu_name: string;
   reply_content_key?: string;
 }
 
@@ -240,7 +246,8 @@ export type IntentActionConfig =
   | SetAttributeAction
   | MissionAction
   | IncrementMissionAction
-  | IncrementStreakAction;
+  | IncrementStreakAction
+  | ChangeMenuAction;
 
 export type BadgeCriteria =
   | { type: 'streak_reached'; streak_key: string; threshold: number }

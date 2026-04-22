@@ -142,7 +142,8 @@ export type IntentActionType =
   | 'assign_mission'
   | 'complete_mission'
   | 'increment_mission_progress'
-  | 'increment_streak';
+  | 'increment_streak'
+  | 'change_menu';
 
 export interface IntentRule {
   id: string;
@@ -160,6 +161,7 @@ export interface IntentRule {
     mission_key?: string;
     step?: number;
     streak_key?: string;
+    menu_name?: string;
   };
   is_active: boolean;
   created_at: string;
