@@ -9,6 +9,7 @@ import ProductIntentSection from './ProductIntentSection';
 import ProductMissionSection from './ProductMissionSection';
 import ProductBadgeSection from './ProductBadgeSection';
 import ProductJourneySection from './ProductJourneySection';
+import ProductSeedCard from './ProductSeedCard';
 
 interface Props {
   id: string;
@@ -188,6 +189,8 @@ export default function ProductDetailClient({ id }: Props) {
               </ul>
             )}
           </div>
+
+          <ProductSeedCard productId={id} />
         </>
       )}
 
