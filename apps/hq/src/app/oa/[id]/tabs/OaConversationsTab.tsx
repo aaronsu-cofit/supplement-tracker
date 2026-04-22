@@ -2,6 +2,7 @@
 import { apiFetch } from '@vitera/lib';
 import { useCallback, useEffect, useState } from 'react';
 import type { MessageLogRow } from '../../../../types';
+import UserInfoPanel from './UserInfoPanel';
 
 interface Props {
   oaId: string;
@@ -186,7 +187,7 @@ export default function OaConversationsTab({ oaId }: Props) {
       </div>
 
       {/* Conversation */}
-      <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
+      <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden min-w-0">
         {error && <div className="hq-alert hq-alert-error m-3">{error}</div>}
         {!selectedUser ? (
           <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
@@ -195,13 +196,10 @@ export default function OaConversationsTab({ oaId }: Props) {
         ) : (
           <>
             <div className="bg-white border-b border-slate-200 px-4 py-2 flex items-center gap-2">
-              <span className="font-mono text-xs text-slate-700">{selectedUser}</span>
-              <span className="text-xs text-slate-400">· {messages.length} 則訊息</span>
-              <div className="flex-1" />
-              <a href={`/admins/${selectedUser}`}
-                className="text-xs text-slate-500 hover:text-slate-900">
-                使用者狀態 →
-              </a>
+              <span className="font-mono text-xs text-slate-700 truncate" title={selectedUser}>
+                {selectedUser}
+              </span>
+              <span className="text-xs text-slate-400 whitespace-nowrap">· {messages.length} 則</span>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
               {loadingMessages ? (
@@ -215,6 +213,13 @@ export default function OaConversationsTab({ oaId }: Props) {
           </>
         )}
       </div>
+
+      {/* User info side panel */}
+      {selectedUser && (
+        <aside className="w-80 border-l border-slate-200 bg-white shrink-0 overflow-y-auto hidden lg:block">
+          <UserInfoPanel key={selectedUser} userId={selectedUser} />
+        </aside>
+      )}
     </div>
   );
 }
