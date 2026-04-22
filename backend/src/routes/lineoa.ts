@@ -3,6 +3,7 @@ import { authMiddleware } from '../middleware/authMiddleware.js';
 import {
   getAllLineOAs, getLineOAById, createLineOA, updateLineOA, deleteLineOA,
   getTemplatesForOA, getTemplateById, createTemplate, updateTemplate, deleteTemplate, setActiveTemplate, deactivateAllTemplates,
+  getMessageLogForOa, getDistinctMessageLogUsersForOa,
 } from '../lib/db.js';
 import { fetchLineBotInfo } from '../lib/line.js';
 
@@ -88,6 +89,32 @@ lineoa.post('/:id/test-ai-platform', async (c) => {
   } catch (err) {
     return c.json({ ok: false, url: base, error: (err as Error).message }, 502);
   }
+});
+
+// GET /api/line/oa/:id/messages?user_id=&limit=&before=
+lineoa.get('/:id/messages', async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (!Number.isFinite(id)) return c.json({ error: 'invalid oa id' }, 400);
+  const userId = c.req.query('user_id') || undefined;
+  const limit = Math.min(500, parseInt(c.req.query('limit') || '100', 10));
+  const beforeStr = c.req.query('before');
+  let before: Date | undefined;
+  if (beforeStr) {
+    const d = new Date(beforeStr);
+    if (isNaN(d.getTime())) return c.json({ error: 'invalid before date' }, 400);
+    before = d;
+  }
+  const messages = await getMessageLogForOa(id, { userId, limit, before });
+  return c.json({ messages });
+});
+
+// GET /api/line/oa/:id/messages/users — distinct user list for the
+// conversation picker, most recent activity first.
+lineoa.get('/:id/messages/users', async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (!Number.isFinite(id)) return c.json({ error: 'invalid oa id' }, 400);
+  const users = await getDistinctMessageLogUsersForOa(id, 200);
+  return c.json({ users });
 });
 
 // DELETE /api/line/oa/:id

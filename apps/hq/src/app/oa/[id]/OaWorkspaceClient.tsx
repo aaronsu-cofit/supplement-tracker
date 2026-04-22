@@ -8,13 +8,15 @@ import OaScenariosTab from './tabs/OaScenariosTab';
 import OaOverviewTab from './tabs/OaOverviewTab';
 import OaMenusTab from './tabs/OaMenusTab';
 import OaSettingsTab from './tabs/OaSettingsTab';
+import OaConversationsTab from './tabs/OaConversationsTab';
 
-type TabKey = 'scenarios' | 'menus' | 'overview' | 'settings';
+type TabKey = 'scenarios' | 'menus' | 'overview' | 'conversations' | 'settings';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'scenarios', label: '劇本' },
   { key: 'menus', label: '選單' },
   { key: 'overview', label: '概覽' },
+  { key: 'conversations', label: '對話' },
   { key: 'settings', label: '設定' },
 ];
 
@@ -87,10 +89,15 @@ export default function OaWorkspaceClient({ oaId }: { oaId: string }) {
       </div>
 
       {/* Tab body */}
-      <div className={`flex-1 min-h-0 ${activeTab === 'scenarios' ? 'overflow-hidden flex flex-col' : 'overflow-auto'}`}>
+      <div className={`flex-1 min-h-0 ${
+        activeTab === 'scenarios' || activeTab === 'conversations'
+          ? 'overflow-hidden flex flex-col'
+          : 'overflow-auto'
+      }`}>
         {activeTab === 'scenarios' && <OaScenariosTab oaId={oaId} oa={oa} />}
         {activeTab === 'menus' && oa && <OaMenusTab oaId={oaId} oa={oa} onChange={setOa} />}
         {activeTab === 'overview' && <OaOverviewTab oaId={oaId} />}
+        {activeTab === 'conversations' && <OaConversationsTab oaId={oaId} />}
         {activeTab === 'settings' && oa && <OaSettingsTab oa={oa} onChange={setOa} />}
       </div>
     </div>

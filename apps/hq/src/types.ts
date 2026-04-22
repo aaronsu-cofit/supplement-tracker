@@ -76,6 +76,19 @@ export interface EngagementEventRow {
   occurred_at: string;
 }
 
+export interface MessageLogRow {
+  id: number;
+  oa_id: number;
+  user_id: string;
+  direction: 'inbound' | 'outbound';
+  type: string;
+  content_text: string | null;
+  content_json: unknown;
+  source: string | null;
+  source_ref: string | null;
+  created_at: string;
+}
+
 // ─── LINE OA ─────────────────────────────────────────────────────────────────
 
 export interface LineOA {

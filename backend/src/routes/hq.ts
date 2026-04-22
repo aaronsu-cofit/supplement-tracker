@@ -7,6 +7,7 @@ import {
   getUserMissionAssignments,
   getUserStreaks, getUserBadges,
   getUserJourneyPhases,
+  getMessageLogForUser,
   findUserById, db,
 } from '../lib/db.js';
 import { setUserAttributeWithHooks } from '../lib/missions.js';
@@ -170,6 +171,19 @@ hq.get('/users/:userId/badges', async (c) => {
   } catch (error) {
     console.error('Failed to fetch user badges:', error);
     return c.json({ error: 'Failed to fetch badges' }, 500);
+  }
+});
+
+// GET /api/hq/users/:userId/messages?limit=
+hq.get('/users/:userId/messages', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const limit = Math.min(500, parseInt(c.req.query('limit') || '100', 10));
+    const messages = await getMessageLogForUser(userId, limit);
+    return c.json({ messages });
+  } catch (error) {
+    console.error('Failed to fetch user messages:', error);
+    return c.json({ error: 'Failed to fetch messages' }, 500);
   }
 });
 

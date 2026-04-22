@@ -10,6 +10,7 @@ import type {
   UserBadgeRow,
   UserJourneyPhaseRow,
   EngagementEventRow,
+  MessageLogRow,
 } from '../../../types';
 
 interface Props {
@@ -24,6 +25,7 @@ export default function UserDetailClient({ userId }: Props) {
   const [badges, setBadges] = useState<UserBadgeRow[]>([]);
   const [journeys, setJourneys] = useState<UserJourneyPhaseRow[]>([]);
   const [events, setEvents] = useState<EngagementEventRow[]>([]);
+  const [messages, setMessages] = useState<MessageLogRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newAttrKey, setNewAttrKey] = useState('');
@@ -33,7 +35,7 @@ export default function UserDetailClient({ userId }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const [uRes, aRes, mRes, sRes, bRes, jRes, eRes] = await Promise.all([
+      const [uRes, aRes, mRes, sRes, bRes, jRes, eRes, msgRes] = await Promise.all([
         apiFetch(`/api/hq/users/${userId}`),
         apiFetch(`/api/hq/users/${userId}/attributes`),
         apiFetch(`/api/hq/users/${userId}/missions`),
@@ -41,6 +43,7 @@ export default function UserDetailClient({ userId }: Props) {
         apiFetch(`/api/hq/users/${userId}/badges`),
         apiFetch(`/api/hq/users/${userId}/journeys`),
         apiFetch(`/api/hq/users/${userId}/engagement`),
+        apiFetch(`/api/hq/users/${userId}/messages?limit=50`),
       ]);
       if (!uRes.ok) throw new Error(`User lookup failed: ${uRes.status}`);
       const uData = await uRes.json();
@@ -51,6 +54,7 @@ export default function UserDetailClient({ userId }: Props) {
       setBadges((await bRes.json()).badges ?? []);
       setJourneys((await jRes.json()).phases ?? []);
       setEvents((await eRes.json()).events ?? []);
+      setMessages((await msgRes.json()).messages ?? []);
     } catch (err) {
       console.error('[user-detail] load error', err);
       setError((err as Error).message);
@@ -258,6 +262,44 @@ export default function UserDetailClient({ userId }: Props) {
                 </span>
               </li>
             ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Message log */}
+      <div className="hq-card flex flex-col gap-3">
+        <h3 className="font-semibold text-lg">對話紀錄（近 {messages.length} 則）</h3>
+        {messages.length === 0 ? (
+          <p className="text-sm text-slate-400">尚無對話紀錄</p>
+        ) : (
+          <ul className="flex flex-col gap-1 max-h-[500px] overflow-y-auto">
+            {messages.map(m => {
+              const isOut = m.direction === 'outbound';
+              return (
+                <li key={m.id}
+                  className={`text-xs py-1.5 px-2 border-b border-slate-100 last:border-0 flex items-start gap-2 ${
+                    isOut ? 'bg-emerald-50/40' : 'bg-slate-50/40'
+                  }`}>
+                  <span className={`shrink-0 font-mono text-[10px] font-semibold ${
+                    isOut ? 'text-emerald-700' : 'text-slate-500'
+                  }`}>
+                    {isOut ? '→' : '←'}
+                  </span>
+                  <span className="shrink-0 text-slate-400 whitespace-nowrap text-[10px]">
+                    {new Date(m.created_at).toLocaleString('zh-TW', {
+                      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+                    })}
+                  </span>
+                  <span className="shrink-0 text-[10px] text-slate-400 uppercase">{m.type}</span>
+                  <span className="flex-1 whitespace-pre-wrap break-words min-w-0">
+                    {m.content_text || (m.type === 'flex' ? '(flex)' : '—')}
+                  </span>
+                  {m.source && m.source !== 'user' && (
+                    <span className="shrink-0 text-[10px] text-slate-400">{m.source}</span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

@@ -422,6 +422,34 @@ model JourneyTemplate {
   @@map("journey_templates")
 }
 
+// Full conversation log: every inbound user message and every outbound
+// bot message goes in here. Exists alongside `engagement_events` (which
+// tracks semantic events like intent_matched/badge_earned) — this table
+// is specifically "what was actually said, in both directions".
+// `content_text` stores plain text / altText / postback data for quick
+// preview; `content_json` stores the full structured payload (flex
+// bubbles, sticker ids, etc). `source` tags what triggered an outbound:
+// 'follow_reply' | 'postback_reply' | 'intent' | 'ai_agent' |
+// 'scheduler_push' | 'scheduler_ai'. `source_ref` optionally carries
+// rule id / scenario:node / agent id for debugging.
+model MessageLog {
+  id            Int      @id @default(autoincrement())
+  oa_id         Int
+  user_id       String   @db.VarChar(64)
+  direction     String   @db.VarChar(10)
+  type          String   @db.VarChar(20)
+  content_text  String?  @db.Text
+  content_json  Json?
+  source        String?  @db.VarChar(30)
+  source_ref    String?  @db.VarChar(200)
+  created_at    DateTime @default(now())
+
+  @@index([oa_id, created_at], name: "idx_message_log_oa_time")
+  @@index([user_id, created_at], name: "idx_message_log_user_time")
+  @@index([oa_id, user_id, created_at], name: "idx_message_log_oa_user_time")
+  @@map("message_log")
+}
+
 // Per-(product, user, journey_key) current phase. Unique on the tuple
 // so a user is in exactly one phase per journey at a time.
 model UserJourneyPhase {

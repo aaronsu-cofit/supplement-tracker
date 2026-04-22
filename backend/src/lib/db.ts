@@ -1516,3 +1516,48 @@ export async function getUserJourneyPhases(userId: string) {
     orderBy: { updated_at: 'desc' },
   });
 }
+
+// ============================================
+// Message log (full conversation history)
+// ============================================
+export async function getMessageLogForOa(oaId: number, options: {
+  userId?: string;
+  limit?: number;
+  before?: Date;
+} = {}) {
+  const limit = Math.min(500, options.limit ?? 100);
+  return db().messageLog.findMany({
+    where: {
+      oa_id: oaId,
+      ...(options.userId && { user_id: options.userId }),
+      ...(options.before && { created_at: { lt: options.before } }),
+    },
+    orderBy: { created_at: 'desc' },
+    take: limit,
+  });
+}
+
+export async function getMessageLogForUser(userId: string, limit = 100) {
+  return db().messageLog.findMany({
+    where: { user_id: userId },
+    orderBy: { created_at: 'desc' },
+    take: Math.min(500, limit),
+  });
+}
+
+/**
+ * Distinct user_ids for a given OA, most recent first — used by the OA
+ * conversations UI to populate a "which user" picker without a full
+ * enrollment query.
+ */
+export async function getDistinctMessageLogUsersForOa(oaId: number, limit = 100) {
+  const rows = await db().$queryRaw<Array<{ user_id: string; last_at: Date }>>`
+    SELECT user_id, MAX(created_at) AS last_at
+    FROM message_log
+    WHERE oa_id = ${oaId}
+    GROUP BY user_id
+    ORDER BY last_at DESC
+    LIMIT ${Math.min(500, limit)}
+  `;
+  return rows;
+}

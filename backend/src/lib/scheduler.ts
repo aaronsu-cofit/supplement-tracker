@@ -25,6 +25,7 @@ import { evaluateAllActiveUsers, type MenuReevalResult } from './menuEvaluator.j
 import { adkRun } from './adk.js';
 import { incrementStreak } from './gamification.js';
 import { setUserAttributeWithHooks } from './missions.js';
+import { logOutboundLineMessage } from './messageLog.js';
 
 export interface SchedulerRunResult {
   sent: number;
@@ -192,6 +193,9 @@ async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
           () => client.pushMessage(userId, message),
           `pushMessage user=${userId} node=${pushNode.id}`,
         );
+        logOutboundLineMessage(
+          oaId, userId, message, 'scheduler_push', `${enr.scenario.id}:${pushNode.id}`,
+        );
         sent++;
       } catch (err) {
         await releaseDelivery(userId, enr.scenario.id, pushNode.id);
@@ -228,9 +232,13 @@ async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
           errors.push(`user=${userId} aiNode=${aiNode.id}: agent returned empty result`);
           continue;
         }
+        const aiMessage: import('@line/bot-sdk').Message = { type: 'text', text };
         await withRetry(
-          () => client.pushMessage(userId, { type: 'text', text }),
+          () => client.pushMessage(userId, aiMessage),
           `aiPush user=${userId} node=${aiNode.id}`,
+        );
+        logOutboundLineMessage(
+          oaId, userId, aiMessage, 'scheduler_ai', `${enr.scenario.id}:${aiNode.id}:${agentId}`,
         );
         sent++;
       } catch (err) {

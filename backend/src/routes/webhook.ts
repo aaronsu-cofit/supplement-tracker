@@ -13,6 +13,7 @@ import { evaluateAndAssignMenu } from '../lib/menuEvaluator.js'
 import { findActiveAgentForDay, type FlowNode, type FlowEdge } from '../lib/flow.js'
 import { daysBetweenInTz } from '../lib/time.js'
 import { runIntent } from '../lib/intent.js'
+import { logMessage, logOutboundLineMessage } from '../lib/messageLog.js'
 
 const webhook = new Hono()
 
@@ -75,8 +76,14 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
     )
 
     if (event.replyToken) {
+      const welcomeText = '您好！我是您的 AI 健康顧問，有任何問題都可以直接傳訊問我 😊'
       try {
-        await replyText(event.replyToken, '您好！我是您的 AI 健康顧問，有任何問題都可以直接傳訊問我 😊', oa.channel_access_token)
+        await replyText(event.replyToken, welcomeText, oa.channel_access_token)
+        logMessage({
+          oaId: oa.id, userId: lineUserId,
+          direction: 'outbound', type: 'text',
+          contentText: welcomeText, source: 'follow_reply',
+        })
       } catch (err) {
         console.error('[webhook/line] follow reply error:', err)
       }
@@ -85,17 +92,25 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
   }
 
   if (event.type === 'postback' && event.replyToken) {
-    logEngagementEvent(lineUserId, 'postback', event.postback?.data).catch(err =>
+    const postbackData = event.postback?.data ?? ''
+    logMessage({
+      oaId: oa.id, userId: lineUserId,
+      direction: 'inbound', type: 'postback',
+      contentText: postbackData,
+    })
+    logEngagementEvent(lineUserId, 'postback', postbackData).catch(err =>
       console.error('[webhook/line] log postback engagement error:', err)
     )
 
     const liffUrl = process.env.LIFF_URL_MAIN || process.env.LIFF_URL_WOUNDS || ''
+    const replyBody = liffUrl ? `點這裡開啟健康紀錄：${liffUrl}` : '健康紀錄功能即將開放，敬請期待 😊'
     try {
-      await replyText(
-        event.replyToken,
-        liffUrl ? `點這裡開啟健康紀錄：${liffUrl}` : '健康紀錄功能即將開放，敬請期待 😊',
-        oa.channel_access_token,
-      )
+      await replyText(event.replyToken, replyBody, oa.channel_access_token)
+      logMessage({
+        oaId: oa.id, userId: lineUserId,
+        direction: 'outbound', type: 'text',
+        contentText: replyBody, source: 'postback_reply',
+      })
     } catch (err) {
       console.error('[webhook/line] postback reply error:', err)
     }
@@ -110,6 +125,11 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
       console.error('[webhook/line] message findOrCreateLineUser error:', err)
     }
 
+    logMessage({
+      oaId: oa.id, userId: lineUserId,
+      direction: 'inbound', type: 'text',
+      contentText: messageText,
+    })
     logEngagementEvent(lineUserId, 'text_reply', messageText.slice(0, 500)).catch(err =>
       console.error('[webhook/line] log text engagement error:', err)
     )
@@ -122,6 +142,7 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
         if (intent) {
           if (intent.replyMessage) {
             await replyMessage(event.replyToken, intent.replyMessage, oa.channel_access_token)
+            logOutboundLineMessage(oa.id, lineUserId, intent.replyMessage, 'intent', intent.ruleId)
           }
           return
         }
@@ -147,11 +168,22 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
         { message: messageText },
         { url: oa.ai_skill_platform_url, apiKey: oa.ai_skill_platform_api_key },
       )
-      const replyMessage = result.result || '很抱歉，AI 顧問無法提供回應，請稍後再試 🙏'
-      await replyText(event.replyToken, replyMessage, oa.channel_access_token)
+      const aiReply = result.result || '很抱歉，AI 顧問無法提供回應，請稍後再試 🙏'
+      await replyText(event.replyToken, aiReply, oa.channel_access_token)
+      logMessage({
+        oaId: oa.id, userId: lineUserId,
+        direction: 'outbound', type: 'text',
+        contentText: aiReply, source: 'ai_agent', sourceRef: agentId,
+      })
     } catch (err) {
       console.error(`[webhook/line] agent=${agentId} error:`, err)
-      await replyText(event.replyToken, '很抱歉，AI 顧問暫時無法回應，請稍後再試 🙏', oa.channel_access_token)
+      const errReply = '很抱歉，AI 顧問暫時無法回應，請稍後再試 🙏'
+      await replyText(event.replyToken, errReply, oa.channel_access_token)
+      logMessage({
+        oaId: oa.id, userId: lineUserId,
+        direction: 'outbound', type: 'text',
+        contentText: errReply, source: 'ai_agent', sourceRef: `${agentId}:error`,
+      })
     }
   }
 }
