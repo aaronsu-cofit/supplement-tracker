@@ -2,6 +2,7 @@
 import { apiFetch } from '@vitera/lib';
 import { useCallback, useEffect, useState } from 'react';
 import type { IntentRule, IntentActionType, IntentMatchType } from '../../../types';
+import HelpModal, { HelpButton } from './HelpModal';
 
 interface Props {
   productId: string;
@@ -114,6 +115,7 @@ export default function ProductIntentSection({ productId }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FormShape>(EMPTY);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -271,7 +273,10 @@ export default function ProductIntentSection({ productId }: Props) {
   return (
     <div className="hq-card flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-lg">意圖規則（{rules.length}）</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-lg">意圖規則（{rules.length}）</h3>
+          <HelpButton onClick={() => setHelpOpen(true)} />
+        </div>
         <button
           onClick={() => setShowAdd(v => !v)}
           className="text-sm px-3 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50"
@@ -279,6 +284,84 @@ export default function ProductIntentSection({ productId }: Props) {
           {showAdd ? '取消' : '+ 新增規則'}
         </button>
       </div>
+      {helpOpen && (
+        <HelpModal title="意圖規則使用說明" onClose={() => setHelpOpen(false)}>
+          <div>
+            <strong>觸發時機</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              使用者在 LINE 傳文字訊息進來時，依 priority 升序比對規則。<strong>第一個命中的規則執行 action，不再落到 AI 顧問</strong>；沒規則命中才交給 AI。
+            </p>
+          </div>
+          <div>
+            <strong>Priority</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              數字小者優先（建議 10 的倍數：10, 20, 30…）。具體的規則給小數字、通用的給大數字。
+            </p>
+          </div>
+          <div>
+            <strong>比對類型</strong>
+            <ul className="list-disc pl-5 text-xs text-slate-600 mt-1 flex flex-col gap-0.5">
+              <li><code className="bg-slate-100 px-1 rounded">keyword</code>：包含即中（case-insensitive 子字串）</li>
+              <li><code className="bg-slate-100 px-1 rounded">exact</code>：完全相等（trim 後，case-insensitive）</li>
+              <li><code className="bg-slate-100 px-1 rounded">regex</code>：正則表達式（case-insensitive），非法 regex 會被跳過</li>
+            </ul>
+            <p className="text-xs text-slate-500 mt-1">
+              Patterns 是陣列，任一 pattern 命中就算中。
+            </p>
+          </div>
+          <div>
+            <strong>動作類型</strong>
+            <ul className="list-disc pl-5 text-xs text-slate-600 mt-1 flex flex-col gap-0.5">
+              <li>
+                <code className="bg-slate-100 px-1 rounded">reply_content</code>：直接回覆 content_key（text 或 flex 都可）
+              </li>
+              <li>
+                <code className="bg-slate-100 px-1 rounded">set_attribute</code>：設屬性 key=value；可選 reply_content_key 同時回覆
+              </li>
+              <li>
+                <code className="bg-slate-100 px-1 rounded">assign_mission</code>：指派任務；可同時回覆
+              </li>
+              <li>
+                <code className="bg-slate-100 px-1 rounded">complete_mission</code>：完成使用者當前該任務；可同時回覆
+              </li>
+              <li>
+                <code className="bg-slate-100 px-1 rounded">increment_mission_progress</code>：多步任務 +1（可指定 step）
+              </li>
+              <li>
+                <code className="bg-slate-100 px-1 rounded">increment_streak</code>：連續天數 +1（tz-aware、同日不重算）
+              </li>
+            </ul>
+          </div>
+          <div>
+            <strong>必備欄位對照</strong>
+            <div className="text-xs text-slate-600 mt-1 flex flex-col gap-0.5">
+              <div>reply_content → <code className="bg-slate-100 px-1 rounded">content_key</code></div>
+              <div>set_attribute → <code className="bg-slate-100 px-1 rounded">attribute_key</code> + <code className="bg-slate-100 px-1 rounded">value</code>（+ 選填 <code className="bg-slate-100 px-1 rounded">reply_content_key</code>）</div>
+              <div>assign/complete/increment_mission → <code className="bg-slate-100 px-1 rounded">mission_key</code>（+ 選填回覆）</div>
+              <div>increment_streak → <code className="bg-slate-100 px-1 rounded">streak_key</code>（+ 選填回覆）</div>
+            </div>
+          </div>
+          <div>
+            <strong>連帶效應（自動觸發）</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              動作成功後會自動連動：
+            </p>
+            <ul className="list-disc pl-5 text-xs text-slate-600 mt-1 flex flex-col gap-0.5">
+              <li>set_attribute → 可能觸發任務的 auto_complete_on_attribute</li>
+              <li>set_attribute / mission / badge → 可能觸發 Journey 轉換</li>
+              <li>mission 完成 → 跑 on_complete_actions、評估 mission_completed 徽章</li>
+              <li>streak 到 threshold → 頒發 streak_reached 徽章</li>
+              <li>badge 頒發 → 可能觸發 Journey 轉換</li>
+            </ul>
+          </div>
+          <div>
+            <strong>範例：打卡</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              patterns=<code className="bg-slate-100 px-1 rounded">打卡, 簽到, checkin</code>，action=increment_streak streak_key=<code className="bg-slate-100 px-1 rounded">daily</code>，reply_content_key=<code className="bg-slate-100 px-1 rounded">streak_cheer</code>。使用者打卡就連續 +1 並回覆鼓勵訊息。
+            </p>
+          </div>
+        </HelpModal>
+      )}
       <p className="text-xs text-slate-500">
         用戶傳訊時，會先依 priority 順序比對此處的規則。第一個匹配的規則會執行其 action，不再落到 AI 顧問。未匹配則交給 AI。
       </p>

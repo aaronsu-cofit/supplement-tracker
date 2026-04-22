@@ -2,6 +2,7 @@
 import { apiFetch } from '@vitera/lib';
 import { useCallback, useEffect, useState } from 'react';
 import type { MissionTemplate, MissionCompleteAction } from '../../../types';
+import HelpModal, { HelpButton } from './HelpModal';
 
 interface Props {
   productId: string;
@@ -73,6 +74,7 @@ export default function ProductMissionSection({ productId }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FormShape>(EMPTY);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -275,7 +277,10 @@ export default function ProductMissionSection({ productId }: Props) {
   return (
     <div className="hq-card flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-lg">任務（{missions.length}）</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-lg">任務（{missions.length}）</h3>
+          <HelpButton onClick={() => setHelpOpen(true)} />
+        </div>
         <button
           onClick={() => setShowAdd(v => !v)}
           className="text-sm px-3 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50"
@@ -283,6 +288,58 @@ export default function ProductMissionSection({ productId }: Props) {
           {showAdd ? '取消' : '+ 新增任務'}
         </button>
       </div>
+      {helpOpen && (
+        <HelpModal title="任務使用說明" onClose={() => setHelpOpen(false)}>
+          <div>
+            <strong>Key 命名</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              建議用 phase + 動作：<code className="bg-slate-100 px-1 rounded">day1_task</code>、<code className="bg-slate-100 px-1 rounded">answer_survey</code>、<code className="bg-slate-100 px-1 rounded">drink_water_day1</code>。
+            </p>
+          </div>
+          <div>
+            <strong>被誰引用</strong>
+            <ul className="list-disc pl-5 text-xs text-slate-600 mt-1 flex flex-col gap-0.5">
+              <li>意圖動作 <code className="bg-slate-100 px-1 rounded">assign_mission</code> / <code className="bg-slate-100 px-1 rounded">complete_mission</code> / <code className="bg-slate-100 px-1 rounded">increment_mission_progress</code></li>
+              <li>劇本 <code className="bg-slate-100 px-1 rounded">mission-assign-node</code></li>
+              <li>其他任務的 <code className="bg-slate-100 px-1 rounded">on_complete_actions</code> 的 <code className="bg-slate-100 px-1 rounded">assign_mission</code>（鏈結）</li>
+              <li>徽章 criteria <code className="bg-slate-100 px-1 rounded">mission_completed</code></li>
+              <li>Journey trigger <code className="bg-slate-100 px-1 rounded">mission_completed</code></li>
+            </ul>
+          </div>
+          <div>
+            <strong>進度設定</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              <code className="bg-slate-100 px-1 rounded">progress_target=1</code>：一次性任務。<code className="bg-slate-100 px-1 rounded">&gt;1</code>：多步任務，要呼叫 <code className="bg-slate-100 px-1 rounded">increment_mission_progress</code> 累到 target 才完成。例「喝 3 杯水」target=3。
+            </p>
+          </div>
+          <div>
+            <strong>屬性自動完成</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              設 <code className="bg-slate-100 px-1 rounded">auto_complete_on_attribute.attribute_key</code>（可選 <code className="bg-slate-100 px-1 rounded">match_value</code>），該屬性一被設就自動完成。<strong>適合問卷型</strong>（使用者回覆意圖 → 設屬性 → 任務自動完成）。
+            </p>
+          </div>
+          <div>
+            <strong>完成時動作陣列</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              任務完成時依序跑：
+            </p>
+            <ul className="list-disc pl-5 text-xs text-slate-600 mt-1 flex flex-col gap-0.5">
+              <li><code className="bg-slate-100 px-1 rounded">set_attribute</code>（key/value）</li>
+              <li><code className="bg-slate-100 px-1 rounded">assign_mission</code>（mission_key；多日計畫鏈結）</li>
+              <li><code className="bg-slate-100 px-1 rounded">increment_streak</code>（streak_key）</li>
+            </ul>
+            <p className="text-xs text-slate-500 mt-1">
+              鏈結深度上限 5，防無限迴圈。
+            </p>
+          </div>
+          <div>
+            <strong>範例：3 天任務鏈</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              建 <code className="bg-slate-100 px-1 rounded">day1</code> 的 on_complete = <code className="bg-slate-100 px-1 rounded">[assign_mission day2, increment_streak daily]</code>；<code className="bg-slate-100 px-1 rounded">day2</code> on_complete 指向 <code className="bg-slate-100 px-1 rounded">day3</code>，以此類推。
+            </p>
+          </div>
+        </HelpModal>
+      )}
       <p className="text-xs text-slate-500">
         任務藍圖：可透過意圖規則（<code className="bg-slate-100 px-1 rounded">assign/complete/increment_mission_progress</code>）、屬性自動完成、或其他任務的 on_complete 鏈結觸發。
       </p>

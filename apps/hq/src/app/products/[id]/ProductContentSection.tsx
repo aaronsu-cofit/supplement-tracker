@@ -2,6 +2,7 @@
 import { apiFetch } from '@vitera/lib';
 import { useCallback, useEffect, useState } from 'react';
 import type { ContentItem, ContentItemType } from '../../../types';
+import HelpModal, { HelpButton } from './HelpModal';
 
 interface Props {
   productId: string;
@@ -63,6 +64,7 @@ export default function ProductContentSection({ productId }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FormShape>(EMPTY);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -219,7 +221,10 @@ export default function ProductContentSection({ productId }: Props) {
   return (
     <div className="hq-card flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-lg">內容庫（{items.length}）</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-lg">內容庫（{items.length}）</h3>
+          <HelpButton onClick={() => setHelpOpen(true)} />
+        </div>
         <button
           onClick={() => setShowAdd(v => !v)}
           className="text-sm px-3 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50"
@@ -227,6 +232,43 @@ export default function ProductContentSection({ productId }: Props) {
           {showAdd ? '取消' : '+ 新增'}
         </button>
       </div>
+      {helpOpen && (
+        <HelpModal title="內容庫使用說明" onClose={() => setHelpOpen(false)}>
+          <div>
+            <strong>Key 命名</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              英數、底線 <code className="bg-slate-100 px-1 rounded">_</code>、點 <code className="bg-slate-100 px-1 rounded">.</code>、連字號 <code className="bg-slate-100 px-1 rounded">-</code>，開頭需英數，最多 100 字。建議語意化：<code className="bg-slate-100 px-1 rounded">welcome_msg</code>、<code className="bg-slate-100 px-1 rounded">day1_tip</code>、<code className="bg-slate-100 px-1 rounded">sleep_card</code>。
+            </p>
+          </div>
+          <div>
+            <strong>被誰引用</strong>
+            <ul className="list-disc pl-5 text-xs text-slate-600 mt-1 flex flex-col gap-0.5">
+              <li>劇本 push 節點的「引用內容」下拉</li>
+              <li>意圖規則 <code className="bg-slate-100 px-1 rounded">reply_content</code> 動作</li>
+              <li>意圖其他動作（set_attribute、assign_mission…）的 <code className="bg-slate-100 px-1 rounded">reply_content_key</code></li>
+            </ul>
+          </div>
+          <div>
+            <strong>兩種類型</strong>
+            <ul className="list-disc pl-5 text-xs text-slate-600 mt-1 flex flex-col gap-0.5">
+              <li><code className="bg-slate-100 px-1 rounded">text</code>：純文字訊息，body 填內容</li>
+              <li><code className="bg-slate-100 px-1 rounded">flex</code>：LINE 卡片，body 填 Flex JSON（外層 bubble 或 carousel）；title 欄位會當作 altText 通知文案</li>
+            </ul>
+          </div>
+          <div>
+            <strong>即時更新</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              改內容即生效 — 發送時才從 DB 抓，不用改劇本/意圖規則。
+            </p>
+          </div>
+          <div>
+            <strong>範例</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              建 <code className="bg-slate-100 px-1 rounded">welcome_msg</code>（text，body「歡迎！」）→ 意圖規則 patterns=<code className="bg-slate-100 px-1 rounded">你好, hi</code>，action=reply_content 引用 <code className="bg-slate-100 px-1 rounded">welcome_msg</code>。
+            </p>
+          </div>
+        </HelpModal>
+      )}
       <p className="text-xs text-slate-500">
         可複用的訊息。劇本、push node、意圖回覆中可用 <code className="bg-slate-100 px-1 rounded">content:key</code> 引用。支援 text 和 flex（LINE 卡片）。
       </p>

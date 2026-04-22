@@ -7,6 +7,7 @@ import type {
   JourneyTransition,
   JourneyTrigger,
 } from '../../../types';
+import HelpModal, { HelpButton } from './HelpModal';
 
 interface Props {
   productId: string;
@@ -80,6 +81,7 @@ export default function ProductJourneySection({ productId }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FormShape>(EMPTY);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -313,7 +315,10 @@ export default function ProductJourneySection({ productId }: Props) {
   return (
     <div className="hq-card flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-lg">Journey 狀態機（{journeys.length}）</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-lg">Journey 狀態機（{journeys.length}）</h3>
+          <HelpButton onClick={() => setHelpOpen(true)} />
+        </div>
         <button
           onClick={() => setShowAdd(v => !v)}
           className="text-sm px-3 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50"
@@ -321,6 +326,62 @@ export default function ProductJourneySection({ productId }: Props) {
           {showAdd ? '取消' : '+ 新增 Journey'}
         </button>
       </div>
+      {helpOpen && (
+        <HelpModal title="Journey 狀態機使用說明" onClose={() => setHelpOpen(false)}>
+          <div>
+            <strong>Key 命名</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              Journey key（如 <code className="bg-slate-100 px-1 rounded">program_21d</code>、<code className="bg-slate-100 px-1 rounded">onboarding_flow</code>）和 phase key（如 <code className="bg-slate-100 px-1 rounded">onboarding</code>、<code className="bg-slate-100 px-1 rounded">active</code>）都建議短而語意化。
+            </p>
+          </div>
+          <div>
+            <strong>Phases</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              依序排列（像 <code className="bg-slate-100 px-1 rounded">onboarding → active → completed</code>），每個有唯一 key、顯示 name、可選 icon。建議 3-5 個 phase，太多會難管理。
+            </p>
+          </div>
+          <div>
+            <strong>Transitions</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              依規則宣告順序比對，第一個命中者勝。三種觸發器：
+            </p>
+            <ul className="list-disc pl-5 text-xs text-slate-600 mt-1 flex flex-col gap-0.5">
+              <li><code className="bg-slate-100 px-1 rounded">mission_completed</code>：指定 mission_key 被完成</li>
+              <li><code className="bg-slate-100 px-1 rounded">attribute_equals</code>：指定 attribute_key 被設到特定 value</li>
+              <li><code className="bg-slate-100 px-1 rounded">badge_earned</code>：指定 badge_key 被頒發</li>
+            </ul>
+          </div>
+          <div>
+            <strong>from_phase 特殊值「任何 phase」</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              <code className="bg-slate-100 px-1 rounded">from_phase</code> 下拉選「任何 phase」等同未指定，代表「不管現在在哪個 phase（含新使用者沒有 phase）都適用」—— 這是<strong>新使用者落入第一個 phase 的方式</strong>。
+            </p>
+          </div>
+          <div>
+            <strong>Phase 不會回頭</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              已在目標 phase 再次觸發不會重新「進入」。如需循環狀態機，用第二個 journey 實作。
+            </p>
+          </div>
+          <div>
+            <strong>範例：21 天計畫</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              Phases：<code className="bg-slate-100 px-1 rounded">onboarding → active → completed</code>。Transitions：
+            </p>
+            <ul className="list-disc pl-5 text-xs text-slate-600 mt-1 flex flex-col gap-0.5">
+              <li>attribute_equals <code className="bg-slate-100 px-1 rounded">onboarded=yes</code>，from 任何 → <code className="bg-slate-100 px-1 rounded">onboarding</code></li>
+              <li>mission_completed <code className="bg-slate-100 px-1 rounded">day1_task</code>，from <code className="bg-slate-100 px-1 rounded">onboarding</code> → <code className="bg-slate-100 px-1 rounded">active</code></li>
+              <li>badge_earned <code className="bg-slate-100 px-1 rounded">graduation</code>，from <code className="bg-slate-100 px-1 rounded">active</code> → <code className="bg-slate-100 px-1 rounded">completed</code></li>
+            </ul>
+          </div>
+          <div>
+            <strong>觀察現況</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              使用者當前 phase 在 <code className="bg-slate-100 px-1 rounded">/admins/[userId]</code> 的「Journey 現況」區塊；轉換記錄在 engagement events <code className="bg-slate-100 px-1 rounded">journey_transition</code>。
+            </p>
+          </div>
+        </HelpModal>
+      )}
       <p className="text-xs text-slate-500">
         一個 Journey 定義一串命名的 phase 和轉移規則。使用者在完成任務、設定屬性、取得徽章時自動轉換 phase。
       </p>

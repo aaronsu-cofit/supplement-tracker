@@ -2,6 +2,7 @@
 import { apiFetch } from '@vitera/lib';
 import { useCallback, useEffect, useState } from 'react';
 import type { BadgeTemplate, BadgeCriteria } from '../../../types';
+import HelpModal, { HelpButton } from './HelpModal';
 
 interface Props {
   productId: string;
@@ -71,6 +72,7 @@ export default function ProductBadgeSection({ productId }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FormShape>(EMPTY);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -194,7 +196,10 @@ export default function ProductBadgeSection({ productId }: Props) {
   return (
     <div className="hq-card flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-lg">徽章（{badges.length}）</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-lg">徽章（{badges.length}）</h3>
+          <HelpButton onClick={() => setHelpOpen(true)} />
+        </div>
         <button
           onClick={() => setShowAdd(v => !v)}
           className="text-sm px-3 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50"
@@ -202,6 +207,51 @@ export default function ProductBadgeSection({ productId }: Props) {
           {showAdd ? '取消' : '+ 新增徽章'}
         </button>
       </div>
+      {helpOpen && (
+        <HelpModal title="徽章使用說明" onClose={() => setHelpOpen(false)}>
+          <div>
+            <strong>Key 命名</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              建議用成就描述：<code className="bg-slate-100 px-1 rounded">seven_day_streak</code>、<code className="bg-slate-100 px-1 rounded">first_task</code>、<code className="bg-slate-100 px-1 rounded">graduation</code>。
+            </p>
+          </div>
+          <div>
+            <strong>被誰引用</strong>
+            <ul className="list-disc pl-5 text-xs text-slate-600 mt-1 flex flex-col gap-0.5">
+              <li>Journey trigger <code className="bg-slate-100 px-1 rounded">badge_earned</code>（徽章到手後推進使用者 phase）</li>
+            </ul>
+          </div>
+          <div>
+            <strong>Icon</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              可填 emoji（如 🏆🔥⭐）或圖片 URL。在使用者狀態頁顯示。
+            </p>
+          </div>
+          <div>
+            <strong>Criteria 類型</strong>
+            <ul className="list-disc pl-5 text-xs text-slate-600 mt-1 flex flex-col gap-0.5">
+              <li>
+                <code className="bg-slate-100 px-1 rounded">streak_reached</code>：streak_key 的連續天數達到 threshold 時頒發。例：streak_key=<code className="bg-slate-100 px-1 rounded">daily_checkin</code>、threshold=7。
+              </li>
+              <li>
+                <code className="bg-slate-100 px-1 rounded">mission_completed</code>：完成指定 mission_key 時頒發。例：mission_key=<code className="bg-slate-100 px-1 rounded">graduation_task</code>。
+              </li>
+            </ul>
+          </div>
+          <div>
+            <strong>頒發時機</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              Streak 類：使用者 <code className="bg-slate-100 px-1 rounded">increment_streak</code> 觸發時自動評估；Mission 類：任務完成時自動評估。每人每徽章只得一次（unique 約束保證冪等）。
+            </p>
+          </div>
+          <div>
+            <strong>範例：7 日戰士</strong>
+            <p className="text-xs text-slate-500 mt-1">
+              key <code className="bg-slate-100 px-1 rounded">seven_day</code>、icon 🔥、criteria streak_reached streak_key=<code className="bg-slate-100 px-1 rounded">daily</code> threshold=7。使用者連續打卡第 7 天自動取得。
+            </p>
+          </div>
+        </HelpModal>
+      )}
       <p className="text-xs text-slate-500">
         徽章在條件達成時自動頒發，每人每徽章只得一次。streak 類在 <code className="bg-slate-100 px-1 rounded">increment_streak</code> 時評估；mission 類在任務完成時評估。
       </p>
