@@ -9,6 +9,10 @@ import {
   getUserJourneyPhases,
   getMessageLogForUser,
   findUserById, db,
+  getMissionTemplateByKey,
+  assignMission,
+  abandonMissionAssignment,
+  removeUserBadge,
 } from '../lib/db.js';
 import { setUserAttributeWithHooks } from '../lib/missions.js';
 
@@ -147,6 +151,59 @@ hq.get('/users/:userId/missions', async (c) => {
   } catch (error) {
     console.error('Failed to fetch user missions:', error);
     return c.json({ error: 'Failed to fetch missions' }, 500);
+  }
+});
+
+// POST /api/hq/users/:userId/missions
+// Body: { product_id, mission_key } — manually assign a mission to a user.
+// Idempotent: returns the existing pending assignment if one already exists.
+hq.post('/users/:userId/missions', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const body = await c.req.json();
+    if (typeof body.product_id !== 'string' || typeof body.mission_key !== 'string') {
+      return c.json({ error: 'product_id and mission_key required' }, 400);
+    }
+    const template = await getMissionTemplateByKey(body.product_id, body.mission_key);
+    if (!template || !template.is_active) {
+      return c.json({ error: 'mission not found or inactive' }, 404);
+    }
+    const assignment = await assignMission(userId, template.id);
+    return c.json({ assignment }, 201);
+  } catch (error) {
+    console.error('Failed to assign mission:', error);
+    return c.json({ error: 'Failed to assign mission' }, 500);
+  }
+});
+
+// DELETE /api/hq/users/:userId/missions/:assignmentId
+// Abandons (does not hard-delete) the assignment — status goes to
+// 'abandoned' and it disappears from pending queries but stays in the
+// history. Safer than deletion because intent/progress paths have no
+// way to reassign automatically.
+hq.delete('/users/:userId/missions/:assignmentId', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const assignmentId = c.req.param('assignmentId');
+    const updated = await abandonMissionAssignment(userId, assignmentId);
+    if (!updated) return c.json({ error: 'assignment not found' }, 404);
+    return c.json({ assignment: updated });
+  } catch (error) {
+    console.error('Failed to abandon mission:', error);
+    return c.json({ error: 'Failed to abandon mission' }, 500);
+  }
+});
+
+// DELETE /api/hq/users/:userId/badges/:templateId — revoke a badge
+hq.delete('/users/:userId/badges/:templateId', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const templateId = c.req.param('templateId');
+    await removeUserBadge(userId, templateId);
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('Failed to revoke badge:', error);
+    return c.json({ error: 'Failed to revoke badge' }, 500);
   }
 });
 

@@ -1274,6 +1274,41 @@ export async function getUserMissionAssignments(userId: string) {
   });
 }
 
+/**
+ * Abandon a user's mission assignment (admin override). Keeps the row
+ * in history so we can see what was abandoned; the status change is
+ * picked up by queries that filter by `status: 'pending'`. Returns the
+ * updated row, or null if the assignment doesn't exist or doesn't
+ * belong to the user (treated as a safety fence).
+ */
+export async function abandonMissionAssignment(userId: string, assignmentId: string) {
+  const row = await db().missionAssignment.findFirst({
+    where: { id: assignmentId, user_id: userId },
+  });
+  if (!row) return null;
+  return db().missionAssignment.update({
+    where: { id: assignmentId },
+    data: { status: 'abandoned' },
+  });
+}
+
+/**
+ * Revoke a user badge (hard delete). Used by admin overrides in the
+ * conversations/state panel. If the row doesn't exist we return success
+ * idempotently — treats double-clicks as no-op.
+ */
+export async function removeUserBadge(userId: string, templateId: string): Promise<{ success: boolean }> {
+  try {
+    await db().userBadge.delete({
+      where: { user_id_template_id: { user_id: userId, template_id: templateId } },
+    });
+  } catch (err) {
+    if ((err as { code?: string })?.code === 'P2025') return { success: true };
+    throw err;
+  }
+  return { success: true };
+}
+
 // ============================================
 // Gamification: streaks
 // ============================================

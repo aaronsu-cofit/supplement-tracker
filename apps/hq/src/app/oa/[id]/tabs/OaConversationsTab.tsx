@@ -6,6 +6,7 @@ import UserInfoPanel from './UserInfoPanel';
 
 interface Props {
   oaId: string;
+  productId?: string | null;
 }
 
 interface UserRow {
@@ -88,7 +89,7 @@ function MessageBubble({ m }: { m: MessageLogRow }) {
   );
 }
 
-export default function OaConversationsTab({ oaId }: Props) {
+export default function OaConversationsTab({ oaId, productId }: Props) {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageLogRow[]>([]);
@@ -217,7 +218,7 @@ export default function OaConversationsTab({ oaId }: Props) {
       {/* User info side panel */}
       {selectedUser && (
         <aside className="w-80 border-l border-slate-200 bg-white shrink-0 overflow-y-auto hidden lg:block">
-          <UserInfoPanel key={selectedUser} userId={selectedUser} />
+          <UserInfoPanel key={selectedUser} userId={selectedUser} productId={productId ?? null} />
         </aside>
       )}
     </div>

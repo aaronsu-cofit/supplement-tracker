@@ -97,7 +97,7 @@ export default function OaWorkspaceClient({ oaId }: { oaId: string }) {
         {activeTab === 'scenarios' && <OaScenariosTab oaId={oaId} oa={oa} />}
         {activeTab === 'menus' && oa && <OaMenusTab oaId={oaId} oa={oa} onChange={setOa} />}
         {activeTab === 'overview' && <OaOverviewTab oaId={oaId} />}
-        {activeTab === 'conversations' && <OaConversationsTab oaId={oaId} />}
+        {activeTab === 'conversations' && <OaConversationsTab oaId={oaId} productId={oa?.product_id ?? null} />}
         {activeTab === 'settings' && oa && <OaSettingsTab oa={oa} onChange={setOa} />}
       </div>
     </div>
