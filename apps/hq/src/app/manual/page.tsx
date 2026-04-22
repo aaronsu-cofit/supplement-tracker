@@ -26,7 +26,9 @@ export default function ManualPage() {
             <li><a className="underline" href="#flex">Flex 訊息（卡片）</a></li>
             <li><a className="underline" href="#observe">排程觀察、預覽、lint</a></li>
             <li><a className="underline" href="#user">使用者狀態檢視</a></li>
+            <li><a className="underline" href="#conversations">對話紀錄與即時編輯</a></li>
             <li><a className="underline" href="#richmenu">Rich Menu 評估</a></li>
+            <li><a className="underline" href="#help">區塊內建「?」說明</a></li>
             <li><a className="underline" href="#faq">常見問題</a></li>
           </ol>
         </section>
@@ -110,16 +112,20 @@ export default function ManualPage() {
           <h3 className="text-lg font-bold mb-2">📚 內容庫（Content Library）</h3>
           <div className="text-sm text-slate-700 flex flex-col gap-2">
             <p>
-              產品層級可重用的訊息。支援 <code>text</code>（純文字）和 <code>flex</code>（LINE 卡片）。用 key 引用：劇本推播節點的「引用內容」下拉、意圖回覆的 <code>content_key</code>、任務完成 reward。
+              產品層級可重用的訊息。支援 <code>text</code>（純文字）和 <code>flex</code>（LINE 卡片）。用 key 引用：劇本推播節點的「引用內容」下拉、意圖回覆的 <code>content_key</code>、任務/徽章完成時的 <code>notify_content_key</code>。
             </p>
             <p>
               改內容即時生效：發送時才從 DB 抓，不用改劇本/意圖規則。
+            </p>
+            <p>
+              <strong>Flex 編輯器</strong>：點「選用範例（12 個）」開啟範例選擇器，涵蓋四大類（商務、生活、問卷、DTx/健康），包含任務完成、PHQ-9 量表、今日小提醒等常用 DTx 卡片。選一個直接插入再客製化即可。附即時 JSON 格式驗證和 LINE Flex Simulator 外連。
             </p>
             <div className="bg-slate-50 border border-slate-200 rounded p-2 text-xs flex flex-col gap-1">
               <strong>AC — 內容庫</strong>
               <ul className="list-disc pl-4 flex flex-col gap-0.5">
                 <li>可在產品詳情頁新增 text 或 flex 類型</li>
-                <li>Flex 類型編輯器有即時 JSON 格式驗證 + 範例 bubble 按鈕</li>
+                <li>Flex 類型編輯器有即時 JSON 格式驗證 + 12 個範例 picker</li>
+                <li>Flex 範例涵蓋餐廳/收據/新聞/旅遊/飯店/活動/付款/商品 carousel/心情打卡/任務完成/PHQ-9/每日提醒</li>
                 <li>key 同產品內唯一（重複新增應回 409）</li>
                 <li>停用後，引用此 key 的推播會被跳過（但 OA 還能運作；錯誤訊息會顯示在排程 error log）</li>
                 <li>用 <code>lint</code> 看劇本時，引用不存在或停用的 key 會標 ⚠</li>
@@ -132,7 +138,7 @@ export default function ManualPage() {
           <h3 className="text-lg font-bold mb-2">🎯 任務（Mission）</h3>
           <div className="text-sm text-slate-700 flex flex-col gap-2">
             <p>
-              任務藍圖定義一件使用者要完成的事。四種能力：
+              任務藍圖定義一件使用者要完成的事。五種能力：
             </p>
             <ul className="list-disc pl-5 flex flex-col gap-1">
               <li>
@@ -145,7 +151,10 @@ export default function ManualPage() {
                 <strong>完成後動作陣列（on_complete_actions）</strong>：任務完成時依序跑 <code>set_attribute</code>、<code>assign_mission</code>（鏈結下一個任務）、<code>increment_streak</code>。鏈結深度上限 5 防無限迴圈。
               </li>
               <li>
-                <strong>指派路徑</strong>：意圖動作 <code>assign_mission</code>、劇本 <code>mission-assign-node</code>、或其他任務的 on_complete 鏈結。
+                <strong>完成時自動推播（notify_content_key）</strong>：填產品內容庫的 key，任務完成時自動 push 對應內容（text 或 flex）給使用者。所有完成路徑都會觸發，推播走使用者最近互動的 OA。
+              </li>
+              <li>
+                <strong>指派路徑</strong>：意圖動作 <code>assign_mission</code>、劇本 <code>mission-assign-node</code>、其他任務的 on_complete 鏈結，或從對話頁右欄、<code>/admins/[id]</code> 手動指派。
               </li>
             </ul>
             <div className="bg-slate-50 border border-slate-200 rounded p-2 text-xs flex flex-col gap-1">
@@ -154,6 +163,7 @@ export default function ManualPage() {
                 <li>新增任務、設 progress_target &gt; 1 可用</li>
                 <li>設 auto_complete_on_attribute 後，手動從 <code>/admins/[id]</code> 設該屬性 → 任務應變 completed</li>
                 <li>on_complete 含 assign_mission → 完成任務 A 後使用者應出現待辦任務 B</li>
+                <li>設 notify_content_key → 任務完成時使用者 LINE 應收到對應訊息（text 或 flex）</li>
                 <li>重複對同一使用者指派同任務應冪等（不會多一份 pending）</li>
               </ul>
             </div>
@@ -176,6 +186,17 @@ export default function ManualPage() {
             <p>
               每人每徽章只得一次（unique）；頒發記在 <code>user_badges</code>，會寫入 <code>badge_earned</code> engagement event。
             </p>
+            <p>
+              <strong>Icon 三種格式</strong>：編輯器自動偵測並渲染：
+            </p>
+            <ul className="list-disc pl-5 flex flex-col gap-1">
+              <li><code>emoji</code>：如 🏆、🔥、⭐</li>
+              <li><code>URL</code>：<code>https://...</code> 的圖床連結</li>
+              <li><code>base64 data URI</code>：按「📁 上傳」選本機圖會自動轉成 data URI（20 KB 上限）</li>
+            </ul>
+            <p>
+              <strong>取得時自動推播（notify_content_key）</strong>：和任務一樣，填產品內容庫的 key，徽章頒發當下自動 push 給使用者。適合搭配「任務完成通知」、「PHQ-9 量表結果」等 flex 範例做成慶祝卡片。
+            </p>
             <div className="bg-slate-50 border border-slate-200 rounded p-2 text-xs flex flex-col gap-1">
               <strong>AC — Streak + Badge</strong>
               <ul className="list-disc pl-4 flex flex-col gap-0.5">
@@ -184,6 +205,8 @@ export default function ManualPage() {
                 <li>連續達徽章 threshold → 徽章自動出現在該使用者頁</li>
                 <li>完成任務 → 對應 mission_completed 徽章自動頒發（若有）</li>
                 <li>重複頒發同徽章應冪等（不會多出幾筆）</li>
+                <li>設 notify_content_key → 徽章頒發時使用者 LINE 應收到對應訊息</li>
+                <li>icon 填 emoji / URL / 上傳 data URI 三種都能正確渲染</li>
               </ul>
             </div>
           </div>
@@ -207,6 +230,7 @@ export default function ManualPage() {
               <li><code>assign_mission</code> / <code>complete_mission</code>：指派或完成任務，可同時回覆</li>
               <li><code>increment_mission_progress</code>：多步任務 +1</li>
               <li><code>increment_streak</code>：連續天數 +1</li>
+              <li><code>change_menu</code>：切換使用者的 Rich Menu（<code>menu_name</code> 需與 OA 已部署的模板名稱一致）</li>
             </ul>
             <div className="bg-slate-50 border border-slate-200 rounded p-2 text-xs flex flex-col gap-1">
               <strong>AC — 意圖規則</strong>
@@ -215,7 +239,8 @@ export default function ManualPage() {
                 <li>命中後不會再落到 AI 顧問（後台 log 看得出）</li>
                 <li>priority 數字小者優先，相同則看新增順序</li>
                 <li>規則停用後即時不再比對</li>
-                <li>引用不存在的 mission_key / content_key 應在 log 顯示警告但不 crash</li>
+                <li>引用不存在的 mission_key / content_key / menu_name 應在 log 顯示警告但不 crash</li>
+                <li>change_menu 命中後使用者的 Rich Menu 立即切換；OA「選單」tab 的 recent assignments 可驗證</li>
               </ul>
             </div>
           </div>
@@ -344,26 +369,73 @@ export default function ManualPage() {
           <h3 className="text-lg font-bold mb-2">👤 使用者狀態檢視</h3>
           <div className="text-sm text-slate-700 flex flex-col gap-2">
             <p>
-              <code>/admins</code> 列表點使用者名字進 <code>/admins/[userId]</code> 看：屬性、任務、連續天數、徽章、Journey 現況、最近 engagement events。
+              <code>/admins</code> 列表點使用者名字進 <code>/admins/[userId]</code> 看：屬性、任務、連續天數、徽章、Journey 現況、最近 engagement events、跨 OA 的對話紀錄。
             </p>
             <p>
-              屬性可在此頁直接編輯，走的是和意圖相同的 hook 路徑（會觸發 mission 自動完成、journey 轉換）。
+              屬性可在此頁直接編輯，走的是和意圖相同的 hook 路徑（會觸發 mission 自動完成、journey 轉換）。徽章用可重用元件渲染，不管 icon 是 emoji / URL / data URI 都能正確顯示。
+            </p>
+            <p>
+              任務、徽章、屬性的「編輯／刪除／指派」現在也可以直接在 OA 對話頁右欄做（見下節），不必跳到此頁。
             </p>
             <div className="bg-slate-50 border border-slate-200 rounded p-2 text-xs flex flex-col gap-1">
               <strong>AC — 使用者狀態</strong>
               <ul className="list-disc pl-4 flex flex-col gap-0.5">
-                <li>六個區塊（屬性/任務/連續/徽章/Journey/事件）同時載入</li>
+                <li>七個區塊（屬性/任務/連續/徽章/Journey/事件/對話）同時載入</li>
                 <li>在此頁手動新增屬性 → 若有對應 auto_complete 任務應自動完成</li>
                 <li>在此頁設屬性 → 若有對應 attribute_equals journey 規則應觸發轉換</li>
                 <li>engagement events 顯示近 50 筆、按時間倒序</li>
+                <li>對話紀錄含雙向訊息（inbound / outbound）和 source 標記</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="conversations" className="hq-card">
+          <h3 className="text-lg font-bold mb-2">💬 對話紀錄與即時編輯</h3>
+          <div className="text-sm text-slate-700 flex flex-col gap-2">
+            <p>
+              OA 工作區「對話」tab（<code>/oa/[id]?tab=conversations</code>）三欄佈局：
+            </p>
+            <ul className="list-disc pl-5 flex flex-col gap-1">
+              <li><strong>左欄</strong>：此 OA 的使用者列表，依最近活動排序、可 user_id 搜尋</li>
+              <li><strong>中欄</strong>：訊息泡泡（outbound 綠色靠右、inbound 白色靠左），flex 可展開看完整 JSON，每則附 source 標籤（意圖/AI 顧問/排程推播/任務通知/徽章通知…）</li>
+              <li><strong>右欄</strong>：選中使用者的即時狀態 — Journey、連續天數、進行中任務、徽章、屬性</li>
+            </ul>
+            <p>
+              <strong>右欄可直接編輯（客服場景最常用）</strong>：
+            </p>
+            <ul className="list-disc pl-5 flex flex-col gap-1">
+              <li>屬性：每筆 ✎ 編輯 / ✕ 刪除；底部 <code>key = value [+]</code> 新增</li>
+              <li>任務：每筆 ✕ 標記放棄（保留歷史、非硬刪）；「+ 指派」按鈕打開產品可指派任務清單</li>
+              <li>徽章：每個徽章尾端 ✕ 撤回（硬刪 user_badge row）</li>
+            </ul>
+            <p>
+              所有編輯都走跟意圖/排程一樣的 hook 路徑 — 手動設屬性會觸發 mission 自動完成、journey 轉換；指派任務走 idempotent 的 assignMission。換言之，在對話頁點的每個動作，效果都跟「使用者自己透過 LINE 觸發」一模一樣。
+            </p>
+            <p>
+              <strong>訊息來源追蹤</strong>：outbound 訊息都帶 source，常見有 <code>follow_reply</code>（加好友歡迎）、<code>intent</code>（意圖回覆）、<code>ai_agent</code>（AI 顧問回覆）、<code>scheduler_push</code>（排程推播）、<code>mission_notify</code>（任務完成推播）、<code>badge_notify</code>（徽章取得推播）。
+            </p>
+            <div className="bg-slate-50 border border-slate-200 rounded p-2 text-xs flex flex-col gap-1">
+              <strong>AC — 對話與編輯</strong>
+              <ul className="list-disc pl-4 flex flex-col gap-0.5">
+                <li>使用者清單按最近活動排序，可搜尋</li>
+                <li>切換使用者時訊息與右欄狀態都同步更新</li>
+                <li>Flex 訊息展開可看完整 JSON，text/image/sticker 各自有對應樣式</li>
+                <li>右欄新增屬性後，列表立即反映</li>
+                <li>右欄放棄任務後，該任務消失於「進行中」區段、狀態改為 abandoned</li>
+                <li>撤回徽章後該徽章消失；之後若符合 criteria 可再次頒發（不重複寫入）</li>
+                <li>OA 未綁定產品時，「+ 指派任務」按鈕 disabled</li>
               </ul>
             </div>
           </div>
         </section>
 
         <section id="richmenu" className="hq-card">
-          <h3 className="text-lg font-bold mb-2">🧩 Rich Menu 評估</h3>
+          <h3 className="text-lg font-bold mb-2">🧩 Rich Menu 評估與切換</h3>
           <div className="text-sm text-slate-700 flex flex-col gap-2">
+            <p>
+              <strong>三層自動評估（follow 時 + scheduler 每日）</strong>：
+            </p>
             <ol className="list-decimal pl-5 flex flex-col gap-1">
               <li>
                 <strong>Layer 1（rule）</strong>：劇本裡有 <code>menu-change-node</code> 的 <code>menuName</code> 對得上某個 deployed template.name → 用它。
@@ -376,7 +448,26 @@ export default function ManualPage() {
               </li>
             </ol>
             <p>
-              評估時機：follow 當下 + scheduler 每天重跑。
+              <strong>立即切換（manual）</strong>：意圖規則的 <code>change_menu</code> 動作會直接切換使用者的 Rich Menu，不走三層評估。<code>UserMenuAssignment.source</code> 記為 <code>manual</code>，和 rule/ai/fallback 區分。但之後 scheduler 的每日 menu 重評估仍會覆蓋，若要「黏住」需要在劇本 menu-change-node 也設相同名稱。
+            </p>
+          </div>
+        </section>
+
+        <section id="help" className="hq-card">
+          <h3 className="text-lg font-bold mb-2">❓ 區塊內建「?」說明</h3>
+          <div className="text-sm text-slate-700 flex flex-col gap-2">
+            <p>
+              產品詳情頁的每個設定 section — 內容庫、任務、徽章、Journey、意圖規則 — 標題旁都有一個小「?」圖示。點開會彈出該功能的快速說明：
+            </p>
+            <ul className="list-disc pl-5 flex flex-col gap-1">
+              <li>Key 命名規則 + 語意化建議</li>
+              <li>此設定會被哪些其他模組引用（改名前看影響範圍）</li>
+              <li>必填 vs 選填欄位</li>
+              <li>行為細節（冪等、時區、連動）</li>
+              <li>一個可貼著抄的範例</li>
+            </ul>
+            <p>
+              <strong>意圖規則的 help modal 特別有用</strong>：列出動作觸發後的所有連帶效應（設屬性可能觸發任務自動完成、任務完成可能觸發徽章/Journey 轉換…），第一次看的人能掌握「按一個 action 會連動多少東西」。
             </p>
           </div>
         </section>
@@ -417,7 +508,22 @@ export default function ManualPage() {
             <div>
               <strong>Q：Flex 訊息在 LINE 上沒顯示？</strong>
               <br />
-              A：JSON 格式通過編輯器驗證不等於 LINE 會接受。最外層需 bubble/carousel，內部結構可用 LINE Flex Simulator 預覽。也請確認 <code>altText</code> 有填（會當作通知文案）。
+              A：JSON 格式通過編輯器驗證不等於 LINE 會接受。最外層需 bubble/carousel，內部結構可用 LINE Flex Simulator 預覽。也請確認 <code>altText</code> 有填（會當作通知文案）。建議直接用內建 12 個範例再客製化。
+            </div>
+            <div>
+              <strong>Q：設了 notify_content_key 但使用者沒收到推播？</strong>
+              <br />
+              A：三個可能原因。(1) 使用者和任何 OA 都沒互動過（無 message_log 紀錄）— log 會顯示 <code>no OA context for user</code>。(2) content_key 指向的內容已停用或刪除。(3) 使用者最近互動的 OA 沒設 channel_access_token。去對話 tab 找該使用者看 source=<code>mission_notify</code>/<code>badge_notify</code> 有無出現。
+            </div>
+            <div>
+              <strong>Q：change_menu 動作沒有切換選單？</strong>
+              <br />
+              A：(1) <code>menu_name</code> 需與 OA 選單 tab 下已部署（<code>line_rich_menu_id</code> 非空）的模板名稱一字不差。(2) Rich Menu 必須先部署過才會有 line_rich_menu_id。log 會顯示 <code>no deployed template named "..."</code>。
+            </div>
+            <div>
+              <strong>Q：徽章 icon 放圖片顯示壞掉？</strong>
+              <br />
+              A：URL 圖片需要可公開訪問的 https 來源，且瀏覽器能載入（注意 CORS / 憑證）。base64 data URI 上傳限 20 KB 內，壓縮後的 PNG/WebP 小圖 ok，大圖建議改用外部 URL。
             </div>
           </div>
         </section>
