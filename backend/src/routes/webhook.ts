@@ -14,6 +14,9 @@ import { findActiveAgentForDay, type FlowNode, type FlowEdge } from '../lib/flow
 import { daysBetweenInTz } from '../lib/time.js'
 import { runIntent } from '../lib/intent.js'
 import { logMessage, logOutboundLineMessage } from '../lib/messageLog.js'
+import { completeMissionByKey, incrementMissionProgress } from '../lib/missions.js'
+import { contentItemToMessage } from '../lib/flow.js'
+import { getContentItemByKey } from '../lib/db.js'
 
 const webhook = new Hono()
 
@@ -102,6 +105,18 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
       console.error('[webhook/line] log postback engagement error:', err)
     )
 
+    // Structured postback actions: data is parsed as URL query string.
+    // Supported today:
+    //   act=complete_mission&key=<mission_key>[&reply_content=<key>]
+    //   act=increment_mission&key=<mission_key>[&step=N][&reply_content=<key>]
+    // Required OA-level config: product_id must be bound (missions are
+    // product-scoped). The mission's notify_content_key fires on
+    // completion as usual, providing the "updated checklist" flow.
+    const handled = await tryHandleStructuredPostback(
+      postbackData, lineUserId, oa, event.replyToken,
+    )
+    if (handled) return
+
     const liffUrl = process.env.LIFF_URL_MAIN || process.env.LIFF_URL_WOUNDS || ''
     const replyBody = liffUrl ? `點這裡開啟健康紀錄：${liffUrl}` : '健康紀錄功能即將開放，敬請期待 😊'
     try {
@@ -189,6 +204,73 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
       })
     }
   }
+}
+
+/**
+ * Parse and dispatch structured postback data. Returns true when the
+ * data matched a known action (handler already replied / logged) so the
+ * caller knows to skip the default LIFF-link reply. Unknown formats
+ * return false and fall through.
+ */
+async function tryHandleStructuredPostback(
+  data: string,
+  userId: string,
+  oa: OaContext,
+  replyToken: string,
+): Promise<boolean> {
+  let params: URLSearchParams
+  try {
+    params = new URLSearchParams(data)
+  } catch {
+    return false
+  }
+  const act = params.get('act')
+  if (!act) return false
+
+  if (act === 'complete_mission' || act === 'increment_mission') {
+    const missionKey = params.get('key')
+    const replyContentKey = params.get('reply_content') ?? undefined
+    const step = Math.max(1, parseInt(params.get('step') ?? '1', 10) || 1)
+
+    if (!oa.product_id) {
+      console.warn(`[webhook/postback] ${act} needs product_id but OA #${oa.id} has none`)
+      return true
+    }
+    if (!missionKey) {
+      console.warn(`[webhook/postback] ${act} missing key param`)
+      return true
+    }
+
+    try {
+      if (act === 'complete_mission') {
+        await completeMissionByKey(oa.product_id, userId, missionKey)
+      } else {
+        await incrementMissionProgress(oa.product_id, userId, missionKey, step)
+      }
+    } catch (err) {
+      console.error(`[webhook/postback] ${act} ${missionKey} error:`, err)
+    }
+
+    // Optional explicit reply separate from the mission's notify_content_key
+    // (which fires inside completeMissionByKey via push, not reply token).
+    // When `reply_content` is set on the postback data, reply with that
+    // content on the reply token so the user gets an immediate ack.
+    if (replyContentKey) {
+      try {
+        const item = await getContentItemByKey(oa.product_id, replyContentKey)
+        const msg = item ? contentItemToMessage(item) : null
+        if (msg) {
+          await replyMessage(replyToken, msg, oa.channel_access_token)
+          logOutboundLineMessage(oa.id, userId, msg, 'postback_reply', `${act}:${missionKey}`)
+        }
+      } catch (err) {
+        console.error('[webhook/postback] reply_content error:', err)
+      }
+    }
+    return true
+  }
+
+  return false
 }
 
 /**
