@@ -24,6 +24,7 @@ export default function ManualPage() {
             <li><a className="underline" href="#journey">Journey 狀態機</a></li>
             <li><a className="underline" href="#scenario">劇本（Scenario）與排程</a></li>
             <li><a className="underline" href="#flex">Flex 訊息（卡片）</a></li>
+            <li><a className="underline" href="#flex-checklist">任務勾選 Checklist（Postback）</a></li>
             <li><a className="underline" href="#observe">排程觀察、預覽、lint</a></li>
             <li><a className="underline" href="#user">使用者狀態檢視</a></li>
             <li><a className="underline" href="#conversations">對話紀錄與即時編輯</a></li>
@@ -304,6 +305,36 @@ export default function ManualPage() {
                 <li>「立即執行排程」在使用者 Day N 當天會送出該 Day 的所有動作</li>
                 <li>重複執行 → 各動作只觸發一次（冪等）</li>
                 <li>劇本停用 → 下次排程不送</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="flex-checklist" className="hq-card">
+          <h3 className="text-lg font-bold mb-2">☑️ 任務勾選 Checklist（Postback 模式）</h3>
+          <div className="text-sm text-slate-700 flex flex-col gap-2">
+            <p>
+              LINE Flex 沒有原生 checkbox（訊息一旦送出不可更改）。用「button + postback」可模擬：
+            </p>
+            <ol className="list-decimal pl-5 flex flex-col gap-1">
+              <li>Flex 卡片每列放一個 <strong>postback button</strong>，data 填 <code className="bg-slate-100 px-1 rounded">act=complete_mission&amp;key=&lt;mission_key&gt;&amp;reply_content=&lt;content_key&gt;</code></li>
+              <li>使用者點按鈕 → webhook 收到 postback → 直接走 <code>completeMissionByKey</code> 完成任務</li>
+              <li>若該任務的 <code>notify_content_key</code> 有設，系統會自動 push 完成通知</li>
+              <li>若 postback data 帶 <code>reply_content</code>，會立即以 reply token 回覆指定內容（通常是更新過的 checklist 卡片）</li>
+            </ol>
+            <p>
+              內容庫 picker 的「任務 Checklist（按鈕勾選）」範例即是這個 pattern — 複製後把 <code>key=</code> 改成實際的 mission_key。
+            </p>
+            <p>
+              進階：也支援 <code className="bg-slate-100 px-1 rounded">act=increment_mission&amp;key=&lt;mission_key&gt;&amp;step=1</code> 用於多步任務（每按一次 +1 進度）。
+            </p>
+            <div className="bg-slate-50 border border-slate-200 rounded p-2 text-xs flex flex-col gap-1">
+              <strong>AC — 任務 Checklist</strong>
+              <ul className="list-disc pl-4 flex flex-col gap-0.5">
+                <li>使用者收到 flex 卡片、點「✓ 完成」按鈕 → 該任務在 <code>/admins/[id]</code> 變成 completed</li>
+                <li>點按鈕不會在聊天記錄中產生使用者訊息（displayText 只顯示在聊天中，不觸發 intent）</li>
+                <li>OA 未綁定產品時 postback 被忽略、log 顯示警告</li>
+                <li>多步任務的 increment_mission postback 每點一次 +1、抵達 target 自動完成</li>
               </ul>
             </div>
           </div>

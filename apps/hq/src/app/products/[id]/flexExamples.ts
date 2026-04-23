@@ -424,6 +424,71 @@ export const FLEX_EXAMPLES: FlexExample[] = [
     }),
   },
   {
+    id: 'mission_checklist',
+    title: '任務 Checklist（按鈕勾選）',
+    category: 'DTx / 健康',
+    description: '三個任務按鈕，使用者點「✓ 完成」發 postback，後端完成任務並可自動推新卡。需要後端 postback 處理（已內建）。',
+    json: stringify({
+      type: 'bubble',
+      body: {
+        type: 'box', layout: 'vertical', spacing: 'md',
+        contents: [
+          { type: 'text', text: '今日任務清單', weight: 'bold', size: 'lg' },
+          { type: 'text', text: '點「✓ 完成」標記任務；系統會自動更新。', size: 'xs', color: '#aaaaaa', wrap: true },
+          { type: 'separator', margin: 'md' },
+          {
+            type: 'box', layout: 'vertical', spacing: 'sm', margin: 'md',
+            contents: [
+              {
+                type: 'box', layout: 'horizontal', contents: [
+                  { type: 'text', text: '☐  喝 3 杯水', size: 'sm', color: '#444444', flex: 5, gravity: 'center' },
+                  {
+                    type: 'button', style: 'primary', height: 'sm', flex: 3,
+                    action: {
+                      type: 'postback',
+                      label: '✓ 完成',
+                      data: 'act=complete_mission&key=drink_water_day1&reply_content=mission_done',
+                      displayText: '我完成了喝水任務',
+                    },
+                  },
+                ],
+              },
+              {
+                type: 'box', layout: 'horizontal', contents: [
+                  { type: 'text', text: '☐  散步 10 分鐘', size: 'sm', color: '#444444', flex: 5, gravity: 'center' },
+                  {
+                    type: 'button', style: 'primary', height: 'sm', flex: 3,
+                    action: {
+                      type: 'postback',
+                      label: '✓ 完成',
+                      data: 'act=complete_mission&key=walk_day1&reply_content=mission_done',
+                      displayText: '我完成了散步任務',
+                    },
+                  },
+                ],
+              },
+              {
+                type: 'box', layout: 'horizontal', contents: [
+                  { type: 'text', text: '☐  睡前冥想', size: 'sm', color: '#444444', flex: 5, gravity: 'center' },
+                  {
+                    type: 'button', style: 'primary', height: 'sm', flex: 3,
+                    action: {
+                      type: 'postback',
+                      label: '✓ 完成',
+                      data: 'act=complete_mission&key=meditate_day1&reply_content=mission_done',
+                      displayText: '我完成了冥想任務',
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          { type: 'text', text: '編輯提醒：data 裡的 key 要改成這個產品實際的 mission key', size: 'xs', color: '#EC1976', wrap: true, margin: 'md' },
+        ],
+      },
+    }),
+  },
+  {
     id: 'daily_tip',
     title: '今日小提醒（簡單卡）',
     category: 'DTx / 健康',

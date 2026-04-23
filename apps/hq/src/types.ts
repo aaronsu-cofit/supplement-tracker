@@ -143,7 +143,8 @@ export type IntentActionType =
   | 'complete_mission'
   | 'increment_mission_progress'
   | 'increment_streak'
-  | 'change_menu';
+  | 'change_menu'
+  | 'send_mission_checklist';
 
 export interface IntentRule {
   id: string;

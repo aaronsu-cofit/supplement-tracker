@@ -14,6 +14,10 @@ import { findActiveAgentForDay, type FlowNode, type FlowEdge } from '../lib/flow
 import { daysBetweenInTz } from '../lib/time.js'
 import { runIntent } from '../lib/intent.js'
 import { logMessage, logOutboundLineMessage } from '../lib/messageLog.js'
+import { completeMissionByKey, incrementMissionProgress } from '../lib/missions.js'
+import { contentItemToMessage } from '../lib/flow.js'
+import { getContentItemByKey } from '../lib/db.js'
+import { buildMissionChecklist } from '../lib/checklist.js'
 
 const webhook = new Hono()
 
@@ -102,6 +106,18 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
       console.error('[webhook/line] log postback engagement error:', err)
     )
 
+    // Structured postback actions: data is parsed as URL query string.
+    // Supported today:
+    //   act=complete_mission&key=<mission_key>[&reply_content=<key>]
+    //   act=increment_mission&key=<mission_key>[&step=N][&reply_content=<key>]
+    // Required OA-level config: product_id must be bound (missions are
+    // product-scoped). The mission's notify_content_key fires on
+    // completion as usual, providing the "updated checklist" flow.
+    const handled = await tryHandleStructuredPostback(
+      postbackData, lineUserId, oa, event.replyToken,
+    )
+    if (handled) return
+
     const liffUrl = process.env.LIFF_URL_MAIN || process.env.LIFF_URL_WOUNDS || ''
     const replyBody = liffUrl ? `點這裡開啟健康紀錄：${liffUrl}` : '健康紀錄功能即將開放，敬請期待 😊'
     try {
@@ -189,6 +205,106 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
       })
     }
   }
+}
+
+/**
+ * Parse and dispatch structured postback data. Returns true when the
+ * data matched a known action (handler already replied / logged) so the
+ * caller knows to skip the default LIFF-link reply. Unknown formats
+ * return false and fall through.
+ */
+async function tryHandleStructuredPostback(
+  data: string,
+  userId: string,
+  oa: OaContext,
+  replyToken: string,
+): Promise<boolean> {
+  let params: URLSearchParams
+  try {
+    params = new URLSearchParams(data)
+  } catch {
+    return false
+  }
+  const act = params.get('act')
+  if (!act) return false
+
+  if (act === 'complete_mission' || act === 'increment_mission') {
+    const missionKey = params.get('key')
+    const replyContentKey = params.get('reply_content') ?? undefined
+    const replyChecklist = params.get('reply_checklist') === '1'
+    const step = Math.max(1, parseInt(params.get('step') ?? '1', 10) || 1)
+
+    if (!oa.product_id) {
+      console.warn(`[webhook/postback] ${act} needs product_id but OA #${oa.id} has none`)
+      return true
+    }
+    if (!missionKey) {
+      console.warn(`[webhook/postback] ${act} missing key param`)
+      return true
+    }
+
+    try {
+      if (act === 'complete_mission') {
+        await completeMissionByKey(oa.product_id, userId, missionKey)
+      } else {
+        await incrementMissionProgress(oa.product_id, userId, missionKey, step)
+      }
+    } catch (err) {
+      console.error(`[webhook/postback] ${act} ${missionKey} error:`, err)
+    }
+
+    // Reply content resolution — two mutually exclusive modes:
+    //   reply_checklist=1 → build dynamic checklist from user's current
+    //     pending missions (bypasses content library; takes priority)
+    //   reply_content=<key> → fetch static ContentItem by key
+    // If both are set, reply_checklist wins.
+    let replyMsg: import('@line/bot-sdk').Message | null = null
+    let sourceRef = `${act}:${missionKey}`
+    if (replyChecklist) {
+      try {
+        replyMsg = await buildMissionChecklist(oa.product_id, userId)
+        sourceRef = `${act}:${missionKey}:checklist`
+      } catch (err) {
+        console.error('[webhook/postback] buildMissionChecklist error:', err)
+      }
+    } else if (replyContentKey) {
+      try {
+        const item = await getContentItemByKey(oa.product_id, replyContentKey)
+        replyMsg = item ? contentItemToMessage(item) : null
+      } catch (err) {
+        console.error('[webhook/postback] reply_content error:', err)
+      }
+    }
+
+    if (replyMsg) {
+      try {
+        await replyMessage(replyToken, replyMsg, oa.channel_access_token)
+        logOutboundLineMessage(oa.id, userId, replyMsg, 'postback_reply', sourceRef)
+      } catch (err) {
+        console.error('[webhook/postback] replyMessage error:', err)
+      }
+    }
+    return true
+  }
+
+  if (act === 'show_checklist') {
+    if (!oa.product_id) {
+      console.warn(`[webhook/postback] show_checklist needs product_id but OA #${oa.id} has none`)
+      return true
+    }
+    try {
+      const msg = await buildMissionChecklist(oa.product_id, userId)
+      if (msg) {
+        await replyMessage(replyToken, msg, oa.channel_access_token)
+        logOutboundLineMessage(oa.id, userId, msg, 'postback_reply', 'show_checklist')
+      }
+    } catch (err) {
+      console.error('[webhook/postback] show_checklist error:', err)
+    }
+    return true
+  }
+
+  return false
 }
 
 /**

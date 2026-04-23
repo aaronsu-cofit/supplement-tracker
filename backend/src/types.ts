@@ -174,7 +174,8 @@ export type IntentActionType =
   | 'complete_mission'
   | 'increment_mission_progress'
   | 'increment_streak'
-  | 'change_menu';
+  | 'change_menu'
+  | 'send_mission_checklist';
 
 export interface ReplyContentAction {
   content_key: string;
@@ -205,6 +206,15 @@ export interface IncrementStreakAction {
 export interface ChangeMenuAction {
   menu_name: string;
   reply_content_key?: string;
+}
+
+/**
+ * `send_mission_checklist` takes no config beyond the action type — the
+ * checklist is built server-side from the user's current pending
+ * missions for the product. Defined for schema consistency.
+ */
+export interface SendMissionChecklistAction {
+  _?: never;
 }
 
 // Actions that run when a mission completes. Reply-type actions are
@@ -247,7 +257,8 @@ export type IntentActionConfig =
   | MissionAction
   | IncrementMissionAction
   | IncrementStreakAction
-  | ChangeMenuAction;
+  | ChangeMenuAction
+  | SendMissionChecklistAction;
 
 export type BadgeCriteria =
   | { type: 'streak_reached'; streak_key: string; threshold: number }

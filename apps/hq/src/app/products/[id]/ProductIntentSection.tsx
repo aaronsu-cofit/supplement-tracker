@@ -74,6 +74,8 @@ function formToPayload(f: FormShape): Record<string, unknown> {
       menu_name: f.menu_name.trim(),
       ...(f.menu_reply_content_key.trim() && { reply_content_key: f.menu_reply_content_key.trim() }),
     };
+  } else if (f.action_type === 'send_mission_checklist') {
+    action_config = {};
   } else {
     // assign_mission | complete_mission | increment_mission_progress
     action_config = {
@@ -231,6 +233,7 @@ export default function ProductIntentSection({ productId }: Props) {
           <option value="increment_mission_progress">遞增任務進度</option>
           <option value="increment_streak">遞增連續天數</option>
           <option value="change_menu">切換 Rich Menu</option>
+          <option value="send_mission_checklist">送動態任務清單</option>
         </select>
       </div>
       <input className="hq-input" placeholder="patterns（逗號分隔，如：預約, 要預約）" value={form.patterns}
@@ -282,6 +285,11 @@ export default function ProductIntentSection({ productId }: Props) {
           <input className="hq-input" placeholder="回覆 content key（選填）" value={form.menu_reply_content_key}
             onChange={e => setForm({ ...form, menu_reply_content_key: e.target.value })} />
         </div>
+      )}
+      {form.action_type === 'send_mission_checklist' && (
+        <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded px-2 py-1">
+          無需設定：後端會依使用者當前的 pending missions 動態產生 flex 清單卡片回覆。卡片上每列都是 tap-to-complete 按鈕，使用者點擊後會自動更新。
+        </p>
       )}
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={form.is_active}
@@ -353,6 +361,9 @@ export default function ProductIntentSection({ productId }: Props) {
               </li>
               <li>
                 <code className="bg-slate-100 px-1 rounded">change_menu</code>：切換使用者的 LINE Rich Menu（依 OA 下已部署的模板名稱比對）
+              </li>
+              <li>
+                <code className="bg-slate-100 px-1 rounded">send_mission_checklist</code>：動態組 flex 清單回覆，每列是 tap-to-complete 按鈕
               </li>
             </ul>
           </div>
@@ -503,6 +514,9 @@ export default function ProductIntentSection({ productId }: Props) {
                           <> + 回覆 <code className="bg-slate-100 px-1 rounded">{r.action_config.reply_content_key}</code></>
                         )}
                       </>
+                    )}
+                    {r.action_type === 'send_mission_checklist' && (
+                      <>送動態任務清單（依使用者現況產生）</>
                     )}
                   </div>
                 </>

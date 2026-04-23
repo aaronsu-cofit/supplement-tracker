@@ -13,6 +13,7 @@ import {
 import { incrementStreak } from './gamification.js';
 import { contentItemToMessage } from './flow.js';
 import { assignMenuByName } from './menuEvaluator.js';
+import { buildMissionChecklist } from './checklist.js';
 import type {
   IntentMatchType,
   IntentActionType,
@@ -207,8 +208,18 @@ export async function runIntent(
     contentKeyToResolve = cfg.reply_content_key;
   }
 
+  // Dynamic checklist: bypass the content-key resolver and build a
+  // message from the user's current state.
   let replyMessage: import('@line/bot-sdk').Message | null = null;
-  if (contentKeyToResolve) {
+  if (match.actionType === 'send_mission_checklist') {
+    try {
+      replyMessage = await buildMissionChecklist(productId, userId);
+    } catch (err) {
+      console.error('[intent] send_mission_checklist error:', err);
+    }
+  }
+
+  if (!replyMessage && contentKeyToResolve) {
     const item = await getContentItemByKey(productId, contentKeyToResolve);
     if (item) {
       replyMessage = contentItemToMessage(item);
@@ -238,4 +249,5 @@ export const VALID_ACTION_TYPES: IntentActionType[] = [
   'increment_mission_progress',
   'increment_streak',
   'change_menu',
+  'send_mission_checklist',
 ];

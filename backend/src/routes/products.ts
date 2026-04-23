@@ -28,6 +28,7 @@ import {
   updateJourneyTemplate,
   deleteJourneyTemplate,
 } from '../lib/db.js';
+import { SEED_TEMPLATES, SEED_TEMPLATE_LIST } from '../lib/seedTemplates.js';
 import { VALID_BADGE_CRITERIA_TYPES } from '../lib/gamification.js';
 import { validatePhases, validateTransitions } from '../lib/journey.js';
 import type { BadgeCriteria, JourneyPhase, JourneyTransition } from '../types.js';
@@ -216,6 +217,9 @@ function validateIntentRuleInput(body: Record<string, unknown>, requireAll: bool
       if (cfg.reply_content_key != null && typeof cfg.reply_content_key !== 'string') {
         return 'reply_content_key 需為字串';
       }
+    } else if (type === 'send_mission_checklist') {
+      // No required fields — checklist is generated server-side from
+      // user's current pending missions. action_config can be {}.
     }
   }
   if (body.priority !== undefined && typeof body.priority !== 'number') return 'priority 需為數字';
@@ -543,6 +547,77 @@ products.delete('/:productId/journeys/:id', async (c) => {
   const id = c.req.param('id');
   await deleteJourneyTemplate(id);
   return c.json({ success: true });
+});
+
+// ─── Seed templates (demo data) ─────────────────────────────────────────────
+
+// GET /api/products/seed-templates — list available templates.
+// Mounted outside :productId so it's independent of any existing product.
+products.get('/seed-templates', async (c) => {
+  return c.json({ templates: SEED_TEMPLATE_LIST });
+});
+
+// POST /api/products/:productId/seed
+// Body: { template: 'wellness_21d' }
+// Idempotent per-key: items whose key already exists are skipped.
+products.post('/:productId/seed', async (c) => {
+  const productId = c.req.param('productId');
+  const product = await getProductById(productId);
+  if (!product) return c.json({ error: '找不到此 Product' }, 404);
+
+  let body: { template?: string };
+  try { body = await c.req.json(); } catch { body = {}; }
+  const templateKey = body.template ?? 'wellness_21d';
+  const tpl = SEED_TEMPLATES[templateKey];
+  if (!tpl) return c.json({ error: `未知的範本 "${templateKey}"` }, 400);
+
+  const summary = {
+    content: { created: 0, skipped: 0 },
+    missions: { created: 0, skipped: 0 },
+    badges: { created: 0, skipped: 0 },
+    journeys: { created: 0, skipped: 0 },
+    intents: { created: 0, skipped: 0 },
+    errors: [] as string[],
+  };
+
+  // Helper: run a Prisma create, swallow P2002 (unique-constraint) as
+  // "skipped" and any other error as a summary.errors entry.
+  const tryCreate = async (
+    label: string,
+    section: keyof typeof summary,
+    fn: () => Promise<unknown>,
+  ) => {
+    try {
+      await fn();
+      (summary[section] as { created: number; skipped: number }).created++;
+    } catch (err) {
+      if ((err as { code?: string })?.code === 'P2002') {
+        (summary[section] as { created: number; skipped: number }).skipped++;
+      } else {
+        summary.errors.push(`${label}: ${(err as Error).message}`);
+      }
+    }
+  };
+
+  for (const item of tpl.content) {
+    await tryCreate(`content:${item.key}`, 'content', () => createContentItem(productId, item));
+  }
+  for (const mission of tpl.missions) {
+    await tryCreate(`mission:${mission.key}`, 'missions', () => createMissionTemplate(productId, mission));
+  }
+  for (const badge of tpl.badges) {
+    await tryCreate(`badge:${badge.key}`, 'badges', () => createBadgeTemplate(productId, badge));
+  }
+  for (const journey of tpl.journeys) {
+    await tryCreate(`journey:${journey.key}`, 'journeys', () => createJourneyTemplate(productId, journey));
+  }
+  // Intents have no per-product unique key, so 409 can't happen the same
+  // way — but we still wrap errors for reporting.
+  for (const intent of tpl.intents) {
+    await tryCreate(`intent:${intent.name}`, 'intents', () => createIntentRule(productId, intent));
+  }
+
+  return c.json({ template: templateKey, summary });
 });
 
 export default products;
