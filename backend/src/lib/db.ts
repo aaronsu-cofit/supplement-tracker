@@ -1136,6 +1136,19 @@ export async function createMissionTemplate(productId: string, data: CreateMissi
           : (data.auto_complete_on_attribute as unknown as Prisma.InputJsonValue),
       on_complete_actions: (data.on_complete_actions ?? []) as unknown as Prisma.InputJsonValue,
       notify_content_key: data.notify_content_key ?? null,
+      mission_type: data.mission_type ?? 'one_shot',
+      frequency: data.frequency ?? 'once',
+      daily_target: data.daily_target ?? null,
+      unit: data.unit ?? null,
+      step_value: data.step_value ?? null,
+      subtasks: data.subtasks == null
+        ? Prisma.JsonNull
+        : (data.subtasks as unknown as Prisma.InputJsonValue),
+      category: data.category ?? null,
+      action_url: data.action_url ?? null,
+      reminder: data.reminder == null
+        ? Prisma.JsonNull
+        : (data.reminder as unknown as Prisma.InputJsonValue),
     },
   });
 }
@@ -1158,6 +1171,23 @@ export async function updateMissionTemplate(id: string, data: UpdateMissionTempl
         on_complete_actions: data.on_complete_actions as unknown as Prisma.InputJsonValue,
       }),
       ...(data.notify_content_key !== undefined && { notify_content_key: data.notify_content_key }),
+      ...(data.mission_type !== undefined && { mission_type: data.mission_type }),
+      ...(data.frequency !== undefined && { frequency: data.frequency }),
+      ...(data.daily_target !== undefined && { daily_target: data.daily_target }),
+      ...(data.unit !== undefined && { unit: data.unit }),
+      ...(data.step_value !== undefined && { step_value: data.step_value }),
+      ...(data.subtasks !== undefined && {
+        subtasks: data.subtasks === null
+          ? Prisma.JsonNull
+          : (data.subtasks as unknown as Prisma.InputJsonValue),
+      }),
+      ...(data.category !== undefined && { category: data.category }),
+      ...(data.action_url !== undefined && { action_url: data.action_url }),
+      ...(data.reminder !== undefined && {
+        reminder: data.reminder === null
+          ? Prisma.JsonNull
+          : (data.reminder as unknown as Prisma.InputJsonValue),
+      }),
       ...(data.is_active !== undefined && { is_active: data.is_active }),
     },
   });
@@ -1271,6 +1301,154 @@ export async function getUserMissionAssignments(userId: string) {
     include: {
       template: { select: { id: true, key: true, name: true, product_id: true } },
     },
+  });
+}
+
+// ============================================
+// Habit tracker: daily logs
+// ============================================
+
+/**
+ * Fetch the user's active daily-habit templates (via MissionAssignment)
+ * for a given product, with today's log row (if any) attached. Used by
+ * the LIFF "today" view. `today` is a UTC-midnight Date representing
+ * the user's local calendar day.
+ */
+export async function getHabitsForUserProduct(
+  userId: string,
+  productId: string,
+  today: Date,
+) {
+  const assignments = await db().missionAssignment.findMany({
+    where: {
+      user_id: userId,
+      status: 'pending',
+      template: {
+        product_id: productId,
+        is_active: true,
+      },
+    },
+    include: {
+      template: true,
+    },
+    orderBy: { assigned_at: 'asc' },
+  });
+  if (assignments.length === 0) return [];
+
+  const templateIds = assignments.map(a => a.template_id);
+  const todayLogs = await db().missionDailyLog.findMany({
+    where: {
+      user_id: userId,
+      template_id: { in: templateIds },
+      date: today,
+    },
+  });
+  const byTemplate = new Map(todayLogs.map(l => [l.template_id, l]));
+
+  return assignments.map(a => ({
+    assignment: {
+      id: a.id,
+      status: a.status,
+      assigned_at: a.assigned_at,
+      progress_current: a.progress_current,
+      progress_target: a.progress_target,
+    },
+    template: a.template,
+    today_log: byTemplate.get(a.template_id) ?? null,
+  }));
+}
+
+/** Single-row fetch for the date-level log. */
+export async function getMissionDailyLog(
+  userId: string,
+  templateId: string,
+  date: Date,
+) {
+  return db().missionDailyLog.findUnique({
+    where: {
+      user_id_template_id_date: { user_id: userId, template_id: templateId, date },
+    },
+  });
+}
+
+/**
+ * Upsert a daily log row. Returns both the previous (pre-update) and
+ * the new row so callers can detect the "just became completed" edge
+ * and fire completion hooks only once per day.
+ */
+export async function upsertMissionDailyLog(
+  userId: string,
+  templateId: string,
+  date: Date,
+  patch: {
+    value?: number;
+    completed?: boolean;
+    subtask_state?: Record<string, boolean>;
+  },
+): Promise<{
+  previous: Awaited<ReturnType<typeof getMissionDailyLog>>;
+  next: NonNullable<Awaited<ReturnType<typeof getMissionDailyLog>>>;
+}> {
+  const previous = await getMissionDailyLog(userId, templateId, date);
+  const wasCompleted = previous?.completed ?? false;
+  const completingNow = patch.completed === true && !wasCompleted;
+  const next = await db().missionDailyLog.upsert({
+    where: {
+      user_id_template_id_date: { user_id: userId, template_id: templateId, date },
+    },
+    create: {
+      user_id: userId,
+      template_id: templateId,
+      date,
+      value: patch.value ?? 0,
+      completed: patch.completed ?? false,
+      subtask_state: patch.subtask_state == null
+        ? Prisma.JsonNull
+        : (patch.subtask_state as unknown as Prisma.InputJsonValue),
+      completed_at: patch.completed ? new Date() : null,
+    },
+    update: {
+      ...(patch.value !== undefined && { value: patch.value }),
+      ...(patch.completed !== undefined && { completed: patch.completed }),
+      ...(patch.subtask_state !== undefined && {
+        subtask_state: patch.subtask_state === null
+          ? Prisma.JsonNull
+          : (patch.subtask_state as unknown as Prisma.InputJsonValue),
+      }),
+      ...(completingNow && { completed_at: new Date() }),
+    },
+  });
+  return { previous, next };
+}
+
+/** Delete today's (or any given date's) log row, used by the LIFF undo. */
+export async function deleteMissionDailyLog(
+  userId: string,
+  templateId: string,
+  date: Date,
+): Promise<{ success: boolean }> {
+  try {
+    await db().missionDailyLog.delete({
+      where: {
+        user_id_template_id_date: { user_id: userId, template_id: templateId, date },
+      },
+    });
+  } catch (err) {
+    if ((err as { code?: string })?.code === 'P2025') return { success: true };
+    throw err;
+  }
+  return { success: true };
+}
+
+/** History: last N days of logs for a habit template. */
+export async function getMissionDailyHistory(
+  userId: string,
+  templateId: string,
+  sinceDate: Date,
+) {
+  return db().missionDailyLog.findMany({
+    where: { user_id: userId, template_id: templateId, date: { gte: sinceDate } },
+    orderBy: { date: 'asc' },
   });
 }
 

@@ -230,6 +230,25 @@ export interface AutoCompleteRule {
   match_value?: string;
 }
 
+export type MissionType =
+  | 'one_shot'
+  | 'binary_daily'
+  | 'quantitative_daily'
+  | 'checklist_daily';
+
+export type MissionFrequency = 'once' | 'daily' | 'weekly' | 'monthly';
+
+export interface MissionSubtask {
+  key: string;
+  label: string;
+}
+
+export interface MissionReminder {
+  enabled?: boolean;
+  /** "HH:MM" 24-hour local. Consumed by scheduler when reminders wired. */
+  time?: string;
+}
+
 export interface CreateMissionTemplateInput {
   key: string;
   name: string;
@@ -238,6 +257,15 @@ export interface CreateMissionTemplateInput {
   auto_complete_on_attribute?: AutoCompleteRule | null;
   on_complete_actions?: MissionCompleteAction[];
   notify_content_key?: string | null;
+  mission_type?: MissionType;
+  frequency?: MissionFrequency;
+  daily_target?: number | null;
+  unit?: string | null;
+  step_value?: number | null;
+  subtasks?: MissionSubtask[] | null;
+  category?: string | null;
+  action_url?: string | null;
+  reminder?: MissionReminder | null;
 }
 
 export interface UpdateMissionTemplateInput {
@@ -248,6 +276,15 @@ export interface UpdateMissionTemplateInput {
   auto_complete_on_attribute?: AutoCompleteRule | null;
   on_complete_actions?: MissionCompleteAction[];
   notify_content_key?: string | null;
+  mission_type?: MissionType;
+  frequency?: MissionFrequency;
+  daily_target?: number | null;
+  unit?: string | null;
+  step_value?: number | null;
+  subtasks?: MissionSubtask[] | null;
+  category?: string | null;
+  action_url?: string | null;
+  reminder?: MissionReminder | null;
   is_active?: boolean;
 }
 

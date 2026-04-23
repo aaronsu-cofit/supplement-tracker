@@ -330,6 +330,46 @@ function validateMissionPayload(body: Record<string, unknown>, requireKeyAndName
   if (body.notify_content_key != null && typeof body.notify_content_key !== 'string') {
     return 'notify_content_key 需為字串';
   }
+  const VALID_MISSION_TYPES = ['one_shot', 'binary_daily', 'quantitative_daily', 'checklist_daily'];
+  const VALID_FREQUENCIES = ['once', 'daily', 'weekly', 'monthly'];
+  if (body.mission_type != null) {
+    if (typeof body.mission_type !== 'string' || !VALID_MISSION_TYPES.includes(body.mission_type)) {
+      return `mission_type 需為 ${VALID_MISSION_TYPES.join('/')}`;
+    }
+  }
+  if (body.frequency != null) {
+    if (typeof body.frequency !== 'string' || !VALID_FREQUENCIES.includes(body.frequency)) {
+      return `frequency 需為 ${VALID_FREQUENCIES.join('/')}`;
+    }
+  }
+  if (body.daily_target != null) {
+    if (typeof body.daily_target !== 'number' || body.daily_target < 1 || !Number.isInteger(body.daily_target)) {
+      return 'daily_target 需為 >= 1 的整數';
+    }
+  }
+  if (body.step_value != null) {
+    if (typeof body.step_value !== 'number' || body.step_value < 1 || !Number.isInteger(body.step_value)) {
+      return 'step_value 需為 >= 1 的整數';
+    }
+  }
+  if (body.unit != null && typeof body.unit !== 'string') return 'unit 需為字串';
+  if (body.category != null && typeof body.category !== 'string') return 'category 需為字串';
+  if (body.action_url != null && typeof body.action_url !== 'string') return 'action_url 需為字串';
+  if (body.subtasks !== undefined && body.subtasks !== null) {
+    if (!Array.isArray(body.subtasks)) return 'subtasks 需為陣列';
+    for (const s of body.subtasks) {
+      if (!s || typeof s !== 'object') return 'subtasks 項目需為物件';
+      const st = s as Record<string, unknown>;
+      if (typeof st.key !== 'string' || !st.key.trim()) return 'subtask.key 需為非空字串';
+      if (typeof st.label !== 'string' || !st.label.trim()) return 'subtask.label 需為非空字串';
+    }
+  }
+  if (body.reminder !== undefined && body.reminder !== null) {
+    if (typeof body.reminder !== 'object') return 'reminder 需為物件';
+    const r = body.reminder as Record<string, unknown>;
+    if (r.enabled != null && typeof r.enabled !== 'boolean') return 'reminder.enabled 需為布林';
+    if (r.time != null && typeof r.time !== 'string') return 'reminder.time 需為 HH:MM 字串';
+  }
   return null;
 }
 
@@ -350,6 +390,15 @@ products.post('/:productId/missions', async (c) => {
       auto_complete_on_attribute: body.auto_complete_on_attribute,
       on_complete_actions: body.on_complete_actions,
       notify_content_key: body.notify_content_key,
+      mission_type: body.mission_type,
+      frequency: body.frequency,
+      daily_target: body.daily_target,
+      unit: body.unit,
+      step_value: body.step_value,
+      subtasks: body.subtasks,
+      category: body.category,
+      action_url: body.action_url,
+      reminder: body.reminder,
     });
     return c.json({ mission }, 201);
   } catch (e: unknown) {

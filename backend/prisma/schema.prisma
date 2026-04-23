@@ -299,21 +299,81 @@ model MissionTemplate {
   progress_target            Int      @default(1)
   auto_complete_on_attribute Json?
   on_complete_actions        Json     @default("[]")
-  // When non-null, look up this content key at completion and push the
-  // resolved text/flex to the user via the OA's channel access token.
-  // Works for all completion paths (intent, progress-reach, attribute
-  // auto-complete, chain). Null = no auto-notify.
   notify_content_key         String?  @db.VarChar(100)
+
+  // ── Habit-tracker extensions ──────────────────────────────────────
+  // mission_type:
+  //   one_shot          — existing default. Completes once, terminal.
+  //   binary_daily      — yes/no per day. Log row marks completed.
+  //   quantitative_daily — target with unit (e.g. "2000cc 水"). Log
+  //                       row accumulates value until >= daily_target.
+  //   checklist_daily   — fixed subtasks. Completed when all subtasks
+  //                       ticked for the day.
+  // For daily types, MissionAssignment stays pending permanently (it
+  // represents "subscribed to this habit"); MissionDailyLog holds
+  // per-day progress.
+  mission_type               String   @default("one_shot") @db.VarChar(30)
+  // frequency describes the cadence expectation — UI grouping hint.
+  // 'once' for one_shot; 'daily' / 'weekly' / 'monthly' for recurring.
+  frequency                  String   @default("once") @db.VarChar(20)
+  // quantitative_daily settings
+  daily_target               Int?
+  unit                       String?  @db.VarChar(30)
+  step_value                 Int?
+  // checklist_daily subtasks: array of { key, label }
+  subtasks                   Json?
+  // Display grouping in LIFF / admin
+  category                   String?  @db.VarChar(50)
+  // Optional URL opened from a mission card button (LIFF / web form).
+  // When set, the checklist flex button becomes a uri action instead
+  // of a postback; the LIFF then reports completion via /api/me/...
+  action_url                 String?
+  // Reminder settings: { enabled: bool, time: "HH:MM" }. Scheduler
+  // will eventually read this; for now just stored.
+  reminder                   Json?
+
   is_active                  Boolean  @default(true)
   created_at                 DateTime @default(now())
   updated_at                 DateTime @updatedAt
 
   product     Product             @relation(fields: [product_id], references: [id], onDelete: Cascade)
   assignments MissionAssignment[]
+  daily_logs  MissionDailyLog[]
 
   @@unique([product_id, key])
   @@index([product_id], name: "idx_mission_templates_product")
   @@map("mission_templates")
+}
+
+// Per-day completion log for habit-style missions. One row per
+// (user, template, date). For binary_daily, `completed` flips true
+// once the user taps "done". For quantitative_daily, `value`
+// increments toward template.daily_target; completed flips to true
+// the first time value hits target (not on later increments). For
+// checklist_daily, `subtask_state` holds { key: true/false }; completed
+// flips true when all subtasks are ticked.
+//
+// The `completed_at` timestamp is only written on the transition from
+// false → true; later writes don't move it. Used to distinguish "newly
+// completed today" (fire hooks) from "already completed earlier today"
+// (no-op) so on_complete_actions / notify only fire once per day.
+model MissionDailyLog {
+  id            Int      @id @default(autoincrement())
+  user_id       String   @db.VarChar(64)
+  template_id   String   @db.VarChar(30)
+  date          DateTime @db.Date
+  completed     Boolean  @default(false)
+  value         Int      @default(0)
+  subtask_state Json?
+  completed_at  DateTime?
+  updated_at    DateTime @updatedAt
+
+  template MissionTemplate @relation(fields: [template_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, template_id, date])
+  @@index([user_id, date], name: "idx_mission_daily_log_user_date")
+  @@index([template_id, date], name: "idx_mission_daily_log_template_date")
+  @@map("mission_daily_logs")
 }
 
 // Per-user mission instance. Status transitions: pending → completed

@@ -1,7 +1,9 @@
 'use client';
 import { apiFetch } from '@vitera/lib';
 import { useCallback, useEffect, useState } from 'react';
-import type { MissionTemplate, MissionCompleteAction } from '../../../types';
+import type {
+  MissionTemplate, MissionCompleteAction, MissionType, MissionFrequency, MissionSubtask,
+} from '../../../types';
 import HelpModal, { HelpButton } from './HelpModal';
 
 interface Props {
@@ -18,6 +20,16 @@ interface FormShape {
   auto_complete_match_value: string; // empty means "any value"
   on_complete_actions: MissionCompleteAction[];
   notify_content_key: string;
+  mission_type: MissionType;
+  frequency: MissionFrequency;
+  daily_target: number;
+  unit: string;
+  step_value: number;
+  subtasks: MissionSubtask[];
+  category: string;
+  action_url: string;
+  reminder_enabled: boolean;
+  reminder_time: string;
   is_active: boolean;
 }
 
@@ -31,10 +43,21 @@ const EMPTY: FormShape = {
   auto_complete_match_value: '',
   on_complete_actions: [],
   notify_content_key: '',
+  mission_type: 'one_shot',
+  frequency: 'once',
+  daily_target: 1,
+  unit: '',
+  step_value: 1,
+  subtasks: [],
+  category: '',
+  action_url: '',
+  reminder_enabled: false,
+  reminder_time: '09:00',
   is_active: true,
 };
 
 function formToPayload(f: FormShape) {
+  const isDaily = f.mission_type !== 'one_shot';
   return {
     key: f.key.trim(),
     name: f.name.trim(),
@@ -48,6 +71,15 @@ function formToPayload(f: FormShape) {
       : null,
     on_complete_actions: f.on_complete_actions,
     notify_content_key: f.notify_content_key.trim() || null,
+    mission_type: f.mission_type,
+    frequency: f.frequency,
+    daily_target: f.mission_type === 'quantitative_daily' ? f.daily_target : null,
+    unit: f.mission_type === 'quantitative_daily' ? (f.unit.trim() || null) : null,
+    step_value: f.mission_type === 'quantitative_daily' ? f.step_value : null,
+    subtasks: f.mission_type === 'checklist_daily' ? f.subtasks : null,
+    category: f.category.trim() || null,
+    action_url: f.action_url.trim() || null,
+    reminder: isDaily && f.reminder_enabled ? { enabled: true, time: f.reminder_time } : null,
     is_active: f.is_active,
   };
 }
@@ -63,6 +95,16 @@ function missionToForm(m: MissionTemplate): FormShape {
     auto_complete_match_value: m.auto_complete_on_attribute?.match_value ?? '',
     on_complete_actions: m.on_complete_actions ?? [],
     notify_content_key: m.notify_content_key ?? '',
+    mission_type: m.mission_type ?? 'one_shot',
+    frequency: m.frequency ?? 'once',
+    daily_target: m.daily_target ?? 1,
+    unit: m.unit ?? '',
+    step_value: m.step_value ?? 1,
+    subtasks: m.subtasks ?? [],
+    category: m.category ?? '',
+    action_url: m.action_url ?? '',
+    reminder_enabled: m.reminder?.enabled ?? false,
+    reminder_time: m.reminder?.time ?? '09:00',
     is_active: m.is_active,
   };
 }
@@ -246,11 +288,105 @@ export default function ProductMissionSection({ productId }: Props) {
       </div>
       <textarea className="hq-input min-h-[60px]" placeholder="說明（選填）"
         value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-slate-600">多步進度：</span>
-        <input type="number" min={1} className="hq-input w-20" value={form.progress_target}
-          onChange={e => setForm({ ...form, progress_target: Math.max(1, Number(e.target.value) || 1) })} />
-        <span className="text-xs text-slate-500">（=1 就是一次性；&gt;1 需呼叫 increment_mission_progress 到達此目標才完成）</span>
+
+      {/* Habit-tracker configuration */}
+      <div className="flex flex-col gap-2 border border-slate-200 rounded p-2 bg-white">
+        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">任務型態</label>
+        <div className="grid grid-cols-2 gap-2">
+          <select className="hq-input text-sm" value={form.mission_type}
+            onChange={e => setForm({
+              ...form,
+              mission_type: e.target.value as MissionType,
+              frequency: e.target.value === 'one_shot' ? 'once' : 'daily',
+            })}>
+            <option value="one_shot">一次性（one_shot）</option>
+            <option value="binary_daily">每日打勾（binary_daily）</option>
+            <option value="quantitative_daily">每日量化（quantitative_daily）</option>
+            <option value="checklist_daily">每日清單（checklist_daily）</option>
+          </select>
+          <select className="hq-input text-sm" value={form.frequency}
+            onChange={e => setForm({ ...form, frequency: e.target.value as MissionFrequency })}>
+            <option value="once">一次</option>
+            <option value="daily">每日</option>
+            <option value="weekly">每週</option>
+            <option value="monthly">每月</option>
+          </select>
+        </div>
+        {form.mission_type === 'quantitative_daily' && (
+          <div className="grid grid-cols-3 gap-2">
+            <input type="number" min={1} className="hq-input text-sm" placeholder="每日目標（如 2000）"
+              value={form.daily_target}
+              onChange={e => setForm({ ...form, daily_target: Math.max(1, Number(e.target.value) || 1) })} />
+            <input className="hq-input text-sm" placeholder="單位（如 cc）"
+              value={form.unit}
+              onChange={e => setForm({ ...form, unit: e.target.value })} />
+            <input type="number" min={1} className="hq-input text-sm" placeholder="每次 +N"
+              value={form.step_value}
+              onChange={e => setForm({ ...form, step_value: Math.max(1, Number(e.target.value) || 1) })} />
+          </div>
+        )}
+        {form.mission_type === 'checklist_daily' && (
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] text-slate-500">子任務（每日清單）</label>
+            {form.subtasks.map((s, i) => (
+              <div key={i} className="flex items-center gap-1">
+                <input className="hq-input text-sm flex-1 min-w-[80px] font-mono text-xs" placeholder="key"
+                  value={s.key}
+                  onChange={e => {
+                    const next = [...form.subtasks];
+                    next[i] = { ...next[i], key: e.target.value };
+                    setForm({ ...form, subtasks: next });
+                  }} />
+                <input className="hq-input text-sm flex-1 min-w-[120px]" placeholder="標籤"
+                  value={s.label}
+                  onChange={e => {
+                    const next = [...form.subtasks];
+                    next[i] = { ...next[i], label: e.target.value };
+                    setForm({ ...form, subtasks: next });
+                  }} />
+                <button type="button"
+                  onClick={() => setForm({ ...form, subtasks: form.subtasks.filter((_, j) => j !== i) })}
+                  className="text-xs text-red-600 hover:underline">移除</button>
+              </div>
+            ))}
+            <button type="button"
+              onClick={() => setForm({ ...form, subtasks: [...form.subtasks, { key: '', label: '' }] })}
+              className="text-xs px-2 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50 self-start">
+              + 新增子任務
+            </button>
+          </div>
+        )}
+        {form.mission_type === 'one_shot' && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-slate-600">多步進度：</span>
+            <input type="number" min={1} className="hq-input w-20" value={form.progress_target}
+              onChange={e => setForm({ ...form, progress_target: Math.max(1, Number(e.target.value) || 1) })} />
+            <span className="text-xs text-slate-500">（=1 一次性；&gt;1 需呼叫 increment_mission_progress 達到 target 才完成）</span>
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <input className="hq-input text-sm" placeholder="category（分類，如 健康 / 運動）"
+            value={form.category}
+            onChange={e => setForm({ ...form, category: e.target.value })} />
+          <input className="hq-input text-sm" placeholder="action_url（LIFF / 外部網址，選填）"
+            value={form.action_url}
+            onChange={e => setForm({ ...form, action_url: e.target.value })} />
+        </div>
+        {form.mission_type !== 'one_shot' && (
+          <div className="flex items-center gap-2 text-sm flex-wrap">
+            <label className="flex items-center gap-1">
+              <input type="checkbox" checked={form.reminder_enabled}
+                onChange={e => setForm({ ...form, reminder_enabled: e.target.checked })} />
+              <span>每日提醒</span>
+            </label>
+            {form.reminder_enabled && (
+              <input type="time" className="hq-input text-sm w-28"
+                value={form.reminder_time}
+                onChange={e => setForm({ ...form, reminder_time: e.target.value })} />
+            )}
+            <span className="text-xs text-slate-400">（提醒排程待後續整合）</span>
+          </div>
+        )}
       </div>
       <div className="flex flex-col gap-2 border border-slate-200 rounded p-2 bg-white">
         <label className="flex items-center gap-2 text-sm">
@@ -402,7 +538,17 @@ export default function ProductMissionSection({ productId }: Props) {
                     <div className="flex items-center gap-2">
                       <code className="bg-slate-100 px-1.5 rounded font-mono text-sm">{m.key}</code>
                       <span className="font-semibold">{m.name}</span>
-                      {m.progress_target > 1 && (
+                      {m.mission_type && m.mission_type !== 'one_shot' && (
+                        <span className="hq-badge hq-badge-blue">
+                          {m.mission_type === 'binary_daily' && '每日打勾'}
+                          {m.mission_type === 'quantitative_daily' && `每日量化 (${m.daily_target ?? 1}${m.unit ?? ''})`}
+                          {m.mission_type === 'checklist_daily' && `每日清單 ×${m.subtasks?.length ?? 0}`}
+                        </span>
+                      )}
+                      {m.category && (
+                        <span className="hq-badge hq-badge-gray">{m.category}</span>
+                      )}
+                      {(!m.mission_type || m.mission_type === 'one_shot') && m.progress_target > 1 && (
                         <span className="hq-badge hq-badge-gray">多步 ×{m.progress_target}</span>
                       )}
                       {!m.is_active && <span className="hq-badge hq-badge-gray">停用</span>}
