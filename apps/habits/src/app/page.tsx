@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { apiFetch } from '@vitera/lib';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import HabitCard from '../components/HabitCard';
+import OaFollowHint from '../components/OaFollowHint';
+import YesterdayRecap from '../components/YesterdayRecap';
 import { useProductId } from '../lib/productId';
 import type { HabitsResponse } from '../lib/types';
 
@@ -62,6 +64,10 @@ export default function TodayPage() {
           <ProgressHero completedCount={completedCount} total={daily.length} allDone={allDone} />
         )}
       </header>
+
+      <OaFollowHint />
+
+      <YesterdayRecap productId={productId} habits={data.habits} todayDate={data.date} />
 
       {Object.entries(byCategory).length === 0 ? (
         <EmptyState />

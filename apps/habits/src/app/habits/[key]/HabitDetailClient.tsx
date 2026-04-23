@@ -104,6 +104,11 @@ export default function HabitDetailClient({ missionKey }: Props) {
         <a href={t.action_url} target="_blank" rel="noreferrer"
           className="btn-primary text-center">開啟外部頁面 ↗</a>
       )}
+
+      <Link href={`/habits/${encodeURIComponent(t.key)}/settings?product_id=${encodeURIComponent(productId!)}`}
+        className="card text-center text-sm text-slate-600 font-medium">
+        ⚙️ 個人化設定
+      </Link>
     </div>
   );
 }

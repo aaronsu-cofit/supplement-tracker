@@ -10,6 +10,8 @@ import {
   getMissionTemplatesForProduct,
   assignMission,
   abandonMissionAssignment,
+  upsertUserMissionSetting,
+  getUserMissionSetting,
   db,
 } from '../lib/db.js';
 import { logHabitDay } from '../lib/habits.js';
@@ -207,6 +209,61 @@ me.get('/products/:productId/available-missions', async (c) => {
       .filter(t => t.is_active)
       .map(t => ({ ...t, is_subscribed: subscribed.has(t.id) })),
   });
+});
+
+/**
+ * GET /api/me/habits/:missionKey/setting?product_id=xxx
+ * Returns the user's current overrides (null fields mean "use template
+ * default"). Used by the per-habit settings screen.
+ */
+me.get('/habits/:missionKey/setting', async (c) => {
+  const userId = c.get('userId');
+  const missionKey = c.req.param('missionKey');
+  const productId = c.req.query('product_id');
+  if (!productId) return c.json({ error: 'product_id query required' }, 400);
+
+  const template = await getMissionTemplateByKey(productId, missionKey);
+  if (!template) return c.json({ error: 'mission not found' }, 404);
+  const setting = await getUserMissionSetting(userId, template.id);
+  return c.json({
+    setting: setting ?? {
+      daily_target: null,
+      reminder_enabled: null,
+      reminder_time: null,
+    },
+    template_defaults: {
+      daily_target: template.daily_target,
+      unit: template.unit,
+      reminder: template.reminder,
+    },
+  });
+});
+
+/**
+ * PATCH /api/me/habits/:missionKey/setting
+ * Body: { product_id, daily_target?, reminder_enabled?, reminder_time? }
+ * Upsert individual fields. Pass `null` to reset a field to template default.
+ */
+me.patch('/habits/:missionKey/setting', async (c) => {
+  const userId = c.get('userId');
+  const missionKey = c.req.param('missionKey');
+  let body: {
+    product_id?: string;
+    daily_target?: number | null;
+    reminder_enabled?: boolean | null;
+    reminder_time?: string | null;
+  };
+  try { body = await c.req.json(); } catch { body = {}; }
+  if (!body.product_id) return c.json({ error: 'product_id required' }, 400);
+
+  const template = await getMissionTemplateByKey(body.product_id, missionKey);
+  if (!template) return c.json({ error: 'mission not found' }, 404);
+  const setting = await upsertUserMissionSetting(userId, template.id, {
+    daily_target: body.daily_target,
+    reminder_enabled: body.reminder_enabled,
+    reminder_time: body.reminder_time,
+  });
+  return c.json({ setting });
 });
 
 /**

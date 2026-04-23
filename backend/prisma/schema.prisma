@@ -345,6 +345,26 @@ model MissionTemplate {
   @@map("mission_templates")
 }
 
+// Per-user overrides for a mission template's personalisable fields.
+// Currently supports a custom daily_target (e.g. user sets 5 cups of
+// water where the template default is 8). Null means "inherit from
+// template". Additional override fields — custom reminder, disabled
+// flag, step_value — can be added here without migrating existing
+// users. Deleted when the assignment is removed.
+model UserMissionSetting {
+  id               Int      @id @default(autoincrement())
+  user_id          String   @db.VarChar(64)
+  template_id      String   @db.VarChar(30)
+  daily_target     Int?
+  reminder_enabled Boolean?
+  reminder_time    String?  @db.VarChar(10)
+  updated_at       DateTime @updatedAt
+
+  @@unique([user_id, template_id])
+  @@index([user_id], name: "idx_user_mission_setting_user")
+  @@map("user_mission_settings")
+}
+
 // Per-day completion log for habit-style missions. One row per
 // (user, template, date). For binary_daily, `completed` flips true
 // once the user taps "done". For quantitative_daily, `value`

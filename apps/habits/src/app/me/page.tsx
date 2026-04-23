@@ -82,22 +82,25 @@ export default function MePage() {
         </section>
       )}
 
-      {/* Streaks */}
+      {/* Streaks with milestone viz */}
       <section className="card">
         <h2 className="text-sm font-semibold mb-2">🔥 連續天數</h2>
         {streaks.length === 0 ? (
           <p className="text-xs text-slate-400">尚無紀錄</p>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-4">
             {streaks.map(s => (
-              <li key={s.id} className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm">{s.streak_key}</div>
-                  <div className="text-[10px] text-slate-400">最後 {s.last_occurred_on?.slice(0, 10) ?? '—'}</div>
+              <li key={s.id}>
+                <div className="flex items-baseline justify-between mb-1.5">
+                  <div className="font-semibold text-sm">{s.streak_key}</div>
+                  <div className="text-xs">
+                    <span className="text-[var(--color-accent)] font-bold text-lg">{s.count_current}</span>
+                    <span className="text-slate-400"> 天 · 最佳 {s.count_best}</span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xl font-bold text-[var(--color-accent)]">{s.count_current}</div>
-                  <div className="text-[10px] text-slate-400">最佳 {s.count_best}</div>
+                <MilestoneBar current={s.count_current} />
+                <div className="text-[10px] text-slate-400 mt-1">
+                  {s.last_occurred_on ? `最後打卡 ${s.last_occurred_on.slice(0, 10)}` : '尚未開始'}
                 </div>
               </li>
             ))}
@@ -124,6 +127,50 @@ export default function MePage() {
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+/**
+ * Visual progress along the standard streak milestones. Shows a
+ * horizontal bar with marker dots at 3 / 7 / 14 / 30 / 60 / 100 days;
+ * each milestone passed lights up. Current position shown as a filled
+ * bar up to the latest milestone reached + some overshoot into the next.
+ */
+function MilestoneBar({ current }: { current: number }) {
+  const milestones = [3, 7, 14, 30, 60, 100];
+  const max = milestones[milestones.length - 1];
+  const clamped = Math.min(current, max);
+  const nextMilestone = milestones.find(m => m > current) ?? null;
+  const pct = Math.min(100, (clamped / max) * 100);
+
+  return (
+    <div className="relative">
+      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+        <div className="h-full bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] transition-all duration-500"
+          style={{ width: `${pct}%` }} />
+      </div>
+      <div className="flex justify-between mt-1.5 relative">
+        {milestones.map(m => {
+          const reached = current >= m;
+          return (
+            <div key={m} className="flex flex-col items-center gap-0.5" style={{ flex: 1, minWidth: 0 }}>
+              <div className={`w-1.5 h-1.5 rounded-full ${reached ? 'bg-[var(--color-accent)]' : 'bg-slate-300'}`} />
+              <span className={`text-[9px] ${reached ? 'text-[var(--color-accent)] font-semibold' : 'text-slate-400'}`}>
+                {m}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      {nextMilestone && (
+        <p className="text-[10px] text-slate-500 mt-1">
+          再 <strong>{nextMilestone - current}</strong> 天達成 {nextMilestone} 日連續 ✨
+        </p>
+      )}
+      {!nextMilestone && current > 0 && (
+        <p className="text-[10px] text-emerald-600 font-semibold mt-1">🏆 超越所有里程碑！</p>
+      )}
     </div>
   );
 }

@@ -34,6 +34,12 @@ export interface DailyLog {
   completed_at: string | null;
 }
 
+export interface UserMissionSetting {
+  daily_target: number | null;
+  reminder_enabled: boolean | null;
+  reminder_time: string | null;
+}
+
 export interface HabitRow {
   assignment: {
     id: string;
@@ -43,6 +49,7 @@ export interface HabitRow {
     progress_target: number;
   };
   template: MissionTemplate;
+  user_setting?: UserMissionSetting | null;
   today_log: DailyLog | null;
 }
 

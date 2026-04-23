@@ -1336,26 +1336,48 @@ export async function getHabitsForUserProduct(
   if (assignments.length === 0) return [];
 
   const templateIds = assignments.map(a => a.template_id);
-  const todayLogs = await db().missionDailyLog.findMany({
-    where: {
-      user_id: userId,
-      template_id: { in: templateIds },
-      date: today,
-    },
-  });
-  const byTemplate = new Map(todayLogs.map(l => [l.template_id, l]));
+  const [todayLogs, settings] = await Promise.all([
+    db().missionDailyLog.findMany({
+      where: { user_id: userId, template_id: { in: templateIds }, date: today },
+    }),
+    getUserMissionSettingsByTemplateIds(userId, templateIds),
+  ]);
+  const logByTemplate = new Map(todayLogs.map(l => [l.template_id, l]));
+  const settingByTemplate = new Map(settings.map(s => [s.template_id, s]));
 
-  return assignments.map(a => ({
-    assignment: {
-      id: a.id,
-      status: a.status,
-      assigned_at: a.assigned_at,
-      progress_current: a.progress_current,
-      progress_target: a.progress_target,
-    },
-    template: a.template,
-    today_log: byTemplate.get(a.template_id) ?? null,
-  }));
+  return assignments.map(a => {
+    const setting = settingByTemplate.get(a.template_id);
+    // Merge user overrides onto template defaults — null override
+    // falls back to the template value.
+    const effectiveTemplate = {
+      ...a.template,
+      daily_target: setting?.daily_target ?? a.template.daily_target,
+      reminder: setting && (setting.reminder_enabled != null || setting.reminder_time != null)
+        ? {
+            enabled: setting.reminder_enabled ?? (a.template.reminder as { enabled?: boolean } | null)?.enabled ?? false,
+            time: setting.reminder_time ?? (a.template.reminder as { time?: string } | null)?.time ?? null,
+          }
+        : a.template.reminder,
+    };
+    return {
+      assignment: {
+        id: a.id,
+        status: a.status,
+        assigned_at: a.assigned_at,
+        progress_current: a.progress_current,
+        progress_target: a.progress_target,
+      },
+      template: effectiveTemplate,
+      user_setting: setting
+        ? {
+            daily_target: setting.daily_target,
+            reminder_enabled: setting.reminder_enabled,
+            reminder_time: setting.reminder_time,
+          }
+        : null,
+      today_log: logByTemplate.get(a.template_id) ?? null,
+    };
+  });
 }
 
 /** Single-row fetch for the date-level log. */
@@ -1449,6 +1471,48 @@ export async function getMissionDailyHistory(
   return db().missionDailyLog.findMany({
     where: { user_id: userId, template_id: templateId, date: { gte: sinceDate } },
     orderBy: { date: 'asc' },
+  });
+}
+
+// ============================================
+// Habit per-user settings (overrides)
+// ============================================
+export async function getUserMissionSetting(userId: string, templateId: string) {
+  return db().userMissionSetting.findUnique({
+    where: { user_id_template_id: { user_id: userId, template_id: templateId } },
+  });
+}
+
+export async function getUserMissionSettingsByTemplateIds(userId: string, templateIds: string[]) {
+  if (templateIds.length === 0) return [];
+  return db().userMissionSetting.findMany({
+    where: { user_id: userId, template_id: { in: templateIds } },
+  });
+}
+
+export async function upsertUserMissionSetting(
+  userId: string,
+  templateId: string,
+  data: {
+    daily_target?: number | null;
+    reminder_enabled?: boolean | null;
+    reminder_time?: string | null;
+  },
+) {
+  return db().userMissionSetting.upsert({
+    where: { user_id_template_id: { user_id: userId, template_id: templateId } },
+    create: {
+      user_id: userId,
+      template_id: templateId,
+      daily_target: data.daily_target ?? null,
+      reminder_enabled: data.reminder_enabled ?? null,
+      reminder_time: data.reminder_time ?? null,
+    },
+    update: {
+      ...(data.daily_target !== undefined && { daily_target: data.daily_target }),
+      ...(data.reminder_enabled !== undefined && { reminder_enabled: data.reminder_enabled }),
+      ...(data.reminder_time !== undefined && { reminder_time: data.reminder_time }),
+    },
   });
 }
 

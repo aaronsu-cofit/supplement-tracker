@@ -11,6 +11,7 @@ Runs on port **3007**. Auth handled by `AppLayout` from `@vitera/lib` (LIFF → 
 | `NEXT_PUBLIC_LIFF_ID` | yes | LIFF app ID from LINE Developers |
 | `NEXT_PUBLIC_API_URL` | yes | Vitera backend URL (eg. `https://vitera-api-staging.cofit.me`) |
 | `NEXT_PUBLIC_PRODUCT_ID` | yes | Product this LIFF is configured for. Overridable per-session via `?product_id=` query param |
+| `NEXT_PUBLIC_OA_FRIEND_URL` | no | When set, renders a "加入 LINE 官方帳號" banner on the Today page with this URL. Users can dismiss (persists in localStorage). |
 
 ## Screens
 

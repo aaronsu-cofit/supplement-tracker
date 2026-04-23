@@ -4,6 +4,7 @@ import {
   findUserById,
   assignMission,
   logEngagementEvent,
+  getUserMissionSetting,
 } from './db.js';
 import { localDateInTz } from './time.js';
 import { evaluateMissionBadges } from './gamification.js';
@@ -174,11 +175,15 @@ export async function logHabitDay(opts: LogHabitDayOptions): Promise<LogHabitDay
   const prevShape = prev
     ? { value: prev.value, completed: prev.completed, subtask_state: prev.subtask_state as Record<string, boolean> | null }
     : null;
+  // Per-user daily_target override (e.g. "5 cups" instead of template's 8)
+  const setting = await getUserMissionSetting(userId, template.id);
+  const effectiveDailyTarget = setting?.daily_target ?? template.daily_target;
+
   const patch = computeLogPatch({
     missionType,
     previous: prevShape,
     action: opts.action,
-    dailyTarget: template.daily_target,
+    dailyTarget: effectiveDailyTarget,
     stepValue: template.step_value,
     subtasks: template.subtasks as unknown as MissionSubtask[] | null,
   });

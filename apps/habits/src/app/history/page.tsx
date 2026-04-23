@@ -49,8 +49,16 @@ export default function HistoryPage() {
       </header>
 
       {rows.length === 0 ? (
-        <div className="card text-sm text-slate-500">
-          沒有每日型任務。到「今日」頁或聯絡管理員指派。
+        <div className="card text-center py-10 flex flex-col items-center gap-2">
+          <div className="text-4xl">📅</div>
+          <p className="text-sm text-slate-600 font-semibold">還沒有歷史可以看</p>
+          <p className="text-xs text-slate-400 max-w-[260px]">
+            加入每日習慣後，每天打卡的紀錄會在這裡以熱力圖呈現。
+          </p>
+          <Link href={`/add?product_id=${encodeURIComponent(productId)}`}
+            className="btn-primary text-xs mt-2">
+            + 加入習慣
+          </Link>
         </div>
       ) : (
         rows.map(({ habit, history }) => (
