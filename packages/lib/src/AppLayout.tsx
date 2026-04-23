@@ -6,7 +6,7 @@ import AuthProvider from './auth/AuthProvider';
 import AuthGuard from './auth/AuthGuard';
 import { LanguageProvider } from './i18n/LanguageContext';
 
-const DEFAULT_LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL || 'http://localhost:3000/login';
+const DEFAULT_LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL || undefined;
 
 /**
  * AppLayout — standard layout for all Vitera sub-apps.
@@ -21,7 +21,7 @@ const DEFAULT_LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL || 'http://localhost
  * @param {string}   [loginUrl]    Override NEXT_PUBLIC_LOGIN_URL redirect target.
  * @param {string[]} [publicPaths] Path prefixes that skip the auth guard.
  */
-export default function AppLayout({ children, liffId, loginUrl, publicPaths, lineOnly }: { children: React.ReactNode; liffId?: string; loginUrl?: string; publicPaths?: string[]; lineOnly?: boolean }) {
+export default function AppLayout({ children, liffId, loginUrl, publicPaths, lineOnly }: { children: React.ReactNode; liffId?: string; loginUrl?: string; publicPaths?: string[]; lineOnly?: boolean; }) {
   return (
     <LiffProvider liffId={liffId}>
       <AuthProvider>
