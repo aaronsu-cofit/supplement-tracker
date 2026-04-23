@@ -5,6 +5,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import cron from 'node-cron';
 import { runDailyCycle } from './lib/scheduler.js';
+import { runReminderCycle } from './lib/reminders.js';
 
 import authRoutes from './routes/auth.js';
 import supplementRoutes from './routes/supplements.js';
@@ -124,4 +125,36 @@ if (cronExpr && cronExpr !== 'off') {
   }
 } else {
   console.log('🕒 Daily cron disabled (SCHEDULER_CRON=off)');
+}
+
+// ─── Habit reminder cron ─────────────────────────────────────────────
+// Every-5-min tick that checks each active daily-habit subscription's
+// reminder_time against the user's local clock and pushes a reminder
+// through the user's most-recent OA. Idempotent via message_log, so
+// multiple replicas / overlapping ticks won't duplicate. Set
+// REMINDER_CRON=off to disable (useful locally).
+const reminderCronExpr = process.env.REMINDER_CRON ?? '*/5 * * * *';
+if (reminderCronExpr && reminderCronExpr !== 'off') {
+  try {
+    cron.schedule(reminderCronExpr, async () => {
+      try {
+        const result = await runReminderCycle();
+        if (result.sent > 0 || result.errors.length > 0) {
+          console.log('[cron/reminder] result', {
+            evaluated: result.evaluated,
+            sent: result.sent,
+            skipped: result.skipped,
+            errorCount: result.errors.length,
+          });
+        }
+      } catch (err) {
+        console.error('[cron/reminder] fatal', err);
+      }
+    });
+    console.log(`🔔 Reminder cron scheduled: '${reminderCronExpr}'`);
+  } catch (err) {
+    console.error('[cron/reminder] setup failed', err);
+  }
+} else {
+  console.log('🔔 Reminder cron disabled (REMINDER_CRON=off)');
 }
