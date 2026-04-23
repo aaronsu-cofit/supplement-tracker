@@ -72,6 +72,7 @@ export default function PhotoScan() {
   }, []);
 
   const triggerScan = async () => {
+    if (cameraError) return;
     setStep("scanning");
     setScanText("正在抓取臉部特徵點...");
 
@@ -183,7 +184,7 @@ export default function PhotoScan() {
             {step === "readyToScan" ? (
               <>
                 <p className={styles.guideText}>請將臉部放置於白色虛線框內</p>
-                <button onClick={triggerScan} className={styles.captureBtn}>開始即時掃描分析</button>
+                <button onClick={triggerScan} disabled={cameraError} className={styles.captureBtn}>開始即時掃描分析</button>
               </>
             ) : (
               <>

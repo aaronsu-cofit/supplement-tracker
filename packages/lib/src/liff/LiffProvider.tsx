@@ -66,12 +66,16 @@ export default function LiffProvider({ children, liffId: propLiffId }: { childre
         if (!targetPath) {
           if (hashPath) targetPath = hashPath;
           else if (rawState) {
-            try {
-              const parsedState = new URLSearchParams(rawState.includes('?') ? rawState.substring(rawState.indexOf('?')) : '?' + rawState);
-              targetPath = parsedState.get('path');
-            } catch {
-              if (rawState.includes('path=')) targetPath = rawState.split('path=')[1].split('&')[0];
-              else targetPath = rawState;
+            // liff.state can be a bare path like '/scan' when redirectUri was the app URL directly
+            if (rawState.startsWith('/')) {
+              targetPath = rawState.split('?')[0];
+            } else {
+              try {
+                const parsedState = new URLSearchParams(rawState.includes('?') ? rawState.substring(rawState.indexOf('?')) : '?' + rawState);
+                targetPath = parsedState.get('path');
+              } catch {
+                if (rawState.includes('path=')) targetPath = rawState.split('path=')[1].split('&')[0];
+              }
             }
           }
         }

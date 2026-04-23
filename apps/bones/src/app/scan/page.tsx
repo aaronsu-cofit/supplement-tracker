@@ -28,21 +28,44 @@ export default function BonesScanPage() {
       return;
     }
 
+    if (navigator.permissions) {
+      try {
+        const permStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        if (permStatus.state === 'denied') {
+          setError('相機權限已被拒絕，請至手機設定 → 瀏覽器（或 LINE）→ 權限 → 相機，將此網站改為「允許」後重新整理。(您也可以點擊下方「一般相機拍照」作為備案)');
+          return;
+        }
+      } catch {
+        // Permissions API not supported, fall through to getUserMedia
+      }
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: 'environment' } },
       });
+      const videoTracks = stream.getVideoTracks();
+      if (videoTracks.length === 0 || videoTracks[0].readyState === 'ended') {
+        stream.getTracks().forEach(t => t.stop());
+        setError('無法取得相機畫面，請確認已授予相機權限。(您也可以點擊下方「一般相機拍照」作為備案)');
+        return;
+      }
       handleStreamSuccess(stream);
     } catch (err) {
       console.error('Camera error (environment):', err);
       try {
         const streamFallback = await navigator.mediaDevices.getUserMedia({ video: true });
+        const videoTracks = streamFallback.getVideoTracks();
+        if (videoTracks.length === 0 || videoTracks[0].readyState === 'ended') {
+          streamFallback.getTracks().forEach(t => t.stop());
+          throw new DOMException('Empty stream', 'NotAllowedError');
+        }
         handleStreamSuccess(streamFallback);
       } catch (fallbackErr) {
         const fe = fallbackErr as DOMException;
         let errorMsg = '無法啟動相機。';
         if (fe.name === 'NotAllowedError') {
-          errorMsg = '相機權限已被拒絕。請至瀏覽器設定中「允許」此應用程式存取相機。';
+          errorMsg = '相機權限已被拒絕，請至手機設定 → 瀏覽器（或 LINE）→ 權限 → 相機，將此網站改為「允許」後重新進來啟用。';
         } else if (fe.name === 'NotFoundError') {
           errorMsg = '找不到相機裝置。';
         }
