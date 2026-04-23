@@ -79,3 +79,7 @@ export interface UserJourneyPhaseRow {
   phase_key: string;
   entered_at: string;
 }
+
+export interface AvailableMission extends MissionTemplate {
+  is_subscribed: boolean;
+}

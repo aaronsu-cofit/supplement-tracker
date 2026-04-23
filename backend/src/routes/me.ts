@@ -7,6 +7,10 @@ import {
   getMissionDailyHistory,
   getMissionTemplateByKey,
   deleteMissionDailyLog,
+  getMissionTemplatesForProduct,
+  assignMission,
+  abandonMissionAssignment,
+  db,
 } from '../lib/db.js';
 import { logHabitDay } from '../lib/habits.js';
 import { localDateInTz } from '../lib/time.js';
@@ -177,6 +181,73 @@ me.get('/habits/:missionKey/history', async (c) => {
     to: today.toISOString().slice(0, 10),
     logs,
   });
+});
+
+/**
+ * GET /api/me/products/:productId/available-missions
+ * Returns every active mission in the product, each with an
+ * is_subscribed flag (whether the user has an active / pending
+ * MissionAssignment for it). Used by the LIFF "add habit" picker.
+ */
+me.get('/products/:productId/available-missions', async (c) => {
+  const userId = c.get('userId');
+  const productId = c.req.param('productId');
+
+  const [templates, assignments] = await Promise.all([
+    getMissionTemplatesForProduct(productId),
+    db().missionAssignment.findMany({
+      where: { user_id: userId, status: 'pending' },
+      select: { template_id: true },
+    }),
+  ]);
+  const subscribed = new Set(assignments.map(a => a.template_id));
+
+  return c.json({
+    missions: templates
+      .filter(t => t.is_active)
+      .map(t => ({ ...t, is_subscribed: subscribed.has(t.id) })),
+  });
+});
+
+/**
+ * POST /api/me/missions/:missionKey/subscribe
+ * Body: { product_id }
+ * Idempotent: creates an assignment if one doesn't exist, otherwise
+ * returns the existing one.
+ */
+me.post('/missions/:missionKey/subscribe', async (c) => {
+  const userId = c.get('userId');
+  const missionKey = c.req.param('missionKey');
+  let body: { product_id?: string };
+  try { body = await c.req.json(); } catch { body = {}; }
+  if (!body.product_id) return c.json({ error: 'product_id required' }, 400);
+
+  const template = await getMissionTemplateByKey(body.product_id, missionKey);
+  if (!template || !template.is_active) return c.json({ error: 'mission not found' }, 404);
+  const assignment = await assignMission(userId, template.id);
+  return c.json({ assignment });
+});
+
+/**
+ * POST /api/me/missions/:missionKey/unsubscribe
+ * Body: { product_id }
+ * Marks the user's pending assignment 'abandoned'. History preserved.
+ */
+me.post('/missions/:missionKey/unsubscribe', async (c) => {
+  const userId = c.get('userId');
+  const missionKey = c.req.param('missionKey');
+  let body: { product_id?: string };
+  try { body = await c.req.json(); } catch { body = {}; }
+  if (!body.product_id) return c.json({ error: 'product_id required' }, 400);
+
+  const template = await getMissionTemplateByKey(body.product_id, missionKey);
+  if (!template) return c.json({ error: 'mission not found' }, 404);
+  const pending = await db().missionAssignment.findFirst({
+    where: { user_id: userId, template_id: template.id, status: 'pending' },
+  });
+  if (!pending) return c.json({ success: true, already_unsubscribed: true });
+  const updated = await abandonMissionAssignment(userId, pending.id);
+  return c.json({ assignment: updated });
 });
 
 export default me;
