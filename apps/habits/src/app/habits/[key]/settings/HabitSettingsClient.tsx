@@ -25,6 +25,7 @@ export default function HabitSettingsClient({ missionKey }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [dailyTarget, setDailyTarget] = useState<string>('');
   const [reminderEnabled, setReminderEnabled] = useState<'default' | 'on' | 'off'>('default');
   const [reminderTime, setReminderTime] = useState<string>('');
@@ -86,6 +87,31 @@ export default function HabitSettingsClient({ missionKey }: Props) {
       setStatus((err as Error).message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const sendTestReminder = async () => {
+    if (!productId) return;
+    setTesting(true);
+    setStatus(null);
+    try {
+      const res = await apiFetch(`/api/me/habits/${encodeURIComponent(missionKey)}/test-reminder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: productId }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !d.ok) {
+        const reason = d.reason || d.error || `HTTP ${res.status}`;
+        if (reason === 'no_oa_context') throw new Error('找不到 LINE OA 紀錄 — 請先傳一句訊息給機器人後再試');
+        if (reason === 'missing_oa_token') throw new Error('OA 設定不完整，請通知管理員');
+        throw new Error(reason);
+      }
+      setStatus('已送出測試提醒，請查看 LINE');
+    } catch (err) {
+      setStatus((err as Error).message);
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -153,6 +179,10 @@ export default function HabitSettingsClient({ missionKey }: Props) {
             value={reminderTime}
             onChange={e => setReminderTime(e.target.value)} />
         )}
+        <button onClick={sendTestReminder} disabled={testing}
+          className="text-xs py-2 rounded-lg border border-slate-300 bg-white text-slate-600 disabled:opacity-50">
+          {testing ? '送出中...' : '🔔 送一封測試提醒'}
+        </button>
       </section>
 
       {status && (

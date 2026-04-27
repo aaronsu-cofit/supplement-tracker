@@ -15,6 +15,7 @@ import {
   db,
 } from '../lib/db.js';
 import { logHabitDay } from '../lib/habits.js';
+import { sendHabitReminder } from '../lib/reminders.js';
 import { localDateInTz } from '../lib/time.js';
 
 const me = new Hono<HonoEnv>();
@@ -264,6 +265,37 @@ me.patch('/habits/:missionKey/setting', async (c) => {
     reminder_time: body.reminder_time,
   });
   return c.json({ setting });
+});
+
+/**
+ * POST /api/me/habits/:missionKey/test-reminder
+ * Body: { product_id }
+ * Sends a one-off reminder push to the caller right now, bypassing the
+ * time-window and once-per-day idempotency checks. Used by the LIFF
+ * settings page so users can verify the OA / token / channel pipeline
+ * works without waiting until their configured reminder_time.
+ */
+me.post('/habits/:missionKey/test-reminder', async (c) => {
+  const userId = c.get('userId');
+  const missionKey = c.req.param('missionKey');
+  let body: { product_id?: string };
+  try { body = await c.req.json(); } catch { body = {}; }
+  if (!body.product_id) return c.json({ error: 'product_id required' }, 400);
+
+  const template = await getMissionTemplateByKey(body.product_id, missionKey);
+  if (!template) return c.json({ error: 'mission not found' }, 404);
+  const setting = await getUserMissionSetting(userId, template.id);
+
+  // Suffix with :test:<ts> so this never collides with the daily idempotency
+  // record. Audit-visible in message_log either way.
+  const sourceRef = `${template.key}:test:${Date.now()}`;
+  try {
+    const r = await sendHabitReminder({ userId, template, setting, sourceRef });
+    if (r.sent) return c.json({ ok: true });
+    return c.json({ ok: false, reason: r.reason ?? 'unknown' }, 400);
+  } catch (err) {
+    return c.json({ ok: false, error: (err as Error).message }, 500);
+  }
 });
 
 /**

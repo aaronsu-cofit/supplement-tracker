@@ -72,6 +72,84 @@ export interface ReminderCycleResult {
 const WINDOW_MINUTES = 5;
 
 /**
+ * Send a single habit reminder to a user — used both by the scheduler
+ * tick (after time-window + idempotency checks) and by the
+ * "test reminder" button in the LIFF settings page.
+ *
+ * Returns { sent, reason? } describing the outcome. Throws only on
+ * unexpected DB/SDK errors so callers can decide whether to surface
+ * those to the user. The "no OA context" / "missing token" cases are
+ * returned as reasons rather than thrown — they're expected operational
+ * states (user never DM'd the bot, or the OA was rotated).
+ */
+export interface SendHabitReminderInput {
+  userId: string;
+  template: {
+    id: string;
+    product_id: string;
+    key: string;
+    name: string;
+    mission_type: string;
+    daily_target: number | null;
+    unit: string | null;
+    reminder: unknown;
+  };
+  setting?: { daily_target: number | null } | null;
+  /** message_log source_ref used for idempotency / audit. Caller picks
+   *  the shape — daily cycle uses `${key}:${date}`, test endpoint adds
+   *  a `:test:<ts>` suffix so it never collides. */
+  sourceRef: string;
+}
+
+export interface SendHabitReminderResult {
+  sent: boolean;
+  reason?: string;
+}
+
+export async function sendHabitReminder(
+  opts: SendHabitReminderInput,
+): Promise<SendHabitReminderResult> {
+  const { userId, template, setting, sourceRef } = opts;
+  const tplReminder = template.reminder as
+    | { enabled?: boolean; time?: string; content_key?: string }
+    | null;
+
+  if (tplReminder?.content_key) {
+    await pushContentToUser(
+      template.product_id, userId, tplReminder.content_key,
+      'habit_reminder', sourceRef,
+    );
+    return { sent: true };
+  }
+
+  const recent = await db().messageLog.findFirst({
+    where: { user_id: userId },
+    orderBy: { created_at: 'desc' },
+    select: { oa_id: true },
+  });
+  if (!recent) return { sent: false, reason: 'no_oa_context' };
+
+  const oa = await db().lineOA.findUnique({
+    where: { id: recent.oa_id },
+    select: { id: true, channel_access_token: true },
+  });
+  if (!oa?.channel_access_token) {
+    return { sent: false, reason: 'missing_oa_token' };
+  }
+
+  const effectiveTarget = setting?.daily_target ?? template.daily_target;
+  const text = defaultReminderText(template.name, template.mission_type, effectiveTarget, template.unit);
+  const msg = contentItemToMessage({ type: 'text', body: text, is_active: true });
+  if (!msg) return { sent: false, reason: 'message_build_failed' };
+
+  const { Client } = await import('@line/bot-sdk');
+  const client = new Client({ channelAccessToken: oa.channel_access_token });
+  await client.pushMessage(userId, msg);
+  await logOutboundLineMessage(oa.id, userId, msg, 'habit_reminder', sourceRef);
+  return { sent: true };
+}
+
+/**
  * Scan all active daily-habit subscriptions with reminder_enabled (or a
  * per-user override that flips it on) and push a reminder to users
  * whose local time falls in the current window.
@@ -167,43 +245,16 @@ export async function runReminderCycle(now: Date = new Date()): Promise<Reminder
     if (todayLog?.completed) { result.skipped++; continue; }
 
     try {
-      // Prefer a configured content_key if present, else default text
-      if (tplReminder?.content_key) {
-        await pushContentToUser(
-          tpl.product_id, a.user_id, tplReminder.content_key,
-          'habit_reminder', sourceRef,
-        );
-      } else {
-        // Find the OA to push through — same message_log lookup used by notify
-        const recent = await db().messageLog.findFirst({
-          where: { user_id: a.user_id },
-          orderBy: { created_at: 'desc' },
-          select: { oa_id: true },
-        });
-        if (!recent) {
-          result.errors.push(`user=${a.user_id} template=${tpl.key}: no OA context`);
-          continue;
-        }
-        const oa = await db().lineOA.findUnique({
-          where: { id: recent.oa_id },
-          select: { id: true, channel_access_token: true },
-        });
-        if (!oa?.channel_access_token) {
-          result.errors.push(`user=${a.user_id} oa=${recent.oa_id}: missing token`);
-          continue;
-        }
-        const effectiveTarget = setting?.daily_target ?? tpl.daily_target;
-        const text = defaultReminderText(tpl.name, tpl.mission_type, effectiveTarget, tpl.unit);
-        const msg = contentItemToMessage({
-          type: 'text', body: text, is_active: true,
-        });
-        if (!msg) { result.skipped++; continue; }
-        const { Client } = await import('@line/bot-sdk');
-        const client = new Client({ channelAccessToken: oa.channel_access_token });
-        await client.pushMessage(a.user_id, msg);
-        await logOutboundLineMessage(oa.id, a.user_id, msg, 'habit_reminder', sourceRef);
+      const r = await sendHabitReminder({
+        userId: a.user_id,
+        template: tpl,
+        setting,
+        sourceRef,
+      });
+      if (r.sent) result.sent++;
+      else if (r.reason) {
+        result.errors.push(`user=${a.user_id} template=${tpl.key}: ${r.reason}`);
       }
-      result.sent++;
     } catch (err) {
       result.errors.push(`user=${a.user_id} template=${tpl.key}: ${(err as Error).message}`);
     }
