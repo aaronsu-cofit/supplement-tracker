@@ -39,7 +39,9 @@ export interface ComputeLogPatchInput {
     | { kind: 'set_value'; value: number }
     | { kind: 'increment'; step: number }
     | { kind: 'toggle' }
-    | { kind: 'subtask'; key: string; completed: boolean };
+    | { kind: 'subtask'; key: string; completed: boolean }
+    | { kind: 'skip' }
+    | { kind: 'unskip' };
   dailyTarget?: number | null;
   stepValue?: number | null;
   subtasks?: MissionSubtask[] | null;
@@ -48,12 +50,23 @@ export interface ComputeLogPatchInput {
 export interface ComputedLogPatch {
   value: number;
   completed: boolean;
+  skipped?: boolean;
   subtask_state?: Record<string, boolean>;
 }
 
 export function computeLogPatch(input: ComputeLogPatchInput): ComputedLogPatch | null {
   const { missionType, previous, action } = input;
   if (missionType === 'one_shot') return null;
+
+  // Skip / unskip are mission-type-agnostic — they zero the day and set
+  // skipped flag, leaving completed=false. Streak math reads `skipped`
+  // and treats those days as neutral.
+  if (action.kind === 'skip') {
+    return { value: 0, completed: false, skipped: true };
+  }
+  if (action.kind === 'unskip') {
+    return { value: 0, completed: false, skipped: false };
+  }
 
   const prevValue = previous?.value ?? 0;
   const prevCompleted = previous?.completed ?? false;
@@ -64,7 +77,7 @@ export function computeLogPatch(input: ComputeLogPatchInput): ComputedLogPatch |
     if (action.kind === 'toggle') completed = !prevCompleted;
     else if (action.kind === 'set_value') completed = action.value > 0;
     else if (action.kind === 'increment') completed = true;
-    return { value: completed ? 1 : 0, completed };
+    return { value: completed ? 1 : 0, completed, skipped: false };
   }
 
   if (missionType === 'quantitative_daily') {
@@ -74,12 +87,12 @@ export function computeLogPatch(input: ComputeLogPatchInput): ComputedLogPatch |
     else if (action.kind === 'increment') nextValue = prevValue + Math.max(1, action.step);
     else if (action.kind === 'toggle') nextValue = prevCompleted ? 0 : target;
     const completed = nextValue >= target;
-    return { value: nextValue, completed };
+    return { value: nextValue, completed, skipped: false };
   }
 
   if (missionType === 'checklist_daily') {
     const subtasks = input.subtasks ?? [];
-    if (subtasks.length === 0) return { value: prevValue, completed: false };
+    if (subtasks.length === 0) return { value: prevValue, completed: false, skipped: false };
     const state: Record<string, boolean> = { ...prevSubtasks };
     if (action.kind === 'subtask') {
       state[action.key] = action.completed;
@@ -93,7 +106,7 @@ export function computeLogPatch(input: ComputeLogPatchInput): ComputedLogPatch |
     }
     const completed = subtasks.every(s => state[s.key] === true);
     const doneCount = subtasks.filter(s => state[s.key] === true).length;
-    return { value: doneCount, completed, subtask_state: state };
+    return { value: doneCount, completed, skipped: false, subtask_state: state };
   }
 
   return null;
@@ -112,7 +125,9 @@ export interface LogHabitDayOptions {
     | { kind: 'set_value'; value: number }
     | { kind: 'increment'; step: number }
     | { kind: 'toggle' }
-    | { kind: 'subtask'; key: string; completed: boolean };
+    | { kind: 'subtask'; key: string; completed: boolean }
+    | { kind: 'skip' }
+    | { kind: 'unskip' };
   /** When true, auto-create the MissionAssignment if the user doesn't
    *  already have one. Matches "subscribe on first tap" UX. */
   autoAssign?: boolean;

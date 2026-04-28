@@ -4,7 +4,7 @@ import { computeLogPatch } from './habits.js';
 describe('computeLogPatch — binary_daily', () => {
   it('toggle from nothing → completed', () => {
     const r = computeLogPatch({ missionType: 'binary_daily', previous: null, action: { kind: 'toggle' } });
-    expect(r).toEqual({ value: 1, completed: true });
+    expect(r).toMatchObject({ value: 1, completed: true, skipped: false });
   });
 
   it('toggle from completed → uncompleted', () => {
@@ -13,7 +13,7 @@ describe('computeLogPatch — binary_daily', () => {
       previous: { value: 1, completed: true, subtask_state: null },
       action: { kind: 'toggle' },
     });
-    expect(r).toEqual({ value: 0, completed: false });
+    expect(r).toMatchObject({ value: 0, completed: false, skipped: false });
   });
 
   it('increment sets completed=true', () => {
@@ -22,7 +22,7 @@ describe('computeLogPatch — binary_daily', () => {
       previous: null,
       action: { kind: 'increment', step: 1 },
     });
-    expect(r).toEqual({ value: 1, completed: true });
+    expect(r).toMatchObject({ value: 1, completed: true, skipped: false });
   });
 });
 
@@ -34,7 +34,7 @@ describe('computeLogPatch — quantitative_daily', () => {
       action: { kind: 'increment', step: 1 },
       dailyTarget: 8,
     });
-    expect(r).toEqual({ value: 3, completed: false });
+    expect(r).toMatchObject({ value: 3, completed: false, skipped: false });
   });
 
   it('completes when target reached', () => {
@@ -44,7 +44,7 @@ describe('computeLogPatch — quantitative_daily', () => {
       action: { kind: 'increment', step: 1 },
       dailyTarget: 8,
     });
-    expect(r).toEqual({ value: 8, completed: true });
+    expect(r).toMatchObject({ value: 8, completed: true, skipped: false });
   });
 
   it('stays completed past target', () => {
@@ -54,7 +54,7 @@ describe('computeLogPatch — quantitative_daily', () => {
       action: { kind: 'increment', step: 1 },
       dailyTarget: 8,
     });
-    expect(r).toEqual({ value: 9, completed: true });
+    expect(r).toMatchObject({ value: 9, completed: true, skipped: false });
   });
 
   it('set_value jumps to the given number', () => {
@@ -64,7 +64,7 @@ describe('computeLogPatch — quantitative_daily', () => {
       action: { kind: 'set_value', value: 5 },
       dailyTarget: 8,
     });
-    expect(r).toEqual({ value: 5, completed: false });
+    expect(r).toMatchObject({ value: 5, completed: false, skipped: false });
   });
 
   it('toggle on not-completed fills to target', () => {
@@ -74,7 +74,7 @@ describe('computeLogPatch — quantitative_daily', () => {
       action: { kind: 'toggle' },
       dailyTarget: 8,
     });
-    expect(r).toEqual({ value: 8, completed: true });
+    expect(r).toMatchObject({ value: 8, completed: true, skipped: false });
   });
 
   it('toggle on completed resets to zero', () => {
@@ -84,7 +84,7 @@ describe('computeLogPatch — quantitative_daily', () => {
       action: { kind: 'toggle' },
       dailyTarget: 8,
     });
-    expect(r).toEqual({ value: 0, completed: false });
+    expect(r).toMatchObject({ value: 0, completed: false, skipped: false });
   });
 
   it('handles missing dailyTarget as 1', () => {
@@ -178,6 +178,65 @@ describe('computeLogPatch — one_shot', () => {
       missionType: 'one_shot',
       previous: null,
       action: { kind: 'toggle' },
+    });
+    expect(r).toBeNull();
+  });
+});
+
+describe('computeLogPatch — skip / unskip', () => {
+  it('skip on a fresh day marks day as skipped, not completed', () => {
+    const r = computeLogPatch({
+      missionType: 'binary_daily',
+      previous: null,
+      action: { kind: 'skip' },
+    });
+    expect(r).toMatchObject({ value: 0, completed: false, skipped: true });
+  });
+
+  it('skip works the same way for quantitative', () => {
+    const r = computeLogPatch({
+      missionType: 'quantitative_daily',
+      previous: { value: 3, completed: false, subtask_state: null },
+      action: { kind: 'skip' },
+      dailyTarget: 8,
+    });
+    expect(r).toMatchObject({ value: 0, completed: false, skipped: true });
+  });
+
+  it('unskip clears the skipped flag', () => {
+    const r = computeLogPatch({
+      missionType: 'binary_daily',
+      previous: null,
+      action: { kind: 'unskip' },
+    });
+    expect(r).toMatchObject({ value: 0, completed: false, skipped: false });
+  });
+
+  it('logging progress on a skipped day clears skipped (binary)', () => {
+    const r = computeLogPatch({
+      missionType: 'binary_daily',
+      previous: null,
+      action: { kind: 'toggle' },
+    });
+    expect(r?.skipped).toBe(false);
+    expect(r?.completed).toBe(true);
+  });
+
+  it('logging progress on a skipped day clears skipped (quantitative)', () => {
+    const r = computeLogPatch({
+      missionType: 'quantitative_daily',
+      previous: { value: 0, completed: false, subtask_state: null },
+      action: { kind: 'increment', step: 1 },
+      dailyTarget: 8,
+    });
+    expect(r?.skipped).toBe(false);
+  });
+
+  it('skip on one_shot is still null (no daily log path)', () => {
+    const r = computeLogPatch({
+      missionType: 'one_shot',
+      previous: null,
+      action: { kind: 'skip' },
     });
     expect(r).toBeNull();
   });

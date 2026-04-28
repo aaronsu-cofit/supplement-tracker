@@ -29,6 +29,7 @@ export interface DailyLog {
   template_id: string;
   date: string;
   completed: boolean;
+  skipped: boolean;
   value: number;
   subtask_state: Record<string, boolean> | null;
   completed_at: string | null;

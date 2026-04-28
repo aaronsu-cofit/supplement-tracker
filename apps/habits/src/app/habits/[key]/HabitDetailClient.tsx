@@ -9,12 +9,15 @@ interface Props {
   missionKey: string;
 }
 
+type DayState = 'done' | 'skip';
+
 export default function HabitDetailClient({ missionKey }: Props) {
   const productId = useProductId();
   const [habit, setHabit] = useState<HabitRow | null>(null);
   const [history, setHistory] = useState<HistoryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [acting, setActing] = useState(false);
 
   const load = useCallback(async () => {
     if (!productId) { setLoading(false); return; }
@@ -41,13 +44,38 @@ export default function HabitDetailClient({ missionKey }: Props) {
   useEffect(() => { load(); }, [load]);
 
   const dayMap = useMemo(() => {
-    const m = new Map<string, boolean>();
+    const m = new Map<string, DayState>();
     if (!history) return m;
     for (const log of history.logs) {
-      m.set(log.date.slice(0, 10), log.completed);
+      const d = log.date.slice(0, 10);
+      if (log.completed) m.set(d, 'done');
+      else if (log.skipped) m.set(d, 'skip');
     }
     return m;
   }, [history]);
+
+  const toggleSkip = async (skipped: boolean) => {
+    if (!productId || acting) return;
+    setActing(true);
+    try {
+      const res = await apiFetch(`/api/me/habits/${encodeURIComponent(missionKey)}/log`, {
+        method: 'POST',
+        body: JSON.stringify({
+          product_id: productId,
+          action: skipped ? 'skip' : 'unskip',
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `HTTP ${res.status}`);
+      }
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setActing(false);
+    }
+  };
 
   if (!productId) return <NoProduct />;
   if (loading) return <div className="card text-sm text-slate-400">載入中...</div>;
@@ -63,8 +91,9 @@ export default function HabitDetailClient({ missionKey }: Props) {
 
   const t = habit.template;
   const log = habit.today_log;
-  const completedDays = Array.from(dayMap.values()).filter(Boolean).length;
+  const completedDays = Array.from(dayMap.values()).filter(s => s === 'done').length;
   const streak = computeCurrentStreak(dayMap);
+  const todayBadge = log?.completed ? '✓' : log?.skipped ? '⏭' : '—';
 
   return (
     <div className="flex flex-col gap-3">
@@ -89,7 +118,7 @@ export default function HabitDetailClient({ missionKey }: Props) {
             <div className="text-[10px] text-slate-500">60 天完成</div>
           </div>
           <div>
-            <div className="text-2xl font-bold">{log?.completed ? '✓' : '—'}</div>
+            <div className="text-2xl font-bold">{todayBadge}</div>
             <div className="text-[10px] text-slate-500">今天</div>
           </div>
         </div>
@@ -98,7 +127,25 @@ export default function HabitDetailClient({ missionKey }: Props) {
       <section className="card flex flex-col gap-2">
         <h2 className="text-sm font-semibold">近 60 天</h2>
         <HeatMap days={60} dayMap={dayMap} />
+        <div className="flex items-center gap-3 text-[10px] text-slate-400 mt-1">
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-2 h-2 rounded-sm bg-[var(--color-accent)]" />完成
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-2 h-2 rounded-sm bg-amber-200" />略過
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-2 h-2 rounded-sm bg-slate-100" />未完成
+          </span>
+        </div>
       </section>
+
+      {!log?.completed && (
+        <button onClick={() => toggleSkip(!log?.skipped)} disabled={acting}
+          className="card text-center text-sm font-medium text-amber-700 disabled:opacity-50">
+          {log?.skipped ? '↩️ 取消略過今日' : '⏭ 略過今日（不破 streak）'}
+        </button>
+      )}
 
       {t.action_url && (
         <a href={t.action_url} target="_blank" rel="noreferrer"
@@ -121,23 +168,25 @@ function NoProduct() {
   );
 }
 
-function HeatMap({ days, dayMap }: { days: number; dayMap: Map<string, boolean> }) {
+function HeatMap({ days, dayMap }: { days: number; dayMap: Map<string, DayState> }) {
   const today = new Date();
-  const cells: { date: string; completed: boolean }[] = [];
+  const cells: { date: string; state: DayState | null }[] = [];
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
     const key = d.toISOString().slice(0, 10);
-    cells.push({ date: key, completed: dayMap.get(key) ?? false });
+    cells.push({ date: key, state: dayMap.get(key) ?? null });
   }
   return (
     <div className="grid grid-cols-10 gap-1">
       {cells.map(c => (
         <div
           key={c.date}
-          title={`${c.date} ${c.completed ? '完成' : '—'}`}
+          title={`${c.date} ${c.state === 'done' ? '完成' : c.state === 'skip' ? '略過' : '—'}`}
           className={`aspect-square rounded-sm ${
-            c.completed ? 'bg-[var(--color-accent)]' : 'bg-slate-100'
+            c.state === 'done' ? 'bg-[var(--color-accent)]'
+              : c.state === 'skip' ? 'bg-amber-200'
+              : 'bg-slate-100'
           }`}
         />
       ))}
@@ -145,15 +194,19 @@ function HeatMap({ days, dayMap }: { days: number; dayMap: Map<string, boolean> 
   );
 }
 
-function computeCurrentStreak(dayMap: Map<string, boolean>): number {
+// Streak: completed days count; skipped days are neutral (don't count, don't break);
+// missed days break. Allow today to be missing/skipped at the head without breaking.
+function computeCurrentStreak(dayMap: Map<string, DayState>): number {
   let streak = 0;
   const today = new Date();
   for (let i = 0; i < 365; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
     const key = d.toISOString().slice(0, 10);
-    if (dayMap.get(key)) streak++;
-    else if (i > 0) break; // today missing is allowed; any gap after breaks
+    const state = dayMap.get(key);
+    if (state === 'done') streak++;
+    else if (state === 'skip') continue;
+    else if (i > 0) break;
   }
   return streak;
 }

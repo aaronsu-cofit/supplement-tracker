@@ -78,22 +78,32 @@ export default function HistoryPage() {
 }
 
 function Stripe({ history, days }: { history: HistoryResponse | null; days: number }) {
-  const map = new Map<string, boolean>();
-  if (history) for (const l of history.logs) map.set(l.date.slice(0, 10), l.completed);
+  const map = new Map<string, 'done' | 'skip'>();
+  if (history) {
+    for (const l of history.logs) {
+      const k = l.date.slice(0, 10);
+      if (l.completed) map.set(k, 'done');
+      else if (l.skipped) map.set(k, 'skip');
+    }
+  }
   const today = new Date();
-  const cells: { date: string; completed: boolean }[] = [];
+  const cells: { date: string; state: 'done' | 'skip' | null }[] = [];
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
     const key = d.toISOString().slice(0, 10);
-    cells.push({ date: key, completed: map.get(key) ?? false });
+    cells.push({ date: key, state: map.get(key) ?? null });
   }
   return (
     <div className="flex gap-[2px]">
       {cells.map(c => (
         <div key={c.date}
-          className={`flex-1 h-3 rounded-sm ${c.completed ? 'bg-[var(--color-accent)]' : 'bg-slate-100'}`}
-          title={`${c.date} ${c.completed ? '完成' : '—'}`} />
+          className={`flex-1 h-3 rounded-sm ${
+            c.state === 'done' ? 'bg-[var(--color-accent)]'
+              : c.state === 'skip' ? 'bg-amber-200'
+              : 'bg-slate-100'
+          }`}
+          title={`${c.date} ${c.state === 'done' ? '完成' : c.state === 'skip' ? '略過' : '—'}`} />
       ))}
     </div>
   );

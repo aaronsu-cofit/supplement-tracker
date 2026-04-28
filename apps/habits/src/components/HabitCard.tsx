@@ -23,6 +23,7 @@ export default function HabitCard({ habit, productId, onChange }: Props) {
   const t = template;
   const log = today_log;
   const completed = log?.completed ?? false;
+  const skipped = (log?.skipped ?? false) && !completed;
 
   const call = async (body: Record<string, unknown>) => {
     if (busy) return;
@@ -46,13 +47,14 @@ export default function HabitCard({ habit, productId, onChange }: Props) {
   };
 
   return (
-    <div className={`card flex flex-col gap-2 transition-opacity ${completed ? 'opacity-70' : ''}`}>
+    <div className={`card flex flex-col gap-2 transition-opacity ${completed || skipped ? 'opacity-70' : ''}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             {t.category && (
               <span className="text-[10px] uppercase tracking-wide text-slate-400">{t.category}</span>
             )}
+            {skipped && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">⏭ 略過</span>}
             {t.mission_type === 'binary_daily' && <span className="text-xs text-slate-400">打勾</span>}
             {t.mission_type === 'quantitative_daily' && t.daily_target && (
               <span className="text-xs text-slate-400">量化 {log?.value ?? 0}/{t.daily_target}{t.unit ?? ''}</span>

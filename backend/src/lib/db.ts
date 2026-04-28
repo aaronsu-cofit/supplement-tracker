@@ -1405,6 +1405,7 @@ export async function upsertMissionDailyLog(
   patch: {
     value?: number;
     completed?: boolean;
+    skipped?: boolean;
     subtask_state?: Record<string, boolean>;
   },
 ): Promise<{
@@ -1424,6 +1425,7 @@ export async function upsertMissionDailyLog(
       date,
       value: patch.value ?? 0,
       completed: patch.completed ?? false,
+      skipped: patch.skipped ?? false,
       subtask_state: patch.subtask_state == null
         ? Prisma.JsonNull
         : (patch.subtask_state as unknown as Prisma.InputJsonValue),
@@ -1432,6 +1434,7 @@ export async function upsertMissionDailyLog(
     update: {
       ...(patch.value !== undefined && { value: patch.value }),
       ...(patch.completed !== undefined && { completed: patch.completed }),
+      ...(patch.skipped !== undefined && { skipped: patch.skipped }),
       ...(patch.subtask_state !== undefined && {
         subtask_state: patch.subtask_state === null
           ? Prisma.JsonNull

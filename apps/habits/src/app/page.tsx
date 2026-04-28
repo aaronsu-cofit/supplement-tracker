@@ -27,7 +27,9 @@ export default function TodayPage() {
       })
       .then(d => {
         const daily = d.habits.filter(h => h.template.is_active && h.template.mission_type !== 'one_shot');
-        const allDoneNow = daily.length > 0 && daily.every(h => h.today_log?.completed);
+        // Skipped habits don't block "all done" — the user explicitly opted out today.
+        const allDoneNow = daily.length > 0
+          && daily.every(h => h.today_log?.completed || h.today_log?.skipped);
         // Fire confetti only on the not-all-done → all-done transition
         if (allDoneNow && !wasAllDoneRef.current) {
           setConfetti(true);
@@ -50,7 +52,9 @@ export default function TodayPage() {
   const habits = data.habits.filter(h => h.template.is_active);
   const daily = habits.filter(h => h.template.mission_type !== 'one_shot');
   const completedCount = daily.filter(h => h.today_log?.completed).length;
-  const allDone = daily.length > 0 && completedCount === daily.length;
+  const skippedCount = daily.filter(h => h.today_log?.skipped && !h.today_log?.completed).length;
+  // Treat today as "all done" once everything's either completed or skipped.
+  const allDone = daily.length > 0 && (completedCount + skippedCount) === daily.length;
   const byCategory = groupByCategory(habits);
 
   return (

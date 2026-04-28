@@ -383,6 +383,7 @@ model MissionDailyLog {
   template_id   String   @db.VarChar(30)
   date          DateTime @db.Date
   completed     Boolean  @default(false)
+  skipped       Boolean  @default(false)
   value         Int      @default(0)
   subtask_state Json?
   completed_at  DateTime?

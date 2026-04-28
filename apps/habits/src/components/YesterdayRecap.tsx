@@ -14,8 +14,11 @@ interface Props {
 interface RecapStats {
   totalHabits: number;
   completed: number;
+  skipped: number;
   percent: number;
 }
+
+type RecapStatus = 'completed' | 'skipped' | 'missed';
 
 /**
  * Reads yesterday's logs for all the user's daily habits and renders a
@@ -26,7 +29,7 @@ interface RecapStats {
 export default function YesterdayRecap({ productId, habits, todayDate }: Props) {
   const daily = habits.filter(h => h.template.is_active && h.template.mission_type !== 'one_shot');
   const [stats, setStats] = useState<RecapStats | null>(null);
-  const [perHabit, setPerHabit] = useState<Array<{ name: string; completed: boolean }>>([]);
+  const [perHabit, setPerHabit] = useState<Array<{ name: string; status: RecapStatus }>>([]);
   const yesterdayDate = computeYesterday(todayDate);
 
   useEffect(() => {
@@ -39,20 +42,25 @@ export default function YesterdayRecap({ productId, habits, todayDate }: Props) 
           const res = await apiFetch(
             `/api/me/habits/${encodeURIComponent(h.template.key)}/history?product_id=${encodeURIComponent(productId)}&days=2`,
           );
-          if (!res.ok) return { habit: h, completed: false };
-          const data = await res.json() as { logs: Array<{ date: string; completed: boolean }> };
+          if (!res.ok) return { habit: h, status: 'missed' as RecapStatus };
+          const data = await res.json() as { logs: Array<{ date: string; completed: boolean; skipped: boolean }> };
           const log = data.logs.find(l => l.date.slice(0, 10) === yesterdayDate);
-          return { habit: h, completed: !!log?.completed };
+          const status: RecapStatus = log?.completed ? 'completed' : log?.skipped ? 'skipped' : 'missed';
+          return { habit: h, status };
         }),
       );
       if (cancelled) return;
-      const completed = results.filter(r => r.completed).length;
+      const completed = results.filter(r => r.status === 'completed').length;
+      const skipped = results.filter(r => r.status === 'skipped').length;
+      // Skipped days don't count against the percentage — they're neutral.
+      const eligible = daily.length - skipped;
       setStats({
         totalHabits: daily.length,
         completed,
-        percent: Math.round((completed / daily.length) * 100),
+        skipped,
+        percent: eligible > 0 ? Math.round((completed / eligible) * 100) : 100,
       });
-      setPerHabit(results.map(r => ({ name: r.habit.template.name, completed: r.completed })));
+      setPerHabit(results.map(r => ({ name: r.habit.template.name, status: r.status })));
     })();
 
     return () => { cancelled = true; };
@@ -74,8 +82,11 @@ export default function YesterdayRecap({ productId, habits, todayDate }: Props) 
       </div>
       <div className="flex items-baseline gap-2">
         <span className="text-xl font-bold">
-          {stats.completed} / {stats.totalHabits}
+          {stats.completed} / {stats.totalHabits - stats.skipped}
         </span>
+        {stats.skipped > 0 && (
+          <span className="text-xs text-amber-600">⏭ 略過 {stats.skipped}</span>
+        )}
         <span className="text-xs text-slate-500">
           {stats.percent === 100 ? '完美的一天 🌟' : stats.percent >= 50 ? '表現不錯！' : '今天再試試看吧 💪'}
         </span>
@@ -84,11 +95,11 @@ export default function YesterdayRecap({ productId, habits, todayDate }: Props) 
         {perHabit.map((p, i) => (
           <li key={i}
             className={`text-[11px] px-2 py-0.5 rounded-full flex items-center gap-1 ${
-              p.completed
-                ? 'bg-emerald-50 text-emerald-700'
+              p.status === 'completed' ? 'bg-emerald-50 text-emerald-700'
+                : p.status === 'skipped' ? 'bg-amber-50 text-amber-700'
                 : 'bg-slate-100 text-slate-500 line-through'
             }`}>
-            {p.completed ? '✓' : '·'} {p.name}
+            {p.status === 'completed' ? '✓' : p.status === 'skipped' ? '⏭' : '·'} {p.name}
           </li>
         ))}
       </ul>

@@ -70,7 +70,7 @@ me.post('/habits/:missionKey/log', async (c) => {
   const missionKey = c.req.param('missionKey');
   let body: {
     product_id?: string;
-    action?: 'increment' | 'set_value' | 'toggle' | 'subtask';
+    action?: 'increment' | 'set_value' | 'toggle' | 'subtask' | 'skip' | 'unskip';
     value?: number;
     step?: number;
     subtask_key?: string;
@@ -107,6 +107,12 @@ me.post('/habits/:missionKey/log', async (c) => {
       };
       break;
     }
+    case 'skip':
+      action = { kind: 'skip' };
+      break;
+    case 'unskip':
+      action = { kind: 'unskip' };
+      break;
     case 'toggle':
     default:
       action = { kind: 'toggle' };
