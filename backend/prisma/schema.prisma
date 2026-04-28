@@ -386,6 +386,7 @@ model MissionDailyLog {
   skipped       Boolean  @default(false)
   value         Int      @default(0)
   subtask_state Json?
+  note          String?  @db.VarChar(500)
   completed_at  DateTime?
   updated_at    DateTime @updatedAt
 

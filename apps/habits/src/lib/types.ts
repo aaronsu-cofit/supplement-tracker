@@ -32,6 +32,7 @@ export interface DailyLog {
   skipped: boolean;
   value: number;
   subtask_state: Record<string, boolean> | null;
+  note: string | null;
   completed_at: string | null;
 }
 

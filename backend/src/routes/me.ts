@@ -77,6 +77,7 @@ me.post('/habits/:missionKey/log', async (c) => {
     subtask_completed?: boolean;
     date?: string;
     auto_assign?: boolean;
+    note?: string | null;
   };
   try {
     body = await c.req.json();
@@ -127,16 +128,52 @@ me.post('/habits/:missionKey/log', async (c) => {
     date = d;
   }
 
+  // Truncate note to 500 chars to match the column limit.
+  const note = body.note === undefined ? undefined
+    : body.note === null ? null
+    : String(body.note).slice(0, 500);
+
   const result = await logHabitDay({
     productId: body.product_id,
     userId,
     missionKey,
     date,
     action,
+    note,
     autoAssign: body.auto_assign !== false,
   });
   if (!result.ok) return c.json({ error: result.reason }, 400);
   return c.json(result);
+});
+
+/**
+ * PATCH /api/me/habits/:missionKey/note
+ * Body: { product_id, date?: 'YYYY-MM-DD', note: string | null }
+ * Sets/clears the free-text note for a day without touching completion
+ * state. If no log row exists yet, creates one with value=0, completed=false.
+ */
+me.patch('/habits/:missionKey/note', async (c) => {
+  const userId = c.get('userId');
+  const missionKey = c.req.param('missionKey');
+  let body: { product_id?: string; date?: string; note?: string | null };
+  try { body = await c.req.json(); } catch { body = {}; }
+  if (!body.product_id) return c.json({ error: 'product_id required' }, 400);
+  if (body.note === undefined) return c.json({ error: 'note required (use null to clear)' }, 400);
+
+  const template = await getMissionTemplateByKey(body.product_id, missionKey);
+  if (!template) return c.json({ error: 'mission not found' }, 404);
+
+  const user = await findUserById(userId);
+  const tz = user?.timezone || 'Asia/Taipei';
+  const date = body.date
+    ? new Date(body.date + 'T00:00:00Z')
+    : localDateInTz(new Date(), tz);
+  if (isNaN(date.getTime())) return c.json({ error: 'invalid date' }, 400);
+
+  const note = body.note === null ? null : String(body.note).slice(0, 500);
+  const { upsertMissionDailyLog } = await import('../lib/db.js');
+  const { next } = await upsertMissionDailyLog(userId, template.id, date, { note });
+  return c.json({ ok: true, log: next });
 });
 
 /**

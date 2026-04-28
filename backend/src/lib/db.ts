@@ -1407,6 +1407,7 @@ export async function upsertMissionDailyLog(
     completed?: boolean;
     skipped?: boolean;
     subtask_state?: Record<string, boolean>;
+    note?: string | null;
   },
 ): Promise<{
   previous: Awaited<ReturnType<typeof getMissionDailyLog>>;
@@ -1429,6 +1430,7 @@ export async function upsertMissionDailyLog(
       subtask_state: patch.subtask_state == null
         ? Prisma.JsonNull
         : (patch.subtask_state as unknown as Prisma.InputJsonValue),
+      note: patch.note ?? null,
       completed_at: patch.completed ? new Date() : null,
     },
     update: {
@@ -1440,6 +1442,7 @@ export async function upsertMissionDailyLog(
           ? Prisma.JsonNull
           : (patch.subtask_state as unknown as Prisma.InputJsonValue),
       }),
+      ...(patch.note !== undefined && { note: patch.note }),
       ...(completingNow && { completed_at: new Date() }),
     },
   });

@@ -128,6 +128,9 @@ export interface LogHabitDayOptions {
     | { kind: 'subtask'; key: string; completed: boolean }
     | { kind: 'skip' }
     | { kind: 'unskip' };
+  /** Optional free-text note applied alongside the action. Pass `null`
+   *  to clear an existing note. Omit to leave it untouched. */
+  note?: string | null;
   /** When true, auto-create the MissionAssignment if the user doesn't
    *  already have one. Matches "subscribe on first tap" UX. */
   autoAssign?: boolean;
@@ -204,7 +207,8 @@ export async function logHabitDay(opts: LogHabitDayOptions): Promise<LogHabitDay
   });
   if (!patch) return { ok: false, reason: 'no_patch_computed' };
 
-  const { previous, next } = await upsertMissionDailyLog(userId, template.id, date, patch);
+  const upsertPatch = opts.note !== undefined ? { ...patch, note: opts.note } : patch;
+  const { previous, next } = await upsertMissionDailyLog(userId, template.id, date, upsertPatch);
   const newlyCompleted = !(previous?.completed ?? false) && next.completed;
 
   if (newlyCompleted) {

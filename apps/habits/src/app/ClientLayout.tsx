@@ -6,6 +6,7 @@ import { AppLayout } from '@vitera/lib';
 const TABS: { href: string; icon: string; label: string; match: (p: string) => boolean }[] = [
   { href: '/', icon: '📋', label: '今日', match: p => p === '/' },
   { href: '/history', icon: '📅', label: '歷史', match: p => p.startsWith('/history') || p.startsWith('/habits') },
+  { href: '/review', icon: '📊', label: '回顧', match: p => p.startsWith('/review') },
   { href: '/me', icon: '🏆', label: '我', match: p => p.startsWith('/me') },
 ];
 
