@@ -20,17 +20,42 @@ function formatTs(iso: string): string {
   });
 }
 
-function sourceLabel(source: string | null): string {
+interface SourceMeta {
+  label: string;
+  /** Tailwind class for the badge — color-codes provenance so admins
+   *  can scan which messages came from which subsystem at a glance. */
+  className: string;
+  /** Icon prefix to make the answering subsystem extra obvious. */
+  icon?: string;
+}
+
+function sourceMeta(source: string | null): SourceMeta {
   switch (source) {
-    case 'follow_reply': return '加好友歡迎';
-    case 'postback_reply': return 'Postback 回覆';
-    case 'intent': return '意圖規則';
-    case 'ai_agent': return 'AI 顧問';
-    case 'scheduler_push': return '排程推播';
-    case 'scheduler_ai': return '排程 AI 推播';
-    case 'user': return '';
-    default: return source ?? '';
+    case 'follow_reply':   return { label: '加好友歡迎', className: 'bg-slate-100 text-slate-600' };
+    case 'postback_reply': return { label: 'Postback 回覆', className: 'bg-slate-100 text-slate-600' };
+    case 'intent':         return { label: '意圖規則',   className: 'bg-emerald-100 text-emerald-700', icon: '🎯' };
+    case 'ai_agent':       return { label: 'AI Fallback', className: 'bg-violet-100 text-violet-700', icon: '🤖' };
+    case 'mission_notify': return { label: '任務通知',   className: 'bg-sky-100 text-sky-700' };
+    case 'badge_notify':   return { label: '徽章通知',   className: 'bg-amber-100 text-amber-700' };
+    case 'habit_reminder': return { label: '習慣提醒',   className: 'bg-amber-100 text-amber-700', icon: '⏰' };
+    case 'scheduler_push': return { label: '排程推播',   className: 'bg-sky-100 text-sky-700' };
+    case 'scheduler_ai':   return { label: '排程 AI 推播', className: 'bg-violet-100 text-violet-700' };
+    case 'user':           return { label: '', className: '' };
+    default:               return { label: source ?? '', className: 'bg-slate-100 text-slate-600' };
   }
+}
+
+/** For ai_agent: source_ref looks like `<agent>` or `<agent>:slow` or
+ *  `<agent>:error` or `<agent>:error:slow`. Pull the parts apart so the
+ *  bubble can show "🤖 AI Fallback · nutrition_analyst · 🐢 慢回應" etc. */
+function parseAiSourceRef(ref: string | null): { agent?: string; slow: boolean; error: boolean } {
+  if (!ref) return { slow: false, error: false };
+  const parts = ref.split(':');
+  return {
+    agent: parts[0],
+    error: parts.includes('error'),
+    slow: parts.includes('slow'),
+  };
 }
 
 function MessageBubble({ m }: { m: MessageLogRow }) {
@@ -73,16 +98,48 @@ function MessageBubble({ m }: { m: MessageLogRow }) {
             <span className="text-xs opacity-70">[{m.type}] {m.content_text}</span>
           )}
         </div>
-        <div className="text-[10px] text-slate-400 flex items-center gap-1.5 px-2">
+        <div className="text-[10px] text-slate-400 flex flex-wrap items-center gap-1.5 px-2">
           <span>{formatTs(m.created_at)}</span>
-          {m.source && m.source !== 'user' && (
-            <span className="bg-slate-100 px-1 rounded">{sourceLabel(m.source)}</span>
-          )}
-          {m.source_ref && (
-            <span className="font-mono truncate max-w-[120px]" title={m.source_ref}>
-              · {m.source_ref.slice(0, 20)}
-            </span>
-          )}
+          {m.source && m.source !== 'user' && (() => {
+            const meta = sourceMeta(m.source);
+            if (m.source === 'ai_agent') {
+              const ai = parseAiSourceRef(m.source_ref);
+              return (
+                <>
+                  <span className={`${meta.className} px-1.5 py-[1px] rounded font-medium`}>
+                    {meta.icon} {meta.label}
+                  </span>
+                  {ai.agent && (
+                    <span className="font-mono text-slate-500" title={`agent: ${ai.agent}`}>
+                      · {ai.agent}
+                    </span>
+                  )}
+                  {ai.slow && (
+                    <span className="text-amber-600" title="LLM took >9s — pushed via pushText instead of replyToken">
+                      🐢 慢回應
+                    </span>
+                  )}
+                  {ai.error && (
+                    <span className="text-red-600" title="LLM call errored — fell back to default copy">
+                      ⚠ 錯誤
+                    </span>
+                  )}
+                </>
+              );
+            }
+            return (
+              <>
+                <span className={`${meta.className} px-1.5 py-[1px] rounded`}>
+                  {meta.icon ? `${meta.icon} ` : ''}{meta.label}
+                </span>
+                {m.source_ref && (
+                  <span className="font-mono truncate max-w-[120px]" title={m.source_ref}>
+                    · {m.source_ref.slice(0, 20)}
+                  </span>
+                )}
+              </>
+            );
+          })()}
         </div>
       </div>
     </div>
