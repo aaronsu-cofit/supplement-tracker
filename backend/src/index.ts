@@ -27,7 +27,6 @@ import schedulerRoutes from './routes/scheduler.js';
 import womenHealingRoutes from './routes/womenHealing.js';
 import productsRoutes from './routes/products.js';
 import meRoutes from './routes/me.js';
-import internalLlmRoutes from './routes/internalLlm.js';
 
 const app = new Hono();
 
@@ -75,7 +74,6 @@ app.route('/webhook', webhookRoutes);
 app.route('/api/women', womenHealingRoutes);
 app.route('/api/products', productsRoutes);
 app.route('/api/me', meRoutes);
-app.route('/api/internal/llm', internalLlmRoutes);
 
 // 404 fallback
 app.notFound((c) => c.json({ error: 'Not found' }, 404));
