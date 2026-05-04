@@ -196,8 +196,17 @@ export default function OaSettingsTab({ oa, onChange }: Props) {
           <input className="hq-input font-mono" value={form.ai_skill_platform_url} onChange={e => setForm(p => ({ ...p, ai_skill_platform_url: e.target.value }))} placeholder="https://..." />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">API Key（留空=不變）</label>
-          <input type="password" className="hq-input font-mono" value={form.ai_skill_platform_api_key} onChange={e => setForm(p => ({ ...p, ai_skill_platform_api_key: e.target.value }))} placeholder="新 API Key" />
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
+            API Key（留空=不變）
+            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+              oa.has_ai_skill_platform_api_key
+                ? 'bg-emerald-100 text-emerald-700'
+                : 'bg-amber-100 text-amber-700'
+            }`}>
+              {oa.has_ai_skill_platform_api_key ? '✓ 目前已設定' : '⚠ 目前未設定'}
+            </span>
+          </label>
+          <input type="password" className="hq-input font-mono" value={form.ai_skill_platform_api_key} onChange={e => setForm(p => ({ ...p, ai_skill_platform_api_key: e.target.value }))} placeholder={oa.has_ai_skill_platform_api_key ? '輸入新值才會覆蓋' : '請輸入 API Key'} />
         </div>
         {oa.ai_skill_platform_url && (
           <div>
