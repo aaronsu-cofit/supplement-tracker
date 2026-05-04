@@ -33,13 +33,13 @@ describe('adkRun — request shape', () => {
   it('POSTs to <baseUrl>/run', async () => {
     await adkRun('agent_a', 'user_1', undefined, { url: 'https://platform.example.com', bearerToken: 't' });
     expect(calls).toHaveLength(1);
-    expect(calls[0].url).toBe('https://platform.example.com/run');
+    expect(calls[0].url).toBe('https://platform.example.com/vitera/run');
     expect(calls[0].init.method).toBe('POST');
   });
 
   it('strips a trailing slash from base url', async () => {
     await adkRun('agent_a', 'user_1', undefined, { url: 'https://platform.example.com/', bearerToken: 't' });
-    expect(calls[0].url).toBe('https://platform.example.com/run');
+    expect(calls[0].url).toBe('https://platform.example.com/vitera/run');
   });
 
   it('sends agent_id and client_id in the body', async () => {
@@ -99,7 +99,7 @@ describe('adkRun — env var fallback', () => {
   it('falls back to ADK_URL when no override.url given', async () => {
     process.env.ADK_URL = 'https://env-platform.example.com';
     await adkRun('a', 'u');
-    expect(calls[0].url).toBe('https://env-platform.example.com/run');
+    expect(calls[0].url).toBe('https://env-platform.example.com/vitera/run');
   });
 
   it('falls back to ADK_BEARER_TOKEN when no override.bearerToken given', async () => {

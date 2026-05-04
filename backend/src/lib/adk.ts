@@ -38,7 +38,7 @@ export async function adkRun(
   cfg?: AdkConfig,
 ): Promise<AdkRunResult> {
   const { url, bearerToken } = resolveConfig(cfg)
-  const res = await fetch(`${url.replace(/\/$/, '')}/run`, {
+  const res = await fetch(`${url.replace(/\/$/, '')}/vitera/run`, {
     method: 'POST',
     headers: buildHeaders(bearerToken),
     body: JSON.stringify({
@@ -65,7 +65,7 @@ export async function adkRun(
 // after headers arrive has no per-chunk timeout. Acceptable for POC.
 export async function adkStream(agentId: string, clientId: string, cfg?: AdkConfig): Promise<Response> {
   const { url, bearerToken } = resolveConfig(cfg)
-  const res = await fetch(`${url.replace(/\/$/, '')}/run_sse`, {
+  const res = await fetch(`${url.replace(/\/$/, '')}/vitera/run_sse`, {
     method: 'POST',
     headers: buildHeaders(bearerToken),
     body: JSON.stringify({ agent_id: agentId, client_id: clientId }),
