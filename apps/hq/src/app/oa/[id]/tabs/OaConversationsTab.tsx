@@ -12,6 +12,8 @@ interface Props {
 interface UserRow {
   user_id: string;
   last_at: string;
+  display_name: string | null;
+  picture_url: string | null;
 }
 
 function formatTs(iso: string): string {
@@ -231,7 +233,13 @@ export default function OaConversationsTab({ oaId, productId }: Props) {
   }, [selectedUser, loadMessages]);
 
   const filteredUsers = filter.trim()
-    ? users.filter(u => u.user_id.toLowerCase().includes(filter.trim().toLowerCase()))
+    ? (() => {
+        const q = filter.trim().toLowerCase();
+        return users.filter(u =>
+          u.user_id.toLowerCase().includes(q) ||
+          (u.display_name?.toLowerCase().includes(q) ?? false),
+        );
+      })()
     : users;
 
   return (
@@ -244,7 +252,7 @@ export default function OaConversationsTab({ oaId, productId }: Props) {
             <button onClick={() => { loadUsers(); if (selectedUser) loadMessages(selectedUser); }}
               className="text-xs text-slate-500 hover:text-slate-900">↻</button>
           </div>
-          <input className="hq-input text-xs" placeholder="搜尋 user_id"
+          <input className="hq-input text-xs" placeholder="搜尋名字或 user_id"
             value={filter} onChange={e => setFilter(e.target.value)} />
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -260,17 +268,28 @@ export default function OaConversationsTab({ oaId, productId }: Props) {
                 <li key={u.user_id}>
                   <button
                     onClick={() => setSelectedUser(u.user_id)}
-                    className={`w-full text-left px-3 py-2 border-b border-slate-100 transition-colors ${
+                    className={`w-full text-left px-3 py-2 border-b border-slate-100 transition-colors flex items-center gap-2 ${
                       u.user_id === selectedUser
                         ? 'bg-slate-100'
                         : 'hover:bg-slate-50'
                     }`}
                   >
-                    <div className="font-mono text-xs text-slate-700 truncate">
-                      {u.user_id.slice(0, 20)}{u.user_id.length > 20 ? '…' : ''}
-                    </div>
-                    <div className="text-[10px] text-slate-400">
-                      最後 {formatTs(u.last_at)}
+                    {u.picture_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={u.picture_url} alt=""
+                        className="w-8 h-8 rounded-full bg-slate-200 shrink-0 object-cover" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0 flex items-center justify-center text-xs text-slate-500">
+                        {(u.display_name ?? u.user_id).charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm text-slate-800 truncate">
+                        {u.display_name ?? <span className="font-mono text-slate-500 text-xs">{u.user_id.slice(0, 18)}…</span>}
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        最後 {formatTs(u.last_at)}
+                      </div>
                     </div>
                   </button>
                 </li>
@@ -290,10 +309,20 @@ export default function OaConversationsTab({ oaId, productId }: Props) {
         ) : (
           <>
             <div className="bg-white border-b border-slate-200 px-4 py-2 flex items-center gap-2">
-              <span className="font-mono text-xs text-slate-700 truncate" title={selectedUser}>
-                {selectedUser}
-              </span>
-              <span className="text-xs text-slate-400 whitespace-nowrap">· {messages.length} 則</span>
+              {(() => {
+                const u = users.find(x => x.user_id === selectedUser);
+                return (
+                  <>
+                    <span className="text-sm font-semibold text-slate-800 truncate">
+                      {u?.display_name ?? '(未命名)'}
+                    </span>
+                    <span className="font-mono text-[10px] text-slate-400 truncate" title={selectedUser}>
+                      {selectedUser}
+                    </span>
+                  </>
+                );
+              })()}
+              <span className="text-xs text-slate-400 whitespace-nowrap ml-auto">· {messages.length} 則</span>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
               {loadingMessages ? (

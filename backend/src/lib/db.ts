@@ -1839,11 +1839,25 @@ export async function getMessageLogForUser(userId: string, limit = 100) {
  * enrollment query.
  */
 export async function getDistinctMessageLogUsersForOa(oaId: number, limit = 100) {
-  const rows = await db().$queryRaw<Array<{ user_id: string; last_at: Date }>>`
-    SELECT user_id, MAX(created_at) AS last_at
-    FROM message_log
-    WHERE oa_id = ${oaId}
-    GROUP BY user_id
+  // LEFT JOIN users so the HQ conversation list can show LINE display_name
+  // / picture_url instead of the opaque LINE userId. Anonymous senders
+  // (no users row yet) keep null for those fields and the UI falls back
+  // to the user_id.
+  const rows = await db().$queryRaw<Array<{
+    user_id: string;
+    last_at: Date;
+    display_name: string | null;
+    picture_url: string | null;
+  }>>`
+    SELECT
+      ml.user_id,
+      MAX(ml.created_at) AS last_at,
+      MAX(u.display_name) AS display_name,
+      MAX(u.picture_url) AS picture_url
+    FROM message_log ml
+    LEFT JOIN users u ON u.id = ml.user_id
+    WHERE ml.oa_id = ${oaId}
+    GROUP BY ml.user_id
     ORDER BY last_at DESC
     LIMIT ${Math.min(500, limit)}
   `;
