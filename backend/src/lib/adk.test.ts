@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { jwtVerify } from 'jose';
 import { adkRun } from './adk.js';
 
 // Capture every fetch call so we can assert on URL / headers / body
@@ -27,86 +26,64 @@ afterEach(() => {
   vi.restoreAllMocks();
   delete process.env.ADK_URL;
   delete process.env.ADK_API_KEY;
+  delete process.env.ADK_BEARER_TOKEN;
 });
 
 describe('adkRun — request shape', () => {
   it('POSTs to <baseUrl>/run', async () => {
-    await adkRun('agent_a', 'user_1', undefined, { url: 'https://platform.example.com', apiKey: 'k' });
+    await adkRun('agent_a', 'user_1', undefined, { url: 'https://platform.example.com', bearerToken: 't' });
     expect(calls).toHaveLength(1);
     expect(calls[0].url).toBe('https://platform.example.com/run');
     expect(calls[0].init.method).toBe('POST');
   });
 
   it('strips a trailing slash from base url', async () => {
-    await adkRun('agent_a', 'user_1', undefined, { url: 'https://platform.example.com/', apiKey: 'k' });
+    await adkRun('agent_a', 'user_1', undefined, { url: 'https://platform.example.com/', bearerToken: 't' });
     expect(calls[0].url).toBe('https://platform.example.com/run');
   });
 
   it('sends agent_id and client_id in the body', async () => {
-    await adkRun('nutrition_analyst', 'U12345', undefined, { url: 'https://x', apiKey: 'k' });
+    await adkRun('nutrition_analyst', 'U12345', undefined, { url: 'https://x', bearerToken: 't' });
     const body = JSON.parse(calls[0].init.body as string);
     expect(body.agent_id).toBe('nutrition_analyst');
     expect(body.client_id).toBe('U12345');
   });
 
   it('includes message when provided', async () => {
-    await adkRun('a', 'u', { message: 'hi' }, { url: 'https://x', apiKey: 'k' });
+    await adkRun('a', 'u', { message: 'hi' }, { url: 'https://x', bearerToken: 't' });
     expect(JSON.parse(calls[0].init.body as string).message).toBe('hi');
   });
 
   it('omits message field entirely when not provided', async () => {
-    await adkRun('a', 'u', undefined, { url: 'https://x', apiKey: 'k' });
+    await adkRun('a', 'u', undefined, { url: 'https://x', bearerToken: 't' });
     const body = JSON.parse(calls[0].init.body as string);
     expect('message' in body).toBe(false);
   });
 });
 
-describe('adkRun — auth header (HS256 bearer JWT)', () => {
-  it('sends Authorization: Bearer <jwt> when apiKey is provided', async () => {
-    await adkRun('a', 'U12345', undefined, { url: 'https://x', apiKey: 'shared-secret' });
+describe('adkRun — auth header (bearer token, forwarded as-is)', () => {
+  it('forwards bearerToken verbatim in Authorization', async () => {
+    const token = 'eyJhbGciOiJIUzI1NiJ9.fake-payload.fake-sig';
+    await adkRun('a', 'u', undefined, { url: 'https://x', bearerToken: token });
     const headers = calls[0].init.headers as Record<string, string>;
-    expect(headers['Authorization']).toMatch(/^Bearer eyJ/); // JWT starts with header b64 'eyJ'
+    expect(headers['Authorization']).toBe(`Bearer ${token}`);
     expect('X-API-Key' in headers).toBe(false);
   });
 
-  it('signs the JWT with apiKey as HS256 secret and embeds member_id', async () => {
-    await adkRun('a', 'U12345', undefined, { url: 'https://x', apiKey: 'shared-secret' });
-    const headers = calls[0].init.headers as Record<string, string>;
-    const token = headers['Authorization'].replace(/^Bearer /, '');
-    const { payload } = await jwtVerify(
-      token,
-      new TextEncoder().encode('shared-secret'),
-    );
-    expect(payload.member_id).toBe('U12345');
-    expect(payload.member_class).toBe('LineUser');
-    expect(payload.app_name).toBe('vitera');
-    expect(payload.iat).toBeTypeOf('number');
-    expect(payload.exp).toBeTypeOf('number');
-  });
-
-  it('JWT exp is ~5 minutes in the future', async () => {
-    await adkRun('a', 'u', undefined, { url: 'https://x', apiKey: 'k' });
-    const headers = calls[0].init.headers as Record<string, string>;
-    const token = headers['Authorization'].replace(/^Bearer /, '');
-    const { payload } = await jwtVerify(token, new TextEncoder().encode('k'));
-    const ttl = (payload.exp ?? 0) - (payload.iat ?? 0);
-    expect(ttl).toBe(5 * 60);
-  });
-
-  it('does NOT send Authorization when apiKey is null', async () => {
-    await adkRun('a', 'u', undefined, { url: 'https://x', apiKey: null });
+  it('does NOT send Authorization when bearerToken is null', async () => {
+    await adkRun('a', 'u', undefined, { url: 'https://x', bearerToken: null });
     const headers = calls[0].init.headers as Record<string, string>;
     expect('Authorization' in headers).toBe(false);
   });
 
-  it('does NOT send Authorization when apiKey is undefined', async () => {
+  it('does NOT send Authorization when bearerToken is undefined', async () => {
     await adkRun('a', 'u', undefined, { url: 'https://x' });
     const headers = calls[0].init.headers as Record<string, string>;
     expect('Authorization' in headers).toBe(false);
   });
 
-  it('does NOT send Authorization when apiKey is empty string', async () => {
-    await adkRun('a', 'u', undefined, { url: 'https://x', apiKey: '' });
+  it('does NOT send Authorization when bearerToken is empty string', async () => {
+    await adkRun('a', 'u', undefined, { url: 'https://x', bearerToken: '' });
     const headers = calls[0].init.headers as Record<string, string>;
     expect('Authorization' in headers).toBe(false);
   });
@@ -125,21 +102,36 @@ describe('adkRun — env var fallback', () => {
     expect(calls[0].url).toBe('https://env-platform.example.com/run');
   });
 
-  it('falls back to ADK_API_KEY when no override.apiKey given (signs JWT with env secret)', async () => {
+  it('falls back to ADK_BEARER_TOKEN when no override.bearerToken given', async () => {
     process.env.ADK_URL = 'https://env-platform.example.com';
-    process.env.ADK_API_KEY = 'env-secret';
-    await adkRun('a', 'U_env');
+    process.env.ADK_BEARER_TOKEN = 'env-token';
+    await adkRun('a', 'u');
     const headers = calls[0].init.headers as Record<string, string>;
-    const token = headers['Authorization'].replace(/^Bearer /, '');
-    const { payload } = await jwtVerify(token, new TextEncoder().encode('env-secret'));
-    expect(payload.member_id).toBe('U_env');
+    expect(headers['Authorization']).toBe('Bearer env-token');
+  });
+
+  it('uses ADK_API_KEY as bearerToken alias for backwards compat', async () => {
+    process.env.ADK_URL = 'https://env-platform.example.com';
+    process.env.ADK_API_KEY = 'legacy-token';
+    await adkRun('a', 'u');
+    const headers = calls[0].init.headers as Record<string, string>;
+    expect(headers['Authorization']).toBe('Bearer legacy-token');
+  });
+
+  it('ADK_BEARER_TOKEN wins over ADK_API_KEY when both set', async () => {
+    process.env.ADK_URL = 'https://env-platform.example.com';
+    process.env.ADK_BEARER_TOKEN = 'new-token';
+    process.env.ADK_API_KEY = 'legacy-token';
+    await adkRun('a', 'u');
+    const headers = calls[0].init.headers as Record<string, string>;
+    expect(headers['Authorization']).toBe('Bearer new-token');
   });
 
   it('throws when URL is missing entirely (no override, no env)', async () => {
     await expect(adkRun('a', 'u')).rejects.toThrow(/ADK config missing/);
   });
 
-  it('does NOT throw when URL is set but key is missing', async () => {
+  it('does NOT throw when URL is set but token is missing', async () => {
     process.env.ADK_URL = 'https://env-platform.example.com';
     await expect(adkRun('a', 'u')).resolves.toBeDefined();
     const headers = calls[0].init.headers as Record<string, string>;
@@ -151,7 +143,7 @@ describe('adkRun — error handling', () => {
   it('throws with response status + body on non-2xx', async () => {
     mockResponse = { ok: false, status: 401, body: 'Unauthorized' };
     await expect(
-      adkRun('a', 'u', undefined, { url: 'https://x', apiKey: 'wrong' }),
+      adkRun('a', 'u', undefined, { url: 'https://x', bearerToken: 'wrong' }),
     ).rejects.toThrow(/401/);
   });
 

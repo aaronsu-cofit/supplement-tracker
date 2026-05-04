@@ -1,5 +1,3 @@
-import { SignJWT } from 'jose'
-
 export interface AdkRunResult {
   result: string
   skill_key: string
@@ -7,74 +5,42 @@ export interface AdkRunResult {
 
 export interface AdkConfig {
   url: string
-  /** HS256 signing secret for the bearer JWT. Same secret the AI Skill
-   *  Platform uses to verify (matches warehouse's `secret_key_base`).
-   *  Stored per-OA in `ai_skill_platform_api_key`. When null/empty, no
-   *  Authorization header is sent — useful for a public dev platform. */
-  apiKey?: string | null
+  /** Pre-signed bearer token to send as `Authorization: Bearer <token>`.
+   *  The token itself is generated outside Vitera (e.g. warehouse's
+   *  `Token.tokenize(member)`) — Vitera doesn't hold the signing secret
+   *  and just forwards. When null/empty, the Authorization header is
+   *  omitted. Stored per-OA in the (legacy-named) column
+   *  `ai_skill_platform_api_key`. */
+  bearerToken?: string | null
 }
 
 function resolveConfig(override?: AdkConfig): AdkConfig {
-  if (override?.url) return { url: override.url, apiKey: override.apiKey ?? null }
+  if (override?.url) return { url: override.url, bearerToken: override.bearerToken ?? null }
   const url = process.env.ADK_URL
   if (!url) {
     throw new Error('ADK config missing — provide per-call {url} or set ADK_URL env var')
   }
-  return { url, apiKey: process.env.ADK_API_KEY ?? null }
+  return { url, bearerToken: process.env.ADK_BEARER_TOKEN ?? process.env.ADK_API_KEY ?? null }
 }
 
-/**
- * Build the bearer JWT for one outbound call. Mirrors warehouse's
- * `Token.tokenize` shape — `member_id` / `member_class` — so the AI
- * Skill Platform can decode with the same Cofit-wide secret. Right now
- * the platform doesn't actually act on member info; once it does,
- * change the caller to pass the resolved Cofit member_id.
- *
- * `app_name` lets the platform tell which service called when many
- * services share the secret. Tokens are short-lived (5 min) so a leak
- * has a small blast radius — this is a service-to-service call, not a
- * user session, so we don't need long expiry.
- */
-async function buildBearerJwt(
-  secret: string,
-  payload: { memberId: string; memberClass?: string },
-): Promise<string> {
-  const now = Math.floor(Date.now() / 1000)
-  return new SignJWT({
-    member_id: payload.memberId,
-    member_class: payload.memberClass ?? 'LineUser',
-    app_name: 'vitera',
-  })
-    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
-    .setIssuedAt(now)
-    .setExpirationTime(now + 5 * 60)
-    .sign(new TextEncoder().encode(secret))
-}
-
-async function buildHeaders(
-  apiKey: string | null | undefined,
-  clientId: string,
-): Promise<Record<string, string>> {
+function buildHeaders(bearerToken: string | null | undefined): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (apiKey) {
-    const jwt = await buildBearerJwt(apiKey, { memberId: clientId })
-    headers['Authorization'] = `Bearer ${jwt}`
-  }
+  if (bearerToken) headers['Authorization'] = `Bearer ${bearerToken}`
   return headers
 }
 
 // 同步呼叫 AI Skill Platform 的 /run endpoint，等待完整結果。
-// `cfg` 可以 per-call override（例如從 DB LineOA 拿 url + key）。
+// `cfg` 可以 per-call override（例如從 DB LineOA 拿 url + bearerToken）。
 export async function adkRun(
   agentId: string,
   clientId: string,
   options?: { message?: string },
   cfg?: AdkConfig,
 ): Promise<AdkRunResult> {
-  const { url, apiKey } = resolveConfig(cfg)
+  const { url, bearerToken } = resolveConfig(cfg)
   const res = await fetch(`${url.replace(/\/$/, '')}/run`, {
     method: 'POST',
-    headers: await buildHeaders(apiKey, clientId),
+    headers: buildHeaders(bearerToken),
     body: JSON.stringify({
       agent_id: agentId,
       client_id: clientId,
@@ -98,10 +64,10 @@ export async function adkRun(
 // Known limitation: timeout(30000) only covers header delivery — a stalled stream body
 // after headers arrive has no per-chunk timeout. Acceptable for POC.
 export async function adkStream(agentId: string, clientId: string, cfg?: AdkConfig): Promise<Response> {
-  const { url, apiKey } = resolveConfig(cfg)
+  const { url, bearerToken } = resolveConfig(cfg)
   const res = await fetch(`${url.replace(/\/$/, '')}/run_sse`, {
     method: 'POST',
-    headers: await buildHeaders(apiKey, clientId),
+    headers: buildHeaders(bearerToken),
     body: JSON.stringify({ agent_id: agentId, client_id: clientId }),
     signal: AbortSignal.timeout(30000),
   })

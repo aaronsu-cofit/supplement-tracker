@@ -87,7 +87,7 @@ lineoa.post('/:id/test-ai-platform', async (c) => {
       agentId,
       'admin-test',
       { message: '測試連線：請回覆任何文字確認 agent 可用' },
-      { url: oa.ai_skill_platform_url, apiKey: oa.ai_skill_platform_api_key },
+      { url: oa.ai_skill_platform_url, bearerToken: oa.ai_skill_platform_api_key },
     );
     return c.json({
       ok: true,

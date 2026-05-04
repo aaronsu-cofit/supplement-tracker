@@ -59,7 +59,7 @@ export async function runLlmFallback(opts: RunLlmFallbackInput): Promise<RunLlmF
       opts.agentId,
       opts.userId,
       { message: opts.message },
-      { url: opts.oa.ai_skill_platform_url, apiKey: opts.oa.ai_skill_platform_api_key },
+      { url: opts.oa.ai_skill_platform_url, bearerToken: opts.oa.ai_skill_platform_api_key },
     );
     const latency = Date.now() - startedAt;
     await db().unmatchedIntent.update({

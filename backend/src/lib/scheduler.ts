@@ -224,7 +224,7 @@ async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
           agentId,
           userId,
           undefined,
-          { url: oa.ai_skill_platform_url, apiKey: oa.ai_skill_platform_api_key },
+          { url: oa.ai_skill_platform_url, bearerToken: oa.ai_skill_platform_api_key },
         );
         const text = result.result;
         if (!text || !text.trim()) {
