@@ -39,7 +39,10 @@ export async function adkRun(
       client_id: clientId,
       ...(options?.message !== undefined && { message: options.message }),
     }),
-    signal: AbortSignal.timeout(9000),
+    // 30s — webhook handler is fire-and-forget so LINE's 10s ack isn't
+    // the constraint; replyToken is valid for ~60s, leaving headroom for
+    // the fast-path race in webhook.ts to switch to pushText if late.
+    signal: AbortSignal.timeout(30_000),
   })
 
   if (!res.ok) {

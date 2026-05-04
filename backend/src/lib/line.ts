@@ -37,6 +37,28 @@ export async function replyMessage(
   await replyMessages(replyToken, [message], token)
 }
 
+/**
+ * Push a plain text message to a user without using a reply token.
+ * Used for slow async replies — when an LLM call doesn't return in time
+ * for the replyToken fast-path, we fall through to push so the user
+ * still gets an answer (it just won't show as a "reply" thread visually).
+ */
+export async function pushText(userId: string, text: string, token: string): Promise<void> {
+  if (!token) throw new Error('pushText: missing token')
+  const res = await fetch('https://api.line.me/v2/bot/message/push', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ to: userId, messages: [{ type: 'text', text }] }),
+  })
+  if (!res.ok) {
+    const err = await res.text().catch(() => '')
+    throw new Error(`LINE push failed ${res.status}: ${err}`)
+  }
+}
+
 async function replyMessages(
   replyToken: string,
   messages: import('@line/bot-sdk').Message[],

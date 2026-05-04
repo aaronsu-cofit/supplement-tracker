@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { verifyLineSignature, replyText, replyMessage } from '../lib/line.js'
+import { verifyLineSignature, replyText, replyMessage, pushText } from '../lib/line.js'
 import { runLlmFallback } from '../lib/llmFallback.js'
 import {
   findOrCreateLineUser,
@@ -180,10 +180,14 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
     // Otherwise fall back to the OA's default agent.
     const agentId = (await resolveScenarioAgent(oa.id, lineUserId)) || oa.default_agent_id
 
-    // The LLM fallback wraps adkRun + records an unmatched_intents row
-    // with the question, reply, latency, and any provider error so ops
-    // can see what's slipping through and turn frequent ones into Intents.
-    const fallback = await runLlmFallback({
+    // Race the LLM against a 9s fast-path window. Won race → use the
+    // replyToken (free, threads as a "reply" in the chat UI). Lost race
+    // → ack the webhook now and pushText when the result arrives. The
+    // adkRun call itself can run up to 30s; replyToken validity (~60s)
+    // is the real ceiling. Either way runLlmFallback writes the same
+    // unmatched_intents row so the audit trail is consistent.
+    const FAST_PATH_MS = 9000
+    const llmPromise = runLlmFallback({
       userId: lineUserId,
       oaId: oa.id,
       productId: oa.product_id ?? null,
@@ -194,19 +198,52 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
         ai_skill_platform_api_key: oa.ai_skill_platform_api_key,
       },
     })
-    const aiReply = fallback.ok && fallback.reply
-      ? fallback.reply
-      : '很抱歉，AI 顧問暫時無法回應，請稍後再試 🙏'
-    await replyText(event.replyToken, aiReply, oa.channel_access_token)
-    logMessage({
-      oaId: oa.id, userId: lineUserId,
-      direction: 'outbound', type: 'text',
-      contentText: aiReply,
-      source: 'ai_agent',
-      sourceRef: fallback.ok ? agentId : `${agentId}:error`,
-    })
-    if (!fallback.ok) {
-      console.error(`[webhook/line] agent=${agentId} llm fallback error:`, fallback.error)
+
+    const fastResult = await Promise.race([
+      llmPromise,
+      new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), FAST_PATH_MS)),
+    ])
+
+    if (fastResult !== 'timeout') {
+      const aiReply = fastResult.ok && fastResult.reply
+        ? fastResult.reply
+        : '很抱歉，AI 顧問暫時無法回應，請稍後再試 🙏'
+      await replyText(event.replyToken, aiReply, oa.channel_access_token)
+      logMessage({
+        oaId: oa.id, userId: lineUserId,
+        direction: 'outbound', type: 'text',
+        contentText: aiReply,
+        source: 'ai_agent',
+        sourceRef: fastResult.ok ? agentId : `${agentId}:error`,
+      })
+      if (!fastResult.ok) {
+        console.error(`[webhook/line] agent=${agentId} llm fallback error:`, fastResult.error)
+      }
+    } else {
+      // Slow path: the await is already done returning, the event handler
+      // will fall off and webhook.post returns OK. Continue waiting on
+      // llmPromise and push the reply when it arrives.
+      llmPromise.then(async result => {
+        const aiReply = result.ok && result.reply
+          ? result.reply
+          : '很抱歉，AI 顧問暫時無法回應，請稍後再試 🙏'
+        try {
+          await pushText(lineUserId, aiReply, oa.channel_access_token)
+        } catch (err) {
+          console.error(`[webhook/line] slow-path pushText error:`, err)
+          return
+        }
+        logMessage({
+          oaId: oa.id, userId: lineUserId,
+          direction: 'outbound', type: 'text',
+          contentText: aiReply,
+          source: 'ai_agent',
+          sourceRef: result.ok ? `${agentId}:slow` : `${agentId}:error:slow`,
+        })
+        if (!result.ok) {
+          console.error(`[webhook/line] agent=${agentId} llm slow-path error:`, result.error)
+        }
+      }).catch(err => console.error('[webhook/line] slow-path handler crash:', err))
     }
   }
 }
