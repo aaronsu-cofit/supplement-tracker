@@ -170,8 +170,8 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
       }
     }
 
-    if (!oa.ai_skill_platform_url || !oa.ai_skill_platform_api_key) {
-      console.warn('[webhook/line] OA missing ai_skill_platform_url / api_key — skipping AI reply')
+    if (!oa.ai_skill_platform_url) {
+      console.warn('[webhook/line] OA missing ai_skill_platform_url — skipping AI reply')
       return
     }
 

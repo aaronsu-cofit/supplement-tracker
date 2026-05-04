@@ -211,8 +211,8 @@ async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
     for (const aiNode of aiNodes) {
       const agentId = aiNode.data?.agentId;
       if (!agentId) continue;
-      if (!oa.ai_skill_platform_url || !oa.ai_skill_platform_api_key) {
-        errors.push(`user=${userId} aiNode=${aiNode.id}: OA missing ai_skill_platform_url/api_key`);
+      if (!oa.ai_skill_platform_url) {
+        errors.push(`user=${userId} aiNode=${aiNode.id}: OA missing ai_skill_platform_url`);
         continue;
       }
 

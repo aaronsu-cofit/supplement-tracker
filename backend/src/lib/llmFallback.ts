@@ -25,7 +25,7 @@ export interface RunLlmFallbackInput {
   productId?: string | null;
   agentId: string;
   message: string;
-  oa: { ai_skill_platform_url: string; ai_skill_platform_api_key: string };
+  oa: { ai_skill_platform_url: string; ai_skill_platform_api_key: string | null };
 }
 
 export interface RunLlmFallbackResult {

@@ -5,21 +5,25 @@ export interface AdkRunResult {
 
 export interface AdkConfig {
   url: string
-  apiKey: string
+  /** Optional. AI Skill Platform doesn't require auth per its OpenAPI
+   *  spec, so platforms with no key in front of them are fine. When
+   *  provided, sent as `X-API-Key`. */
+  apiKey?: string | null
 }
 
 function resolveConfig(override?: AdkConfig): AdkConfig {
-  if (override?.url && override?.apiKey) return override
+  if (override?.url) return { url: override.url, apiKey: override.apiKey ?? null }
   const url = process.env.ADK_URL
-  const apiKey = process.env.ADK_API_KEY
-  if (!url || !apiKey) {
-    throw new Error('ADK config missing — provide per-call {url, apiKey} or set ADK_URL + ADK_API_KEY env vars')
+  if (!url) {
+    throw new Error('ADK config missing — provide per-call {url} or set ADK_URL env var')
   }
-  return { url, apiKey }
+  return { url, apiKey: process.env.ADK_API_KEY ?? null }
 }
 
-function headersFor(apiKey: string): Record<string, string> {
-  return { 'Content-Type': 'application/json', 'X-API-Key': apiKey }
+function headersFor(apiKey: string | null | undefined): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (apiKey) headers['X-API-Key'] = apiKey
+  return headers
 }
 
 // 同步呼叫 AI Skill Platform 的 /run endpoint，等待完整結果。

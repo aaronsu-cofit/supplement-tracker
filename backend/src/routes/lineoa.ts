@@ -77,8 +77,8 @@ lineoa.post('/:id/test-ai-platform', async (c) => {
   const id = c.req.param('id');
   const oa = await getLineOAById(id);
   if (!oa) return c.json({ error: '找不到此 LINE OA' }, 404);
-  if (!oa.ai_skill_platform_url || !oa.ai_skill_platform_api_key) {
-    return c.json({ error: 'AI Skill Platform URL / API Key 未設定' }, 400);
+  if (!oa.ai_skill_platform_url) {
+    return c.json({ error: 'AI Skill Platform URL 未設定' }, 400);
   }
   const agentId = oa.default_agent_id || 'ai-expert';
   const started = Date.now();
