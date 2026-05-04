@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { verifyLineSignature, replyText, replyMessage } from '../lib/line.js'
-import { adkRun } from '../lib/adk.js'
+import { runLlmFallback } from '../lib/llmFallback.js'
 import {
   findOrCreateLineUser,
   getActiveScenariosForOA,
@@ -180,29 +180,33 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
     // Otherwise fall back to the OA's default agent.
     const agentId = (await resolveScenarioAgent(oa.id, lineUserId)) || oa.default_agent_id
 
-    try {
-      const result = await adkRun(
-        agentId,
-        lineUserId,
-        { message: messageText },
-        { url: oa.ai_skill_platform_url, apiKey: oa.ai_skill_platform_api_key },
-      )
-      const aiReply = result.result || '很抱歉，AI 顧問無法提供回應，請稍後再試 🙏'
-      await replyText(event.replyToken, aiReply, oa.channel_access_token)
-      logMessage({
-        oaId: oa.id, userId: lineUserId,
-        direction: 'outbound', type: 'text',
-        contentText: aiReply, source: 'ai_agent', sourceRef: agentId,
-      })
-    } catch (err) {
-      console.error(`[webhook/line] agent=${agentId} error:`, err)
-      const errReply = '很抱歉，AI 顧問暫時無法回應，請稍後再試 🙏'
-      await replyText(event.replyToken, errReply, oa.channel_access_token)
-      logMessage({
-        oaId: oa.id, userId: lineUserId,
-        direction: 'outbound', type: 'text',
-        contentText: errReply, source: 'ai_agent', sourceRef: `${agentId}:error`,
-      })
+    // The LLM fallback wraps adkRun + records an unmatched_intents row
+    // with the question, reply, latency, and any provider error so ops
+    // can see what's slipping through and turn frequent ones into Intents.
+    const fallback = await runLlmFallback({
+      userId: lineUserId,
+      oaId: oa.id,
+      productId: oa.product_id ?? null,
+      agentId,
+      message: messageText,
+      oa: {
+        ai_skill_platform_url: oa.ai_skill_platform_url,
+        ai_skill_platform_api_key: oa.ai_skill_platform_api_key,
+      },
+    })
+    const aiReply = fallback.ok && fallback.reply
+      ? fallback.reply
+      : '很抱歉，AI 顧問暫時無法回應，請稍後再試 🙏'
+    await replyText(event.replyToken, aiReply, oa.channel_access_token)
+    logMessage({
+      oaId: oa.id, userId: lineUserId,
+      direction: 'outbound', type: 'text',
+      contentText: aiReply,
+      source: 'ai_agent',
+      sourceRef: fallback.ok ? agentId : `${agentId}:error`,
+    })
+    if (!fallback.ok) {
+      console.error(`[webhook/line] agent=${agentId} llm fallback error:`, fallback.error)
     }
   }
 }

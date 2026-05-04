@@ -705,6 +705,32 @@ model AssessmentResult {
   @@map("assessment_results")
 }
 
+// Inbound LINE text that didn't match any Intent rule. Surfaced in HQ
+// so ops can see what real users are asking and convert frequent
+// questions into new Intent rules. Updated with the LLM reply (or
+// error) so the full Q/A is auditable.
+model UnmatchedIntent {
+  id         Int      @id @default(autoincrement())
+  user_id    String   @db.VarChar(64)
+  oa_id      Int
+  product_id String?  @db.VarChar(30)
+  agent_id   String?  @db.VarChar(100)
+  message    String   @db.VarChar(2000)
+  reply      String?
+  skill_key  String?  @db.VarChar(100)
+  model      String?  @db.VarChar(100)
+  latency_ms Int?
+  error      String?
+  resolved   Boolean  @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([oa_id, created_at(sort: Desc)], name: "idx_unmatched_intents_oa_created")
+  @@index([resolved, created_at(sort: Desc)], name: "idx_unmatched_intents_resolved")
+  @@index([user_id, created_at(sort: Desc)], name: "idx_unmatched_intents_user_created")
+  @@map("unmatched_intents")
+}
+
 enum ReliefType {
   BREATHING
   BODY_SCAN
