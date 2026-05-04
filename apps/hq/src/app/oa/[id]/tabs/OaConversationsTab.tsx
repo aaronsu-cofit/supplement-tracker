@@ -1,6 +1,6 @@
 'use client';
 import { apiFetch } from '@vitera/lib';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { MessageLogRow } from '../../../../types';
 import UserInfoPanel from './UserInfoPanel';
 
@@ -146,24 +146,20 @@ function MessageBubble({ m }: { m: MessageLogRow }) {
   );
 }
 
+const PAGE_SIZE = 50;
+
 export default function OaConversationsTab({ oaId, productId }: Props) {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  // Messages held in DESC order (newest first) — admins care most about
+  // recent activity, paginate backwards into history with "載入更多".
   const [messages, setMessages] = useState<MessageLogRow[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-
-  // Auto-scroll to the bottom (latest message) whenever the selected
-  // user's messages finish loading. Using instant scroll so the initial
-  // render doesn't animate visibly; subsequent loads behave the same.
-  useEffect(() => {
-    if (loadingMessages) return;
-    const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [messages, loadingMessages]);
 
   const loadUsers = useCallback(() => {
     setLoadingUsers(true);
@@ -185,12 +181,17 @@ export default function OaConversationsTab({ oaId, productId }: Props) {
 
   const loadMessages = useCallback((userId: string) => {
     setLoadingMessages(true);
-    apiFetch(`/api/line/oa/${oaId}/messages?user_id=${encodeURIComponent(userId)}&limit=200`)
+    setHasMore(false);
+    apiFetch(`/api/line/oa/${oaId}/messages?user_id=${encodeURIComponent(userId)}&limit=${PAGE_SIZE}`)
       .then(async r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json() as Promise<{ messages: MessageLogRow[] }>;
       })
-      .then(({ messages: list }) => setMessages((list ?? []).reverse()))
+      .then(({ messages: list }) => {
+        const arr = list ?? [];
+        setMessages(arr); // backend already DESC
+        setHasMore(arr.length === PAGE_SIZE);
+      })
       .catch(err => {
         console.error('[oa/conversations] load messages', err);
         setError('無法載入訊息');
@@ -198,10 +199,35 @@ export default function OaConversationsTab({ oaId, productId }: Props) {
       .finally(() => setLoadingMessages(false));
   }, [oaId]);
 
+  const loadOlder = useCallback(() => {
+    if (!selectedUser || messages.length === 0 || loadingMore) return;
+    const oldest = messages[messages.length - 1];
+    setLoadingMore(true);
+    apiFetch(
+      `/api/line/oa/${oaId}/messages?user_id=${encodeURIComponent(selectedUser)}` +
+      `&limit=${PAGE_SIZE}&before=${encodeURIComponent(oldest.created_at)}`,
+    )
+      .then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<{ messages: MessageLogRow[] }>;
+      })
+      .then(({ messages: list }) => {
+        const arr = list ?? [];
+        // Append older rows to the end (DESC means oldest go to bottom).
+        setMessages(prev => [...prev, ...arr]);
+        setHasMore(arr.length === PAGE_SIZE);
+      })
+      .catch(err => {
+        console.error('[oa/conversations] load older', err);
+        setError('無法載入更早訊息');
+      })
+      .finally(() => setLoadingMore(false));
+  }, [oaId, selectedUser, messages, loadingMore]);
+
   useEffect(() => { loadUsers(); }, [loadUsers]);
   useEffect(() => {
     if (selectedUser) loadMessages(selectedUser);
-    else setMessages([]);
+    else { setMessages([]); setHasMore(false); }
   }, [selectedUser, loadMessages]);
 
   const filteredUsers = filter.trim()
@@ -269,13 +295,25 @@ export default function OaConversationsTab({ oaId, productId }: Props) {
               </span>
               <span className="text-xs text-slate-400 whitespace-nowrap">· {messages.length} 則</span>
             </div>
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4">
               {loadingMessages ? (
                 <p className="text-xs text-slate-400 text-center">載入中...</p>
               ) : messages.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center">尚無訊息</p>
               ) : (
-                messages.map(m => <MessageBubble key={m.id} m={m} />)
+                <>
+                  {messages.map(m => <MessageBubble key={m.id} m={m} />)}
+                  <div className="flex justify-center py-4">
+                    {hasMore ? (
+                      <button onClick={loadOlder} disabled={loadingMore}
+                        className="text-xs px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50">
+                        {loadingMore ? '載入中...' : `↓ 載入更早訊息（${PAGE_SIZE} 則）`}
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-slate-400">— 沒有更早的訊息 —</span>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </>
