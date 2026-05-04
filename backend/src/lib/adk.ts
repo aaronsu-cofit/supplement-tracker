@@ -1,3 +1,5 @@
+import { SignJWT } from 'jose'
+
 export interface AdkRunResult {
   result: string
   skill_key: string
@@ -5,9 +7,10 @@ export interface AdkRunResult {
 
 export interface AdkConfig {
   url: string
-  /** Optional. AI Skill Platform doesn't require auth per its OpenAPI
-   *  spec, so platforms with no key in front of them are fine. When
-   *  provided, sent as `X-API-Key`. */
+  /** HS256 signing secret for the bearer JWT. Same secret the AI Skill
+   *  Platform uses to verify (matches warehouse's `secret_key_base`).
+   *  Stored per-OA in `ai_skill_platform_api_key`. When null/empty, no
+   *  Authorization header is sent — useful for a public dev platform. */
   apiKey?: string | null
 }
 
@@ -20,9 +23,43 @@ function resolveConfig(override?: AdkConfig): AdkConfig {
   return { url, apiKey: process.env.ADK_API_KEY ?? null }
 }
 
-function headersFor(apiKey: string | null | undefined): Record<string, string> {
+/**
+ * Build the bearer JWT for one outbound call. Mirrors warehouse's
+ * `Token.tokenize` shape — `member_id` / `member_class` — so the AI
+ * Skill Platform can decode with the same Cofit-wide secret. Right now
+ * the platform doesn't actually act on member info; once it does,
+ * change the caller to pass the resolved Cofit member_id.
+ *
+ * `app_name` lets the platform tell which service called when many
+ * services share the secret. Tokens are short-lived (5 min) so a leak
+ * has a small blast radius — this is a service-to-service call, not a
+ * user session, so we don't need long expiry.
+ */
+async function buildBearerJwt(
+  secret: string,
+  payload: { memberId: string; memberClass?: string },
+): Promise<string> {
+  const now = Math.floor(Date.now() / 1000)
+  return new SignJWT({
+    member_id: payload.memberId,
+    member_class: payload.memberClass ?? 'LineUser',
+    app_name: 'vitera',
+  })
+    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+    .setIssuedAt(now)
+    .setExpirationTime(now + 5 * 60)
+    .sign(new TextEncoder().encode(secret))
+}
+
+async function buildHeaders(
+  apiKey: string | null | undefined,
+  clientId: string,
+): Promise<Record<string, string>> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (apiKey) headers['X-API-Key'] = apiKey
+  if (apiKey) {
+    const jwt = await buildBearerJwt(apiKey, { memberId: clientId })
+    headers['Authorization'] = `Bearer ${jwt}`
+  }
   return headers
 }
 
@@ -37,7 +74,7 @@ export async function adkRun(
   const { url, apiKey } = resolveConfig(cfg)
   const res = await fetch(`${url.replace(/\/$/, '')}/run`, {
     method: 'POST',
-    headers: headersFor(apiKey),
+    headers: await buildHeaders(apiKey, clientId),
     body: JSON.stringify({
       agent_id: agentId,
       client_id: clientId,
@@ -64,7 +101,7 @@ export async function adkStream(agentId: string, clientId: string, cfg?: AdkConf
   const { url, apiKey } = resolveConfig(cfg)
   const res = await fetch(`${url.replace(/\/$/, '')}/run_sse`, {
     method: 'POST',
-    headers: headersFor(apiKey),
+    headers: await buildHeaders(apiKey, clientId),
     body: JSON.stringify({ agent_id: agentId, client_id: clientId }),
     signal: AbortSignal.timeout(30000),
   })
