@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>28 天生理週期課程 — 設計 Review</title>
+<style>
+  :root {
+    --bg: #FAFAFA;
+    --bg-card: #FFFFFF;
+    --fg: #1A202C;
+    --fg-body: #5E5873;
+    --fg-muted: #A2A2A2;
+    --border: #E7E7E7;
+    --border-strong: #D1D4D9;
+    --cyan: #00ACC8;
+    --cyan-50: #EDFDFD;
+    --orange: #EB901D;
+    --orange-50: #FFEED6;
+    --orange-100: #FEEBCB;
+    --warning-bg: #ffe1ba;
+    --warning-fg: #d07400;
+    --error-bg: #fee2e2;
+    --error-fg: #991b1b;
+    --success-bg: #dcfce7;
+    --success-fg: #166534;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--fg-body);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+  .deck { width: 100vw; height: 100vh; position: relative; }
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 3.5rem 5rem 5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0;
+    transform: translateX(40px);
+    transition: opacity 350ms ease, transform 350ms ease;
+    pointer-events: none;
+    overflow: auto;
+  }
+  .slide.active { opacity: 1; transform: translateX(0); pointer-events: auto; }
+  .slide.prev { transform: translateX(-40px); }
+
+  .label {
+    color: var(--cyan);
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    font-weight: 700;
+  }
+  .label.warn { color: var(--orange); }
+  h1 {
+    font-size: 3.6rem;
+    line-height: 1.1;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin-bottom: 1.25rem;
+    color: var(--fg);
+  }
+  h1 small {
+    display: block;
+    font-size: 1.1rem;
+    color: var(--fg-muted);
+    font-weight: 500;
+    letter-spacing: 0;
+    margin-top: 1.25rem;
+    line-height: 1.5;
+  }
+  h2 {
+    font-size: 2.4rem;
+    line-height: 1.15;
+    font-weight: 700;
+    color: var(--fg);
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.005em;
+  }
+  h3 {
+    font-size: 1.4rem;
+    color: var(--fg);
+    margin-bottom: 0.75rem;
+    font-weight: 700;
+  }
+  p, li {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--fg-body);
+  }
+  ul, ol { padding-left: 1.4rem; }
+  li { margin-bottom: 0.55rem; }
+  li::marker { color: var(--fg-muted); }
+  strong { color: var(--fg); font-weight: 700; }
+  em.q {
+    font-style: normal;
+    background: var(--cyan-50);
+    color: #086F83;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.95em;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-right: 0.4rem;
+  }
+  .pill.warn { background: var(--orange-50); color: var(--orange); }
+  .pill.danger { background: var(--error-bg); color: var(--error-fg); }
+  .pill.ok { background: var(--success-bg); color: var(--success-fg); }
+  .pill.info { background: var(--cyan-50); color: #086F83; }
+
+  .grid {
+    display: grid;
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+  }
+  .grid.two { grid-template-columns: 1fr 1fr; }
+  .grid.three { grid-template-columns: repeat(3, 1fr); }
+  .grid.four { grid-template-columns: repeat(4, 1fr); }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.4rem;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.04);
+  }
+  .card h4 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--fg);
+    margin-bottom: 0.5rem;
+  }
+  .card p, .card li { font-size: 0.95rem; }
+  .card.danger { border-left: 4px solid #ef4444; }
+  .card.warn { border-left: 4px solid var(--orange); }
+  .card.info { border-left: 4px solid var(--cyan); }
+  .card.ok { border-left: 4px solid #22c55e; }
+
+  blockquote {
+    border-left: 3px solid var(--cyan);
+    padding: 0.8rem 1.2rem;
+    margin: 1rem 0;
+    background: var(--cyan-50);
+    border-radius: 4px;
+    color: var(--fg);
+    font-size: 1.05rem;
+  }
+  blockquote.warn {
+    border-color: var(--orange);
+    background: var(--orange-50);
+    color: #5d3a02;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.25rem;
+    font-size: 0.95rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.7rem 0.85rem;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    color: var(--fg-muted);
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  td { color: var(--fg-body); }
+  td.fg { color: var(--fg); font-weight: 600; }
+
+  .nav {
+    position: fixed;
+    bottom: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1.25rem;
+    border-radius: 999px;
+    box-shadow: 0px 4px 24px rgba(0, 0, 0, 0.08);
+    z-index: 10;
+  }
+  .nav button {
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    color: var(--fg-body);
+    font-size: 1.1rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+  }
+  .nav button:hover { background: var(--cyan-50); color: var(--cyan); }
+  .nav .counter {
+    color: var(--fg-muted);
+    font-size: 0.85rem;
+    font-family: 'Montserrat', sans-serif;
+    min-width: 60px;
+    text-align: center;
+  }
+  .progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: var(--cyan);
+    transition: width 250ms ease;
+    z-index: 11;
+  }
+
+  .ask {
+    background: var(--orange-50);
+    border-left: 3px solid var(--orange);
+    padding: 1rem 1.2rem;
+    margin-top: 1.5rem;
+    border-radius: 0 6px 6px 0;
+  }
+  .ask::before {
+    content: "💬 該決定的";
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--orange);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .ask ul { margin: 0; padding-left: 1.2rem; }
+  .ask li { color: #5d3a02; font-size: 1rem; margin-bottom: 0.3rem; }
+
+  code {
+    background: #F5F5F5;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    color: #C05621;
+  }
+
+  .topic-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    background: var(--cyan);
+    color: white;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 1.2rem;
+    margin-right: 0.85rem;
+    font-family: 'Montserrat', sans-serif;
+  }
+  .topic-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .topic-header h2 { margin-bottom: 0; font-size: 2rem; }
+
+  .verdict {
+    margin-top: 1.5rem;
+    padding: 1.2rem 1.5rem;
+    background: var(--bg-card);
+    border-radius: 8px;
+    border: 1px dashed var(--border-strong);
+  }
+  .verdict::before {
+    content: "結論";
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--fg-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 0. 開場 -->
+  <section class="slide">
+    <div class="label">design review · 2026-05</div>
+    <h1>28 天生理週期課程<br/>設計 Review
+      <small>Zoly 28-day spreadsheet 讀完後彙整 13 個待議題，給團隊下次討論用。<br/>每一條後面附「該決定的」，不是答案。</small>
+    </h1>
+  </section>
+
+  <!-- 1. TL;DR -->
+  <section class="slide">
+    <div class="label warn">tl;dr</div>
+    <h2>一句話總結</h2>
+    <blockquote class="warn">
+      <strong>目前的 28 天課程是「優秀的內容執筆 + 落後的產品設計」。</strong><br/>
+      Zoly 的文字夠好，但這個產品骨架（targeting / personalization / retention / measurement / commerce）幾乎沒搭。<br/>
+      <strong>先決定產品框架，再回頭重切內容</strong>，比直接灌進系統有意義。
+    </blockquote>
+    <p style="margin-top:1.25rem; color:var(--fg-muted); font-size:0.95rem;">本份 review 不否定內容創作品質，焦點在「產品設計層」要先補的東西。</p>
+  </section>
+
+  <!-- 2. 三大核心批評 -->
+  <section class="slide">
+    <div class="label">核心批判</div>
+    <h2>三件事，一句話三個 NO</h2>
+    <div class="grid three">
+      <div class="card danger">
+        <h4>① 沒在養成習慣</h4>
+        <p>84 個 task 全是當天 only 的 micro-action。28 天結束 user 學到什麼可以延續的？— <strong>啥也沒有</strong>。</p>
+      </div>
+      <div class="card danger">
+        <h4>② 任務沒 theory of change</h4>
+        <p>「Day 14 穿閃亮服裝」「Day 12 主持會議」 — 大多是 performative aesthetic，不是行為設計。</p>
+      </div>
+      <div class="card danger">
+        <h4>③ Hook 只到隔天</h4>
+        <p>「明日預告」是 LINE-native，但 Day 28 之後沒下文。<br/>對 user-to-tomorrow 有效，<strong>對產品-to-下一站</strong>無效。</p>
+      </div>
+    </div>
+    <p style="margin-top:1.5rem; color:var(--fg-muted); font-size:0.95rem;">這三件事連成一句話：這是 magazine subscription，不是 course。</p>
+  </section>
+
+  <!-- 3. 議題 A：產品框架 -->
+  <section class="slide">
+    <div class="topic-header"><span class="topic-num">A</span><h2>產品框架未定（最重要）</h2></div>
+    <p>目前像 magazine subscription — 每天一篇看完即逝。需要先選定產品定位：</p>
+    <table>
+      <thead><tr><th></th><th>核心承諾</th><th>現有內容契合度</th></tr></thead>
+      <tbody>
+        <tr><td class="fg">A. 3 個 keystone 習慣 × 28 天 streak</td><td>28 天後養成 N 個跟週期共處的習慣</td><td><span class="pill info">中</span></td></tr>
+        <tr><td class="fg">B. Symptom → Pattern → Insight</td><td>第二輪起給個人化 report</td><td><span class="pill warn">低</span></td></tr>
+        <tr><td class="fg">C. 產品 bundle 綁定 28 天計畫</td><td>配 cofit 保健品/工具完成 28 天</td><td><span class="pill info">中</span></td></tr>
+        <tr><td class="fg">D. 身分轉變課程</td><td>改變對自己週期的態度</td><td><span class="pill ok">高（口氣已 80% 對位）</span></td></tr>
+      </tbody>
+    </table>
+    <div class="ask">
+      <ul>
+        <li>選哪一個？目前是哪一個？</li>
+        <li>是否要全部都沾一點？（會四不像）</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 4. 議題 B + C：習慣與意義 -->
+  <section class="slide">
+    <div class="topic-header"><span class="topic-num">B</span><h2>沒在養成習慣 + 任務沒意義</h2></div>
+    <div class="grid two">
+      <div class="card warn">
+        <h4>B. 任務不重複</h4>
+        <ul style="margin-top:0.5rem;">
+          <li>Day 1 喝<strong>薑茶</strong>、Day 2 補<strong>鐵</strong>、Day 3 喝<strong>桂圓紅棗茶</strong></li>
+          <li>每天<strong>不同</strong>的飲品 / 動作 / 主題</li>
+          <li>真正每天反覆的行為 = 0</li>
+        </ul>
+      </div>
+      <div class="card warn">
+        <h4>C. 任務沒講為什麼</h4>
+        <ul style="margin-top:0.5rem;">
+          <li>「Day 14 穿閃亮服裝」→ 為什麼？</li>
+          <li>「Day 12 主持會議」→ 大部分人那天根本沒會議</li>
+          <li>「Day 18 拒絕無效社交」→ 怎麼判斷哪些無效？</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ask">
+      <ul>
+        <li>抽出 2-3 個跨整個 28 天的 keystone habit？（例：紀錄症狀、喝水、伸展）</li>
+        <li>每個任務該回答「<strong>做了會有什麼具體改變</strong>」+「<strong>做不到的人替代版是什麼</strong>」</li>
+        <li>請 Grace 把任務重新審一遍？</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 5. 議題 D + E：Persona 與排除人群 -->
+  <section class="slide">
+    <div class="topic-header"><span class="topic-num">D·E</span><h2>Persona 沒鎖定 + 排除 30%+ 人群</h2></div>
+    <div class="grid two">
+      <div class="card info">
+        <h4>D. 內容暗示一個 persona 但沒講</h4>
+        <p style="margin-bottom:0.5rem;">反推：上班族 / 25-35 / 有社交圈 / 對打扮有意願 / IG 文化 / 有運動空間 / 有保健品消費習慣</p>
+        <p>學生、新手媽媽、退休、內向、不愛打扮的人 — <strong>不是這個</strong>。</p>
+      </div>
+      <div class="card danger">
+        <h4>E. 直接排除 30%+ 育齡女性</h4>
+        <ul style="margin-top:0.5rem;">
+          <li>PCOS / 多囊（25%）</li>
+          <li>更年期前期（40+）</li>
+          <li>服用避孕藥 / 含荷爾蒙 IUD</li>
+          <li>產後 / 哺乳中</li>
+          <li>子宮內膜異位（10%）</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ask">
+      <ul>
+        <li>onboarding 加一題「你的週期是？」(規律 / 不規律 / 服用避孕藥 / 更年期 / 其他)</li>
+        <li>不規律的人引去<strong>不同版本</strong>，還是行銷端就明說「適合規律 28 天週期者」？</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 6. 議題 F：Onboarding 資料沒用到 -->
+  <section class="slide">
+    <div class="topic-header"><span class="topic-num">F</span><h2>Onboarding 收的資料沒用到</h2></div>
+    <p>團隊規劃 onboarding 要問：<em class="q">上次經期</em> <em class="q">週期長度</em> <em class="q">經期天數</em>。</p>
+    <p style="margin-top:0.75rem;">但目前腳本完全寫死，跟使用者填的數值毫無關聯：</p>
+    <div class="grid two">
+      <div class="card danger">
+        <h4>你週期 26 天</h4>
+        <p>系統還是 Day 14 推「排卵期」</p>
+      </div>
+      <div class="card danger">
+        <h4>你經期 5 天</h4>
+        <p>系統還是 Day 7 收「經期尾聲」（你早結束了）</p>
+      </div>
+    </div>
+    <blockquote class="warn" style="margin-top:1.5rem;"><strong>收三個問題只為演戲</strong> = 比不問更糟（騙了 user 期待）</blockquote>
+    <div class="ask">
+      <ul>
+        <li>要讓資料真的影響推送 schedule，還是乾脆不問？</li>
+        <li>至少把「Day 14 排卵期」改成「<strong>根據你填的週期</strong>，今天大約是排卵期」</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 7. 議題 G：沒 fallback -->
+  <section class="slide">
+    <div class="topic-header"><span class="topic-num">G</span><h2>28 天腳本是一條軌道，沒有 fallback</h2></div>
+    <p>腳本假設 user：每天乖乖讀、該回應的時候會回應、月經剛好 Day 28→Day 29 來。</p>
+    <p style="margin-top:1rem;"><strong>真實場景全部沒處理：</strong></p>
+    <ul style="margin-top:0.75rem;">
+      <li>User Day 5 開始忽略訊息 → Day 8 系統繼續推「黃金週」<strong>自言自語</strong></li>
+      <li>User Day 22 月經早來 → 系統 Day 23 還在「乳房脹」 → <strong>完全脫節</strong></li>
+      <li>User 沒回 postback「月經來了嗎?」→ <strong>系統卡住或亂跑</strong></li>
+      <li>User Day 29 月經沒來 → 重啟？延後？沉默？</li>
+    </ul>
+    <div class="ask">
+      <ul>
+        <li>每幾天插一個 health-check（「妳還在嗎？」）允許重置</li>
+        <li>月經早來 / 晚來都要設計 reset 路徑</li>
+        <li>沒回應的 postback 怎麼處理（timeout fallback 文案是什麼？）</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 8. 議題 H：Day 29+ 不存在 -->
+  <section class="slide">
+    <div class="topic-header"><span class="topic-num">H</span><h2>Day 29+ 完全沒設計 → 一次性產品</h2></div>
+    <p>Day 28 結尾：「新循環即將啟動」… 然後<strong>？</strong></p>
+    <table>
+      <thead><tr><th>選項</th><th>結果</th></tr></thead>
+      <tbody>
+        <tr><td class="fg">自動 restart Day 1</td><td>一模一樣內容 = 第二月就死</td></tr>
+        <tr><td class="fg">系統停止</td><td>OA 變死，user 放生</td></tr>
+        <tr><td class="fg">沒人接手</td><td>user 自己決定要不要再開</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:1.25rem;">Apple Health / 一般 period app 大家會留<strong>幾年</strong>，因為每月有意義。<br/>這個課程目前設計只活一個月。</p>
+    <div class="ask">
+      <ul>
+        <li>規劃 cycle 2 / 3 / 4 的差異化策略</li>
+        <li>訂閱化（每月升級一點 / 解鎖個人化 report）還是一次性？</li>
+        <li>沒有 cycle 2 設計 = <strong>賺一次走人</strong>，要事先講清楚</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 9. 議題 I：沒 engagement 訊號 -->
+  <section class="slide">
+    <div class="topic-header"><span class="topic-num">I</span><h2>沒有任何 engagement 訊號被收集</h2></div>
+    <ul>
+      <li>哪個 push 用戶有讀？<strong>不知道</strong>（LINE 不給 read receipt）</li>
+      <li>哪個 task 用戶有做？<strong>沒有 postback 設計就沒資料</strong></li>
+      <li>哪幾天 user 完全沒打開？<strong>沒測量</strong></li>
+      <li>哪些文案 retention 高 / 低？<strong>沒辦法 A/B</strong></li>
+    </ul>
+    <div class="verdict">
+      上線後永遠沒有 data-driven 改進依據。<br/>
+      第二版只能憑直覺再猜一次。
+    </div>
+    <div class="ask">
+      <ul>
+        <li>每個 task ☐ 變成 postback 紀錄完成</li>
+        <li>LIFF 開啟頻率紀錄</li>
+        <li>「24 小時內有沒有 LINE 回覆」當「讀過 proxy」</li>
+        <li>Engagement dashboard（即使簡單表格也好）</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 10. 議題 J + K：TCM 與隱私 -->
+  <section class="slide">
+    <div class="topic-header"><span class="topic-num">J·K</span><h2>立場混亂 + 隱私 / 法務空白</h2></div>
+    <div class="grid two">
+      <div class="card warn">
+        <h4>J. TCM vs evidence-based 混搭</h4>
+        <ul style="margin-top:0.5rem;">
+          <li>紅糖薑茶 / 桂圓紅棗茶 / 補血 / 溫補 → 中醫</li>
+          <li>HIIT / Omega-3 / 維生素 D B 群 → 西醫</li>
+          <li>「黃金週」「能量場強大」 → wellness culture</li>
+        </ul>
+        <p style="margin-top:0.5rem; color:var(--fg-muted);">沒被宣稱也沒被解釋 → 用戶質疑時客服沒得回</p>
+      </div>
+      <div class="card danger">
+        <h4>K. 隱私同意完全沒談</h4>
+        <p>User 留下：月經週期、經血量、情緒、用藥、性行為、受孕意圖 — <strong>高敏感 PII</strong>。</p>
+        <ul style="margin-top:0.5rem;">
+          <li>consent flow？沒有</li>
+          <li>資料存哪 / 留多久 / 怎麼刪？沒設計</li>
+          <li>ML / 報表 / 第三方分享？沒講</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ask">
+      <ul>
+        <li>產品立場明文化（「整合東方智慧與現代營養學」）</li>
+        <li>onboarding 第一頁是隱私聲明 + 同意框</li>
+        <li>data retention policy + user 刪除自己資料的入口</li>
+        <li><strong>法務介入 review</strong>（個資法 / GDPR / CCPA）</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 11. 議題 L：Cofit 生態斷掉 -->
+  <section class="slide">
+    <div class="topic-header"><span class="topic-num">L</span><h2>跟 cofit 既有產品 / 內容的連動是 0</h2></div>
+    <p>cofit 已有：保健品、傷口照護、足部、親密、補給品庫、鄭醫師營養課、cofit pro 會員⋯</p>
+    <p style="margin-top:0.75rem;">Zoly 這份<strong>沒一個 cross-link</strong>：</p>
+    <ul style="margin-top:0.75rem;">
+      <li>Day 8「補抗氧化」→ 沒有 cofit 抗氧化保健品連結</li>
+      <li>Day 15「補 Omega-3」→ 沒有 cofit 魚油連結</li>
+      <li>Day 24「補 B 群」→ 沒有 cofit B 群連結</li>
+      <li>課程結束後 → 沒有「想學更多 → 鄭醫師營養課」漏斗</li>
+    </ul>
+    <blockquote class="warn"><strong>80% 商業價值在這些連動，全部空白。</strong></blockquote>
+    <div class="ask">
+      <ul>
+        <li>每個 task / 衛教指到的 cofit 商品 / 服務 / 內容（鄭醫師資料庫就是現成材料）</li>
+        <li>課程結束的下一站是哪</li>
+        <li>course = 保健品的「使用情境推銷器」 — 這個定位 OK 嗎？</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 12. 議題 M：指令 vs 解釋 -->
+  <section class="slide">
+    <div class="topic-header"><span class="topic-num">M</span><h2>「告訴使用者該做什麼」vs「教使用者理解原理」</h2></div>
+    <p>最深的批判：腳本<strong>從來沒教用戶內化原理</strong>，只是發指令。</p>
+    <ul style="margin-top:0.75rem;">
+      <li>「Day 14 妳是太陽，戰袍穿起來」→ 為什麼？沒講機制</li>
+      <li>「Day 18 黑巧克力」→ 因為什麼成分？沒講</li>
+      <li>「Day 22 寫感謝清單」→ 為什麼黃體期適合感恩？沒講</li>
+    </ul>
+    <div class="verdict">
+      User 28 天結束後<strong>沒有 model 來理解自己</strong>。<br/>
+      下個月狀況改變（壓力大、生病、出差）她不知道怎麼調整。
+    </div>
+    <div class="ask">
+      <ul>
+        <li>每天的 5 個衛教分類（能量 / 身體 / 情緒 / 營養 / 運動）改成 explanation 不只 advice？</li>
+        <li>讓 user 28 天後能<strong>自己解釋</strong>為什麼今天該做什麼</li>
+        <li>這也直接呼應 A 點的「身分轉變」框架</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 13. 6/1 必補 -->
+  <section class="slide">
+    <div class="label warn">priority · phase 1</div>
+    <h2>6/1 之前必須補</h2>
+    <p style="color:var(--fg-muted);">影響上線可不可行的 5 件事</p>
+    <div class="grid two" style="margin-top:1.5rem;">
+      <div class="card danger">
+        <h4>1. Persona 鎖定 + 排除規則</h4>
+        <p>D + E。不是全部女性，是哪一群。</p>
+      </div>
+      <div class="card danger">
+        <h4>2. Onboarding 真的影響 push</h4>
+        <p>F。或乾脆不問。</p>
+      </div>
+      <div class="card danger">
+        <h4>3. 隱私同意 flow</h4>
+        <p>K。<strong>法務責任</strong>，不能省。</p>
+      </div>
+      <div class="card danger">
+        <h4>4. 基本 engagement 紀錄</h4>
+        <p>I。不然第二版沒依據。</p>
+      </div>
+      <div class="card danger" style="grid-column: span 2;">
+        <h4>5. Cycle 2 / Day 29+ 設計</h4>
+        <p>H。一句話也好，不能空白。<br/>「賺一次走人」也是答案，但必須是<strong>明確的選擇</strong>。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. 6/1 後迭代 -->
+  <section class="slide">
+    <div class="label">priority · phase 2</div>
+    <h2>6/1 之後迭代（但不能不做）</h2>
+    <ol style="margin-top:1.5rem; font-size:1.15rem;">
+      <li>排除人群的次世代版（PCOS、避孕藥使用者）</li>
+      <li>Cofit 既有產品 / 內容串接（L）</li>
+      <li>Failure mode / reset 機制（G）</li>
+      <li>衛教從指令改成解釋（M）</li>
+      <li>TCM / 西醫立場明文化（J）</li>
+    </ol>
+    <p style="margin-top:1.75rem; color:var(--fg-muted);">這些不做，第三個月使用者會自然流失。</p>
+  </section>
+
+  <!-- 15. 結尾 -->
+  <section class="slide">
+    <div class="label">discussion</div>
+    <h2>該選的事 — 由你們決定</h2>
+    <ol style="margin-top:1rem; font-size:1.2rem;">
+      <li><strong>產品框架要選哪個？</strong>（A / B / C / D 之中）</li>
+      <li><strong>這課程要解決使用者什麼具體問題？</strong></li>
+      <li><strong>Day 28 之後該長什麼樣？</strong></li>
+      <li><strong>Persona 是哪一群？要明示還是默認過濾？</strong></li>
+    </ol>
+    <blockquote style="margin-top:2rem; font-size:1.2rem;">
+      Zoly 的素材很好，但<strong>框架還沒選</strong>。<br/>
+      先選框架，再回頭重切內容，比直接灌進系統有意義。
+    </blockquote>
+    <p style="margin-top:1.5rem; color:var(--fg-muted); font-size:0.95rem;">— 文件版：<code>docs/planning/period-28d-course-review.md</code></p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button id="prev" aria-label="上一頁">←</button>
+  <span class="counter" id="counter">1 / 16</span>
+  <button id="next" aria-label="下一頁">→</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  let i = 0;
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, idx) => {
+      s.classList.toggle('active', idx === i);
+      s.classList.toggle('prev', idx < i);
+    });
+    counter.textContent = `${i + 1} / ${slides.length}`;
+    progress.style.width = `${((i + 1) / slides.length) * 100}%`;
+  }
+  document.getElementById('prev').addEventListener('click', () => show(i - 1));
+  document.getElementById('next').addEventListener('click', () => show(i + 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(slides.length - 1);
+  });
+  show(0);
+</script>
+</body>
+</html>
