@@ -21,6 +21,7 @@
 
 * [如何將專案部署到 Vercel (CI/CD)](./how-to/deploy.md)
 * [常見問題排除 (Troubleshooting)](./how-to/troubleshooting.md)
+* [操作 LLM Fallback 與對話審查](./how-to/operating-llm-fallback.md)
 * *(待補)* 如何串接新的 LIFF ID
 * *(待補)* 如何新增一個 API 路由
 
@@ -30,6 +31,7 @@
 * [資料庫 Schema 參考 (DB Schema)](./reference/database-schema.md)
 * [所有 API 路由清單 (API Endpoints)](./reference/api-endpoints.md)
 * [雙重認證與 LIFF 流程規格 (Auth Flow)](./reference/auth-flow.md)
+* [LLM 整合架構 (LLM Architecture)](./reference/llm-architecture.md)
 * [各模組版本與迭代歷程 (Module Versions)](./reference/module-versions.md)
 
 ### 🧠 4. 我想要理解背後原理 (Explanation)
