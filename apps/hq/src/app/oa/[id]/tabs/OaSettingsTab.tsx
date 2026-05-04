@@ -99,9 +99,16 @@ export default function OaSettingsTab({ oa, onChange }: Props) {
       const res = await apiFetch(`/api/line/oa/${oa.id}/test-ai-platform`, { method: 'POST' });
       const data = await res.json();
       if (data.ok) {
-        setStatus({ type: 'success', message: `Platform 可達 (HTTP ${data.status}, ${data.latency_ms}ms)` });
+        const reply = (data.reply_preview as string | undefined)?.trim() || '(空回應)';
+        setStatus({
+          type: 'success',
+          message: `agent ${data.agent_id} 回應正常 (${data.latency_ms}ms) — 「${reply}」`,
+        });
       } else {
-        setStatus({ type: 'error', message: `無法連線: ${data.error || 'HTTP ' + data.status}` });
+        setStatus({
+          type: 'error',
+          message: `agent ${data.agent_id ?? '?'} 失敗 (${data.latency_ms ?? '?'}ms): ${data.error ?? '未知錯誤'}`,
+        });
       }
     } catch (err) {
       setStatus({ type: 'error', message: (err as Error).message });

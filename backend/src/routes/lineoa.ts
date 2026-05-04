@@ -6,6 +6,7 @@ import {
   getMessageLogForOa, getDistinctMessageLogUsersForOa,
 } from '../lib/db.js';
 import { fetchLineBotInfo } from '../lib/line.js';
+import { adkRun } from '../lib/adk.js';
 
 const lineoa = new Hono();
 lineoa.use('*', authMiddleware);
@@ -67,27 +68,41 @@ lineoa.post('/:id/refresh-bot-info', async (c) => {
   return c.json({ oa: updated, bot_user_id: botInfo.userId, display_name: botInfo.displayName });
 });
 
-// POST /api/line/oa/:id/test-ai-platform — probe the configured AI Skill
-// Platform URL so admin can verify it's reachable before going live.
+// POST /api/line/oa/:id/test-ai-platform — end-to-end probe of the OA's
+// AI Skill Platform config. Calls the same adkRun path the webhook
+// fallback uses (URL + API key + default agent) with a sentinel message,
+// so a "pass" means real users will get real answers. Doesn't write to
+// unmatched_intents — admin tests aren't user feedback.
 lineoa.post('/:id/test-ai-platform', async (c) => {
   const id = c.req.param('id');
   const oa = await getLineOAById(id);
   if (!oa) return c.json({ error: '找不到此 LINE OA' }, 404);
-  if (!oa.ai_skill_platform_url) return c.json({ error: 'AI Skill Platform URL 未設定' }, 400);
-  const base = oa.ai_skill_platform_url.replace(/\/$/, '');
+  if (!oa.ai_skill_platform_url || !oa.ai_skill_platform_api_key) {
+    return c.json({ error: 'AI Skill Platform URL / API Key 未設定' }, 400);
+  }
+  const agentId = oa.default_agent_id || 'ai-expert';
+  const started = Date.now();
   try {
-    const started = Date.now();
-    const res = await fetch(base, { method: 'GET', signal: AbortSignal.timeout(5000) });
-    const body = await res.text().catch(() => '');
+    const result = await adkRun(
+      agentId,
+      'admin-test',
+      { message: '測試連線：請回覆任何文字確認 agent 可用' },
+      { url: oa.ai_skill_platform_url, apiKey: oa.ai_skill_platform_api_key },
+    );
     return c.json({
-      ok: res.ok,
-      url: base,
-      status: res.status,
+      ok: true,
+      agent_id: agentId,
+      skill_key: result.skill_key,
+      reply_preview: (result.result || '').slice(0, 200),
       latency_ms: Date.now() - started,
-      response_preview: body.slice(0, 200),
     });
   } catch (err) {
-    return c.json({ ok: false, url: base, error: (err as Error).message }, 502);
+    return c.json({
+      ok: false,
+      agent_id: agentId,
+      latency_ms: Date.now() - started,
+      error: (err as Error).message,
+    }, 502);
   }
 });
 
