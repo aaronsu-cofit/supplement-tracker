@@ -1003,7 +1003,9 @@ export async function deleteUserAttribute(userId: string, key: string): Promise<
 export async function getContentItemsForProduct(productId: string) {
   return db().contentItem.findMany({
     where: { product_id: productId },
-    orderBy: [{ is_active: 'desc' }, { key: 'asc' }],
+    // Active first so disabled items sink, then newest-first within each
+    // group (ops mostly cares about what they just created).
+    orderBy: [{ is_active: 'desc' }, { created_at: 'desc' }],
   });
 }
 

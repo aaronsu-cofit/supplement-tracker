@@ -5,6 +5,7 @@ import type { ContentItem, ContentItemType } from '../../../types';
 import HelpModal, { HelpButton } from './HelpModal';
 import FlexExamplePicker from './FlexExamplePicker';
 import { FLEX_EXAMPLES } from './flexExamples';
+import FlexPreview from './FlexPreview';
 
 interface Props {
   productId: string;
@@ -58,6 +59,7 @@ export default function ProductContentSection({ productId }: Props) {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [examplePickerFor, setExamplePickerFor] = useState<null | 'add' | 'edit'>(null);
+  const [jsonOpenIds, setJsonOpenIds] = useState<Set<string>>(new Set());
 
   const load = useCallback(() => {
     setLoading(true);
@@ -329,10 +331,35 @@ export default function ProductContentSection({ productId }: Props) {
                     </div>
                   </div>
                   {item.title && <p className="text-sm font-semibold text-slate-700">{item.title}</p>}
-                  {item.body && (
-                    <pre className={`text-xs whitespace-pre-wrap max-h-48 overflow-auto ${
-                      item.type === 'flex' ? 'font-mono text-slate-500 bg-slate-50 p-2 rounded border border-slate-200' : 'text-slate-600'
-                    }`}>
+                  {item.body && item.type === 'text' && (
+                    <div className="flex justify-start">
+                      <div className="bg-[#06c755] text-white rounded-2xl rounded-tl-sm px-3 py-2 text-sm whitespace-pre-wrap max-w-[75%] shadow-sm">
+                        {item.body}
+                      </div>
+                    </div>
+                  )}
+                  {item.body && item.type === 'flex' && (
+                    <div className="flex flex-col gap-2">
+                      <FlexPreview body={item.body} altText={item.title} />
+                      <div>
+                        <button onClick={() => setJsonOpenIds(prev => {
+                          const next = new Set(prev);
+                          if (next.has(item.id)) next.delete(item.id); else next.add(item.id);
+                          return next;
+                        })}
+                          className="text-xs text-slate-500 hover:text-slate-800 underline">
+                          {jsonOpenIds.has(item.id) ? '隱藏 JSON' : '查看 JSON'}
+                        </button>
+                      </div>
+                      {jsonOpenIds.has(item.id) && (
+                        <pre className="text-xs whitespace-pre-wrap max-h-48 overflow-auto font-mono text-slate-500 bg-slate-50 p-2 rounded border border-slate-200">
+                          {item.body}
+                        </pre>
+                      )}
+                    </div>
+                  )}
+                  {item.body && item.type !== 'text' && item.type !== 'flex' && (
+                    <pre className="text-xs whitespace-pre-wrap max-h-48 overflow-auto text-slate-600">
                       {item.body}
                     </pre>
                   )}
