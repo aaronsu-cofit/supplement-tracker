@@ -86,6 +86,9 @@ export interface MessageLogRow {
   content_json: unknown;
   source: string | null;
   source_ref: string | null;
+  /** Resolved at read time — only set for source='intent' rows where the
+   *  rule still exists. Falls back to null otherwise. */
+  intent_rule_name?: string | null;
   created_at: string;
 }
 

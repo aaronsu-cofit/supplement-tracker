@@ -120,7 +120,32 @@ lineoa.get('/:id/messages', async (c) => {
     before = d;
   }
   const messages = await getMessageLogForOa(id, { userId, limit, before });
-  return c.json({ messages });
+
+  // Resolve intent rule names so the conversations UI can show "問候規則"
+  // instead of an opaque cuid. Done at read-time (not stored in
+  // message_log) so renaming a rule retroactively re-labels history,
+  // and deleting a rule degrades to null instead of breaking.
+  const intentIds = Array.from(new Set(
+    messages
+      .filter(m => m.source === 'intent' && m.source_ref)
+      .map(m => m.source_ref as string),
+  ));
+  let intentNames: Map<string, string> = new Map();
+  if (intentIds.length > 0) {
+    const { db } = await import('../lib/db.js');
+    const rules = await db().intentRule.findMany({
+      where: { id: { in: intentIds } },
+      select: { id: true, name: true },
+    });
+    intentNames = new Map(rules.map(r => [r.id, r.name]));
+  }
+  const enriched = messages.map(m => ({
+    ...m,
+    intent_rule_name: m.source === 'intent' && m.source_ref
+      ? intentNames.get(m.source_ref) ?? null
+      : null,
+  }));
+  return c.json({ messages: enriched });
 });
 
 // GET /api/line/oa/:id/messages/users — distinct user list for the

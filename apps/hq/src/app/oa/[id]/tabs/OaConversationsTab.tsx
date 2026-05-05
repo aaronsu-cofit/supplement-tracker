@@ -129,14 +129,21 @@ function MessageBubble({ m }: { m: MessageLogRow }) {
                 </>
               );
             }
+            // For intent: prefer rule name (resolved server-side) over the opaque rule id.
+            const refDisplay = m.source === 'intent'
+              ? (m.intent_rule_name ?? `(已刪除規則)`)
+              : m.source_ref;
+            const refTitle = m.source === 'intent' && m.intent_rule_name
+              ? `${m.intent_rule_name} · ${m.source_ref}`
+              : m.source_ref ?? '';
             return (
               <>
                 <span className={`${meta.className} px-1.5 py-[1px] rounded`}>
                   {meta.icon ? `${meta.icon} ` : ''}{meta.label}
                 </span>
-                {m.source_ref && (
-                  <span className="font-mono truncate max-w-[120px]" title={m.source_ref}>
-                    · {m.source_ref.slice(0, 20)}
+                {refDisplay && (
+                  <span className={`truncate max-w-[160px] ${m.source === 'intent' ? '' : 'font-mono'}`} title={refTitle}>
+                    · {refDisplay.length > 24 ? `${refDisplay.slice(0, 24)}…` : refDisplay}
                   </span>
                 )}
               </>
@@ -245,7 +252,7 @@ export default function OaConversationsTab({ oaId, productId }: Props) {
   return (
     <div className="flex h-full overflow-hidden">
       {/* User list */}
-      <div className="w-72 border-r border-slate-200 bg-white shrink-0 flex flex-col">
+      <div className="w-72 border-r border-slate-200 bg-white shrink-0 flex flex-col min-h-0">
         <div className="p-3 border-b border-slate-200 flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-sm m-0">使用者（{users.length}）</h3>
@@ -300,7 +307,7 @@ export default function OaConversationsTab({ oaId, productId }: Props) {
       </div>
 
       {/* Conversation */}
-      <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden min-w-0">
+      <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden min-w-0 min-h-0">
         {error && <div className="hq-alert hq-alert-error m-3">{error}</div>}
         {!selectedUser ? (
           <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">

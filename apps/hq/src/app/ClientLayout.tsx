@@ -52,7 +52,7 @@ function AppShell({ children }) {
           </nav>
         )}
       </aside>
-      <main className={`hq-main${isFullPath(pathname) ? ' overflow-hidden flex flex-col' : ''}`}>
+      <main className={`hq-main${isFullPath(pathname) ? ' overflow-hidden flex flex-col h-screen' : ''}`}>
         {isFullPath(pathname) ? children : <div className="hq-content">{children}</div>}
       </main>
     </div>
