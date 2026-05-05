@@ -46,6 +46,25 @@ function validateFlexJson(raw: string): FlexValidation {
 
 const FLEX_EXAMPLE_COUNT = FLEX_EXAMPLES.length;
 
+/** Compact "建立於 X 分鐘前" / "建立於 5/3 18:30" — relative within
+ *  a week, absolute beyond. Asia/Taipei to match the team's tz. */
+function formatCreatedAt(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '?';
+  const diffMs = Date.now() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60_000);
+  if (diffMin < 1) return '剛剛';
+  if (diffMin < 60) return `${diffMin} 分鐘前`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr} 小時前`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return `${diffDay} 天前`;
+  return d.toLocaleString('zh-TW', {
+    timeZone: 'Asia/Taipei',
+    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+}
+
 export default function ProductContentSection({ productId }: Props) {
   const [items, setItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +79,7 @@ export default function ProductContentSection({ productId }: Props) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [examplePickerFor, setExamplePickerFor] = useState<null | 'add' | 'edit'>(null);
   const [jsonOpenIds, setJsonOpenIds] = useState<Set<string>>(new Set());
+  const [previewOpenIds, setPreviewOpenIds] = useState<Set<string>>(new Set());
 
   const load = useCallback(() => {
     setLoading(true);
@@ -312,12 +332,15 @@ export default function ProductContentSection({ productId }: Props) {
               ) : (
                 <>
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <code className="bg-slate-100 px-1.5 rounded font-mono text-sm">{item.key}</code>
                       <span className={`hq-badge ${item.type === 'flex' ? 'hq-badge-purple' : 'hq-badge-gray'}`}>
                         {item.type}
                       </span>
                       {!item.is_active && <span className="hq-badge hq-badge-gray">停用</span>}
+                      <span className="text-[11px] text-slate-400 font-mono" title={new Date(item.created_at).toLocaleString('zh-TW')}>
+                        建立於 {formatCreatedAt(item.created_at)}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <button onClick={() => startEdit(item)}
@@ -340,17 +363,27 @@ export default function ProductContentSection({ productId }: Props) {
                   )}
                   {item.body && item.type === 'flex' && (
                     <div className="flex flex-col gap-2">
-                      <FlexPreview body={item.body} altText={item.title} />
-                      <div>
+                      <div className="flex items-center gap-3 text-xs">
+                        <button onClick={() => setPreviewOpenIds(prev => {
+                          const next = new Set(prev);
+                          if (next.has(item.id)) next.delete(item.id); else next.add(item.id);
+                          return next;
+                        })}
+                          className="text-slate-600 hover:text-slate-900 underline">
+                          {previewOpenIds.has(item.id) ? '▾ 收合預覽' : '▸ 展開預覽'}
+                        </button>
                         <button onClick={() => setJsonOpenIds(prev => {
                           const next = new Set(prev);
                           if (next.has(item.id)) next.delete(item.id); else next.add(item.id);
                           return next;
                         })}
-                          className="text-xs text-slate-500 hover:text-slate-800 underline">
+                          className="text-slate-500 hover:text-slate-800 underline">
                           {jsonOpenIds.has(item.id) ? '隱藏 JSON' : '查看 JSON'}
                         </button>
                       </div>
+                      {previewOpenIds.has(item.id) && (
+                        <FlexPreview body={item.body} altText={item.title} />
+                      )}
                       {jsonOpenIds.has(item.id) && (
                         <pre className="text-xs whitespace-pre-wrap max-h-48 overflow-auto font-mono text-slate-500 bg-slate-50 p-2 rounded border border-slate-200">
                           {item.body}
