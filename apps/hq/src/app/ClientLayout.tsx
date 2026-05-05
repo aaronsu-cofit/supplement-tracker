@@ -20,6 +20,42 @@ function isFullPath(pathname: string): boolean {
   return false;
 }
 
+/** Build-time stamps come from next.config.mjs `env`. They're inlined
+ *  at build, so the value is fixed for that deployed bundle. Use Asia/
+ *  Taipei because that's the team's working timezone. */
+function formatBuildTime(iso: string | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleString('zh-TW', {
+    timeZone: 'Asia/Taipei',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+}
+
+function SidebarFooter({ collapsed }: { collapsed: boolean }) {
+  const buildTime = process.env.NEXT_PUBLIC_BUILD_TIME;
+  const sha = process.env.NEXT_PUBLIC_GIT_SHA || '';
+  const shortSha = sha ? sha.slice(0, 7) : '';
+  if (collapsed) {
+    return (
+      <div className="hq-sidebar-footer" title={`部署時間：${formatBuildTime(buildTime)}${sha ? ` · ${shortSha}` : ''}`}>
+        <div style={{ textAlign: 'center', fontSize: 10 }}>v</div>
+      </div>
+    );
+  }
+  return (
+    <div className="hq-sidebar-footer">
+      <div className="hq-sidebar-footer-label">部署版本</div>
+      <div className="hq-sidebar-footer-row">
+        <span>{formatBuildTime(buildTime)}</span>
+        {shortSha && <code title={sha}>{shortSha}</code>}
+      </div>
+    </div>
+  );
+}
+
 function AppShell({ children }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -51,6 +87,7 @@ function AppShell({ children }) {
             ))}
           </nav>
         )}
+        <SidebarFooter collapsed={collapsed} />
       </aside>
       <main className={`hq-main${isFullPath(pathname) ? ' overflow-hidden flex flex-col h-screen' : ''}`}>
         {isFullPath(pathname) ? children : <div className="hq-content">{children}</div>}
