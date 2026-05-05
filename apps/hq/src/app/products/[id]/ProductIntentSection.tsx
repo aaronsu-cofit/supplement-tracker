@@ -1,8 +1,93 @@
 'use client';
 import { apiFetch } from '@vitera/lib';
 import { useCallback, useEffect, useState } from 'react';
-import type { IntentRule, IntentActionType, IntentMatchType } from '../../../types';
+import type { IntentRule, IntentActionType, IntentMatchType, ContentItem, MissionTemplate } from '../../../types';
 import HelpModal, { HelpButton } from './HelpModal';
+
+/** Dropdown for picking a content_key from the product's content library.
+ *  Falls back to a manual text input if the user wants a key that doesn't
+ *  exist yet (or for legacy values pointing at deleted items). */
+function ContentKeyPicker({
+  value, onChange, items, placeholder, allowEmpty = true,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  items: ContentItem[];
+  placeholder?: string;
+  allowEmpty?: boolean;
+}) {
+  const [manual, setManual] = useState(() => !!value && !items.some(i => i.key === value));
+  // Stay in manual mode if the current value isn't a known key (e.g., legacy).
+  useEffect(() => {
+    if (value && !items.some(i => i.key === value)) setManual(true);
+  }, [value, items]);
+  return (
+    <div className="flex gap-1 items-stretch">
+      {manual ? (
+        <input className="hq-input flex-1" placeholder={placeholder ?? 'content key'}
+          value={value} onChange={e => onChange(e.target.value)} />
+      ) : (
+        <select className="hq-input flex-1" value={value} onChange={e => onChange(e.target.value)}>
+          {allowEmpty && <option value="">— 選擇內容 —</option>}
+          {items.filter(i => i.is_active).map(i => (
+            <option key={i.id} value={i.key}>
+              {(i.title || i.key)}{i.type !== 'text' ? ` · ${i.type}` : ''}
+            </option>
+          ))}
+          {/* Show a stale-marker option when current value points at a missing/inactive item */}
+          {value && !items.some(i => i.key === value && i.is_active) && (
+            <option value={value}>⚠ {value}（不在啟用清單）</option>
+          )}
+        </select>
+      )}
+      <button type="button" onClick={() => setManual(m => !m)}
+        className="text-xs px-2 rounded border border-slate-300 bg-white hover:bg-slate-50 shrink-0"
+        title={manual ? '改成下拉選擇' : '改成手動輸入'}>
+        {manual ? '☰' : '✏'}
+      </button>
+    </div>
+  );
+}
+
+/** Same shape as ContentKeyPicker but for Mission templates. */
+function MissionKeyPicker({
+  value, onChange, items, placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  items: MissionTemplate[];
+  placeholder?: string;
+}) {
+  const [manual, setManual] = useState(() => !!value && !items.some(i => i.key === value));
+  useEffect(() => {
+    if (value && !items.some(i => i.key === value)) setManual(true);
+  }, [value, items]);
+  return (
+    <div className="flex gap-1 items-stretch">
+      {manual ? (
+        <input className="hq-input flex-1" placeholder={placeholder ?? 'mission key'}
+          value={value} onChange={e => onChange(e.target.value)} />
+      ) : (
+        <select className="hq-input flex-1" value={value} onChange={e => onChange(e.target.value)}>
+          <option value="">— 選擇任務 —</option>
+          {items.filter(i => i.is_active).map(i => (
+            <option key={i.id} value={i.key}>
+              {(i.name || i.key)} · {i.mission_type}
+            </option>
+          ))}
+          {value && !items.some(i => i.key === value && i.is_active) && (
+            <option value={value}>⚠ {value}（不在啟用清單）</option>
+          )}
+        </select>
+      )}
+      <button type="button" onClick={() => setManual(m => !m)}
+        className="text-xs px-2 rounded border border-slate-300 bg-white hover:bg-slate-50 shrink-0"
+        title={manual ? '改成下拉選擇' : '改成手動輸入'}>
+        {manual ? '☰' : '✏'}
+      </button>
+    </div>
+  );
+}
 
 interface Props {
   productId: string;
@@ -120,6 +205,8 @@ function ruleToForm(r: IntentRule): FormShape {
 
 export default function ProductIntentSection({ productId }: Props) {
   const [rules, setRules] = useState<IntentRule[]>([]);
+  const [contents, setContents] = useState<ContentItem[]>([]);
+  const [missions, setMissions] = useState<MissionTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -134,15 +221,28 @@ export default function ProductIntentSection({ productId }: Props) {
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    apiFetch(`/api/products/${productId}/intent`)
-      .then(async r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    Promise.all([
+      apiFetch(`/api/products/${productId}/intent`).then(async r => {
+        if (!r.ok) throw new Error(`intent HTTP ${r.status}`);
         return r.json() as Promise<{ rules: IntentRule[] }>;
+      }),
+      apiFetch(`/api/products/${productId}/content`).then(async r => {
+        if (!r.ok) throw new Error(`content HTTP ${r.status}`);
+        return r.json() as Promise<{ items: ContentItem[] }>;
+      }),
+      apiFetch(`/api/products/${productId}/missions`).then(async r => {
+        if (!r.ok) throw new Error(`missions HTTP ${r.status}`);
+        return r.json() as Promise<{ missions: MissionTemplate[] }>;
+      }),
+    ])
+      .then(([{ rules: r }, { items: c }, { missions: m }]) => {
+        setRules(r ?? []);
+        setContents(c ?? []);
+        setMissions(m ?? []);
       })
-      .then(({ rules: data }) => setRules(data ?? []))
       .catch(err => {
         console.error('[product/intent] error', err);
-        setError('無法載入意圖規則');
+        setError('無法載入意圖規則或內容/任務庫');
       })
       .finally(() => setLoading(false));
   }, [productId]);
@@ -239,8 +339,9 @@ export default function ProductIntentSection({ productId }: Props) {
       <input className="hq-input" placeholder="patterns（逗號分隔，如：預約, 要預約）" value={form.patterns}
         onChange={e => setForm({ ...form, patterns: e.target.value })} />
       {form.action_type === 'reply_content' && (
-        <input className="hq-input" placeholder="回覆的 content key（需在內容庫存在）" value={form.content_key}
-          onChange={e => setForm({ ...form, content_key: e.target.value })} />
+        <ContentKeyPicker value={form.content_key} items={contents}
+          placeholder="回覆的 content key（需在內容庫存在）"
+          onChange={v => setForm({ ...form, content_key: v })} />
       )}
       {form.action_type === 'set_attribute' && (
         <div className="grid grid-cols-3 gap-2">
@@ -248,42 +349,49 @@ export default function ProductIntentSection({ productId }: Props) {
             onChange={e => setForm({ ...form, attr_key: e.target.value })} />
           <input className="hq-input" placeholder="value" value={form.attr_value}
             onChange={e => setForm({ ...form, attr_value: e.target.value })} />
-          <input className="hq-input" placeholder="回覆 content key（選填）" value={form.attr_reply_content_key}
-            onChange={e => setForm({ ...form, attr_reply_content_key: e.target.value })} />
+          <ContentKeyPicker value={form.attr_reply_content_key} items={contents}
+            placeholder="回覆 content key（選填）"
+            onChange={v => setForm({ ...form, attr_reply_content_key: v })} />
         </div>
       )}
       {(form.action_type === 'assign_mission' || form.action_type === 'complete_mission') && (
         <div className="grid grid-cols-2 gap-2">
-          <input className="hq-input" placeholder="mission key（任務庫的 key）" value={form.mission_key}
-            onChange={e => setForm({ ...form, mission_key: e.target.value })} />
-          <input className="hq-input" placeholder="回覆 content key（選填）" value={form.mission_reply_content_key}
-            onChange={e => setForm({ ...form, mission_reply_content_key: e.target.value })} />
+          <MissionKeyPicker value={form.mission_key} items={missions}
+            placeholder="mission key（任務庫的 key）"
+            onChange={v => setForm({ ...form, mission_key: v })} />
+          <ContentKeyPicker value={form.mission_reply_content_key} items={contents}
+            placeholder="回覆 content key（選填）"
+            onChange={v => setForm({ ...form, mission_reply_content_key: v })} />
         </div>
       )}
       {form.action_type === 'increment_mission_progress' && (
         <div className="grid grid-cols-3 gap-2">
-          <input className="hq-input" placeholder="mission key" value={form.mission_key}
-            onChange={e => setForm({ ...form, mission_key: e.target.value })} />
+          <MissionKeyPicker value={form.mission_key} items={missions}
+            placeholder="mission key"
+            onChange={v => setForm({ ...form, mission_key: v })} />
           <input type="number" min={1} className="hq-input" placeholder="step（預設 1）" value={form.mission_step}
             onChange={e => setForm({ ...form, mission_step: Math.max(1, Number(e.target.value) || 1) })} />
-          <input className="hq-input" placeholder="回覆 content key（選填）" value={form.mission_reply_content_key}
-            onChange={e => setForm({ ...form, mission_reply_content_key: e.target.value })} />
+          <ContentKeyPicker value={form.mission_reply_content_key} items={contents}
+            placeholder="回覆 content key（選填）"
+            onChange={v => setForm({ ...form, mission_reply_content_key: v })} />
         </div>
       )}
       {form.action_type === 'increment_streak' && (
         <div className="grid grid-cols-2 gap-2">
           <input className="hq-input" placeholder="streak key（如 daily_checkin）" value={form.streak_key}
             onChange={e => setForm({ ...form, streak_key: e.target.value })} />
-          <input className="hq-input" placeholder="回覆 content key（選填）" value={form.streak_reply_content_key}
-            onChange={e => setForm({ ...form, streak_reply_content_key: e.target.value })} />
+          <ContentKeyPicker value={form.streak_reply_content_key} items={contents}
+            placeholder="回覆 content key（選填）"
+            onChange={v => setForm({ ...form, streak_reply_content_key: v })} />
         </div>
       )}
       {form.action_type === 'change_menu' && (
         <div className="grid grid-cols-2 gap-2">
           <input className="hq-input" placeholder="Rich Menu 名稱（需已部署）" value={form.menu_name}
             onChange={e => setForm({ ...form, menu_name: e.target.value })} />
-          <input className="hq-input" placeholder="回覆 content key（選填）" value={form.menu_reply_content_key}
-            onChange={e => setForm({ ...form, menu_reply_content_key: e.target.value })} />
+          <ContentKeyPicker value={form.menu_reply_content_key} items={contents}
+            placeholder="回覆 content key（選填）"
+            onChange={v => setForm({ ...form, menu_reply_content_key: v })} />
         </div>
       )}
       {form.action_type === 'send_mission_checklist' && (
