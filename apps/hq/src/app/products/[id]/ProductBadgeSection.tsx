@@ -1,9 +1,10 @@
 'use client';
 import { apiFetch } from '@vitera/lib';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { BadgeTemplate, BadgeCriteria } from '../../../types';
+import type { BadgeTemplate, BadgeCriteria, ContentItem, MissionTemplate } from '../../../types';
 import HelpModal, { HelpButton } from './HelpModal';
 import { BadgeIcon } from './badgeIcon';
+import { ContentKeyPicker, MissionKeyPicker } from '../../../components/KeyPickers';
 
 /**
  * Small upload button that reads a chosen image and produces a data:
@@ -113,6 +114,8 @@ function badgeToForm(b: BadgeTemplate): FormShape {
 
 export default function ProductBadgeSection({ productId }: Props) {
   const [badges, setBadges] = useState<BadgeTemplate[]>([]);
+  const [contents, setContents] = useState<ContentItem[]>([]);
+  const [missions, setMissions] = useState<MissionTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -127,15 +130,28 @@ export default function ProductBadgeSection({ productId }: Props) {
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    apiFetch(`/api/products/${productId}/badges`)
-      .then(async r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    Promise.all([
+      apiFetch(`/api/products/${productId}/badges`).then(async r => {
+        if (!r.ok) throw new Error(`badges HTTP ${r.status}`);
         return r.json() as Promise<{ badges: BadgeTemplate[] }>;
+      }),
+      apiFetch(`/api/products/${productId}/content`).then(async r => {
+        if (!r.ok) throw new Error(`content HTTP ${r.status}`);
+        return r.json() as Promise<{ items: ContentItem[] }>;
+      }),
+      apiFetch(`/api/products/${productId}/missions`).then(async r => {
+        if (!r.ok) throw new Error(`missions HTTP ${r.status}`);
+        return r.json() as Promise<{ missions: MissionTemplate[] }>;
+      }),
+    ])
+      .then(([{ badges: b }, { items: c }, { missions: m }]) => {
+        setBadges(b ?? []);
+        setContents(c ?? []);
+        setMissions(m ?? []);
       })
-      .then(({ badges: data }) => setBadges(data ?? []))
       .catch(err => {
         console.error('[product/badges] error', err);
-        setError('無法載入徽章');
+        setError('無法載入徽章或內容/任務庫');
       })
       .finally(() => setLoading(false));
   }, [productId]);
@@ -240,15 +256,17 @@ export default function ProductBadgeSection({ productId }: Props) {
           </div>
         )}
         {form.criteria_type === 'mission_completed' && (
-          <input className="hq-input text-sm" placeholder="mission_key"
-            value={form.mission_key} onChange={e => setForm({ ...form, mission_key: e.target.value })} />
+          <MissionKeyPicker value={form.mission_key} items={missions}
+            placeholder="mission_key"
+            onChange={v => setForm({ ...form, mission_key: v })} />
         )}
       </div>
       <div className="flex items-center gap-2 flex-wrap text-sm">
         <label className="text-slate-600 shrink-0">取得時推播內容：</label>
-        <input className="hq-input text-sm flex-1 min-w-[180px]" placeholder="content_key（選填，空白=不推播）"
-          value={form.notify_content_key}
-          onChange={e => setForm({ ...form, notify_content_key: e.target.value })} />
+        <ContentKeyPicker className="flex-1 min-w-[200px]"
+          value={form.notify_content_key} items={contents}
+          placeholder="content_key（選填，空白=不推播）"
+          onChange={v => setForm({ ...form, notify_content_key: v })} />
       </div>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={form.is_active}

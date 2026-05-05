@@ -6,8 +6,10 @@ import type {
   JourneyPhase,
   JourneyTransition,
   JourneyTrigger,
+  MissionTemplate,
 } from '../../../types';
 import HelpModal, { HelpButton } from './HelpModal';
+import { MissionKeyPicker } from '../../../components/KeyPickers';
 
 interface Props {
   productId: string;
@@ -72,6 +74,7 @@ function triggerSummary(tr: JourneyTrigger): string {
 
 export default function ProductJourneySection({ productId }: Props) {
   const [journeys, setJourneys] = useState<JourneyTemplate[]>([]);
+  const [missions, setMissions] = useState<MissionTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -86,15 +89,23 @@ export default function ProductJourneySection({ productId }: Props) {
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    apiFetch(`/api/products/${productId}/journeys`)
-      .then(async r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    Promise.all([
+      apiFetch(`/api/products/${productId}/journeys`).then(async r => {
+        if (!r.ok) throw new Error(`journeys HTTP ${r.status}`);
         return r.json() as Promise<{ journeys: JourneyTemplate[] }>;
+      }),
+      apiFetch(`/api/products/${productId}/missions`).then(async r => {
+        if (!r.ok) throw new Error(`missions HTTP ${r.status}`);
+        return r.json() as Promise<{ missions: MissionTemplate[] }>;
+      }),
+    ])
+      .then(([{ journeys: d }, { missions: m }]) => {
+        setJourneys(d ?? []);
+        setMissions(m ?? []);
       })
-      .then(({ journeys: d }) => setJourneys(d ?? []))
       .catch(err => {
         console.error('[product/journeys] error', err);
-        setError('無法載入 Journey');
+        setError('無法載入 Journey 或任務');
       })
       .finally(() => setLoading(false));
   }, [productId]);
@@ -238,9 +249,10 @@ export default function ProductJourneySection({ productId }: Props) {
                 ))}
               </select>
               {t.trigger.type === 'mission_completed' && (
-                <input className="hq-input text-sm flex-1 min-w-[120px]" placeholder="mission_key"
-                  value={t.trigger.mission_key}
-                  onChange={e => updateTransition(i, { ...t, trigger: { ...t.trigger, mission_key: e.target.value } as JourneyTrigger })} />
+                <MissionKeyPicker className="flex-1 min-w-[160px]"
+                  value={t.trigger.mission_key} items={missions}
+                  placeholder="mission_key"
+                  onChange={v => updateTransition(i, { ...t, trigger: { ...t.trigger, mission_key: v } as JourneyTrigger })} />
               )}
               {t.trigger.type === 'badge_earned' && (
                 <input className="hq-input text-sm flex-1 min-w-[120px]" placeholder="badge_key"
