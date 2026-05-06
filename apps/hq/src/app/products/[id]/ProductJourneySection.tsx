@@ -523,7 +523,7 @@ function PhaseScheduleEditor({
     onChange([...schedule, { day: lastDay + 1, time: '09:00' }]);
   };
   return (
-    <div className="flex flex-col gap-1 mt-0.5 pl-7">
+    <div className="flex flex-col gap-1 mt-0.5 pl-7 overflow-hidden">
       <div className="text-[10px] text-slate-500 leading-tight">
         每日推送排程（day_1 由 intent 回覆推；這裡只設 day_2+）
       </div>
@@ -532,17 +532,24 @@ function PhaseScheduleEditor({
       ) : (
         schedule.map((e, i) => (
           <div key={i} className="flex items-center gap-1.5">
-            <input type="number" min={2} className="hq-input text-xs w-12 text-center" title="day_in_phase"
-              value={e.day} onChange={ev => update(i, { day: Math.max(2, parseInt(ev.target.value, 10) || 2) })} />
-            <input type="time" className="hq-input text-xs w-20" title="HH:MM (user 時區)"
-              value={e.time} onChange={ev => update(i, { time: ev.target.value })} />
+            {/* Wrappers force fixed widths because .hq-input has a
+                global width:100% rule that beats Tailwind w-* on the
+                input itself unless the parent is constrained. */}
+            <div className="w-14 shrink-0">
+              <input type="number" min={2} className="hq-input text-xs text-center" title="day_in_phase"
+                value={e.day} onChange={ev => update(i, { day: Math.max(2, parseInt(ev.target.value, 10) || 2) })} />
+            </div>
+            <div className="w-24 shrink-0">
+              <input type="time" className="hq-input text-xs" title="HH:MM (user 時區)"
+                value={e.time} onChange={ev => update(i, { time: ev.target.value })} />
+            </div>
             <div className="flex-1 min-w-0">
               <ContentKeyPicker value={e.content_key ?? ''} items={contents}
                 placeholder={`預設 ${phase.key || '<phase>'}_day_${e.day}`}
                 onChange={v => update(i, { content_key: v || undefined })} />
             </div>
             <button onClick={() => remove(i)}
-              className="text-[11px] text-slate-400 hover:text-red-600 shrink-0" title="移除">✕</button>
+              className="text-[11px] text-slate-400 hover:text-red-600 shrink-0 px-1" title="移除">✕</button>
           </div>
         ))
       )}
