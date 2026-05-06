@@ -27,10 +27,10 @@ export function ContentKeyPicker({
   return (
     <div className={`flex gap-1 items-stretch ${className ?? ''}`}>
       {manual ? (
-        <input className="hq-input flex-1" placeholder={placeholder ?? 'content key'}
+        <input className="hq-input flex-1 min-w-0" placeholder={placeholder ?? 'content key'}
           value={value} onChange={e => onChange(e.target.value)} />
       ) : (
-        <select className="hq-input flex-1" value={value} onChange={e => onChange(e.target.value)}>
+        <select className="hq-input flex-1 min-w-0" value={value} onChange={e => onChange(e.target.value)}>
           {allowEmpty && <option value="">— 選擇內容 —</option>}
           {items.filter(i => i.is_active).map(i => (
             <option key={i.id} value={i.key}>
@@ -68,10 +68,10 @@ export function MissionKeyPicker({
   return (
     <div className={`flex gap-1 items-stretch ${className ?? ''}`}>
       {manual ? (
-        <input className="hq-input flex-1" placeholder={placeholder ?? 'mission key'}
+        <input className="hq-input flex-1 min-w-0" placeholder={placeholder ?? 'mission key'}
           value={value} onChange={e => onChange(e.target.value)} />
       ) : (
-        <select className="hq-input flex-1" value={value} onChange={e => onChange(e.target.value)}>
+        <select className="hq-input flex-1 min-w-0" value={value} onChange={e => onChange(e.target.value)}>
           <option value="">— 選擇任務 —</option>
           {items.filter(i => i.is_active).map(i => (
             <option key={i.id} value={i.key}>

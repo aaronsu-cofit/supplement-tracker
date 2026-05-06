@@ -198,8 +198,12 @@ export default function ProductJourneySection({ productId }: Props) {
                 value={p.key} onChange={e => updatePhase(i, { key: e.target.value })} />
               <input className="hq-input text-sm flex-1 min-w-[140px]" placeholder="顯示名稱"
                 value={p.name} onChange={e => updatePhase(i, { name: e.target.value })} />
-              <input className="hq-input text-sm w-12 text-center shrink-0" placeholder="🎯"
-                value={p.icon ?? ''} onChange={e => updatePhase(i, { icon: e.target.value || undefined })} />
+              {/* Wrapper with fixed w-12 so the input's 100%-width
+                  ([.hq-input] global rule) doesn't take over the row. */}
+              <div className="w-12 shrink-0">
+                <input className="hq-input text-sm text-center" placeholder="🎯"
+                  value={p.icon ?? ''} onChange={e => updatePhase(i, { icon: e.target.value || undefined })} />
+              </div>
               <button onClick={() => removePhase(i)}
                 className="text-xs text-slate-400 hover:text-red-600 shrink-0" title="移除 phase">✕</button>
             </div>
