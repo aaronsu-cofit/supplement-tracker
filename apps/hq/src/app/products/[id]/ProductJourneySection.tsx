@@ -246,9 +246,9 @@ export default function ProductJourneySection({ productId }: Props) {
           <p className="text-xs text-slate-400">尚無 transition — 無法推進使用者，請至少新增一條</p>
         )}
         {form.transitions.map((t, i) => (
-          <div key={i} className="flex flex-col gap-1.5 border border-slate-100 rounded p-2 bg-slate-50/60">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-slate-500">當</span>
+          <div key={i} className="flex items-center gap-1.5 flex-wrap border border-slate-100 rounded p-2 bg-slate-50/60">
+            {/* Trigger spec — type + the type-specific value(s) */}
+            <div className="w-32 shrink-0">
               <select className="hq-input text-sm"
                 value={t.trigger.type}
                 onChange={e => {
@@ -263,49 +263,58 @@ export default function ProductJourneySection({ productId }: Props) {
                   <option key={k} value={k}>{label}</option>
                 ))}
               </select>
-              {t.trigger.type === 'mission_completed' && (
-                <MissionKeyPicker className="flex-1 min-w-[160px]"
+            </div>
+            {t.trigger.type === 'mission_completed' && (
+              <div className="flex-1 min-w-[140px]">
+                <MissionKeyPicker
                   value={t.trigger.mission_key} items={missions}
                   placeholder="mission_key"
                   onChange={v => updateTransition(i, { ...t, trigger: { ...t.trigger, mission_key: v } as JourneyTrigger })} />
-              )}
-              {t.trigger.type === 'badge_earned' && (
-                <input className="hq-input text-sm flex-1 min-w-[120px]" placeholder="badge_key"
-                  value={t.trigger.badge_key}
-                  onChange={e => updateTransition(i, { ...t, trigger: { ...t.trigger, badge_key: e.target.value } as JourneyTrigger })} />
-              )}
-              {t.trigger.type === 'attribute_equals' && (
-                <>
-                  <input className="hq-input text-sm flex-1 min-w-[100px]" placeholder="attribute_key"
-                    value={t.trigger.attribute_key}
-                    onChange={e => updateTransition(i, { ...t, trigger: { ...t.trigger, attribute_key: e.target.value } as JourneyTrigger })} />
-                  <span className="text-slate-400">=</span>
-                  <input className="hq-input text-sm flex-1 min-w-[80px]" placeholder="value"
-                    value={t.trigger.value}
-                    onChange={e => updateTransition(i, { ...t, trigger: { ...t.trigger, value: e.target.value } as JourneyTrigger })} />
-                </>
-              )}
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-slate-500">從</span>
+              </div>
+            )}
+            {t.trigger.type === 'badge_earned' && (
+              <input className="hq-input text-sm flex-1 min-w-[140px]" placeholder="badge_key"
+                value={t.trigger.badge_key}
+                onChange={e => updateTransition(i, { ...t, trigger: { ...t.trigger, badge_key: e.target.value } as JourneyTrigger })} />
+            )}
+            {t.trigger.type === 'attribute_equals' && (
+              <div className="flex-1 min-w-[180px] flex items-center gap-1">
+                <input className="hq-input text-sm flex-1 min-w-0" placeholder="attribute_key"
+                  value={t.trigger.attribute_key}
+                  onChange={e => updateTransition(i, { ...t, trigger: { ...t.trigger, attribute_key: e.target.value } as JourneyTrigger })} />
+                <span className="text-slate-400 shrink-0">=</span>
+                <input className="hq-input text-sm flex-1 min-w-0" placeholder="value"
+                  value={t.trigger.value}
+                  onChange={e => updateTransition(i, { ...t, trigger: { ...t.trigger, value: e.target.value } as JourneyTrigger })} />
+              </div>
+            )}
+
+            {/* Subtle visual separator between trigger spec and phase transition */}
+            <span className="text-slate-300 shrink-0">|</span>
+
+            {/* Phase transition — from → to */}
+            <div className="w-32 shrink-0">
               <select className="hq-input text-sm"
                 value={t.from_phase ?? '__ANY__'}
                 onChange={e => {
                   const v = e.target.value;
                   updateTransition(i, { ...t, from_phase: v === '__ANY__' ? undefined : v });
                 }}>
-                <option value="__ANY__">（任何 phase，含新使用者）</option>
+                <option value="__ANY__">（任何 phase）</option>
                 {phaseKeys.map(k => <option key={k} value={k}>{k}</option>)}
               </select>
-              <span className="text-xs text-slate-500">→</span>
+            </div>
+            <span className="text-slate-400 shrink-0">→</span>
+            <div className="w-28 shrink-0">
               <select className="hq-input text-sm"
                 value={t.to_phase}
                 onChange={e => updateTransition(i, { ...t, to_phase: e.target.value })}>
                 {phaseKeys.map(k => <option key={k} value={k}>{k}</option>)}
               </select>
-              <button onClick={() => removeTransition(i)}
-                className="text-xs text-red-600 hover:underline ml-auto">移除</button>
             </div>
+
+            <button onClick={() => removeTransition(i)}
+              className="text-[11px] text-slate-400 hover:text-red-600 shrink-0 px-1 ml-auto" title="移除">✕</button>
           </div>
         ))}
         <div>
@@ -535,12 +544,12 @@ function PhaseScheduleEditor({
             {/* Wrappers force fixed widths because .hq-input has a
                 global width:100% rule that beats Tailwind w-* on the
                 input itself unless the parent is constrained. */}
-            <div className="w-14 shrink-0">
-              <input type="number" min={2} className="hq-input text-xs text-center" title="day_in_phase"
+            <div className="w-20 shrink-0">
+              <input type="number" min={2} className="hq-input text-sm text-center" title="day_in_phase"
                 value={e.day} onChange={ev => update(i, { day: Math.max(2, parseInt(ev.target.value, 10) || 2) })} />
             </div>
-            <div className="w-24 shrink-0">
-              <input type="time" className="hq-input text-xs" title="HH:MM (user 時區)"
+            <div className="w-32 shrink-0">
+              <input type="time" className="hq-input text-sm" title="HH:MM (user 時區)"
                 value={e.time} onChange={ev => update(i, { time: ev.target.value })} />
             </div>
             <div className="flex-1 min-w-0">
