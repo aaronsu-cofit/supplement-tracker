@@ -333,6 +333,147 @@
     color: var(--cyan);
     font-size: 1.1rem;
   }
+
+  /* ── LINE Flex bubble mockup ──────────────────────────────────────── */
+  .chat-frame {
+    background: #83b8e8;
+    border-radius: 14px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 320px;
+    flex-shrink: 0;
+  }
+  .chat-frame-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+  .user-msg {
+    align-self: flex-end;
+    background: #06c755;
+    color: white;
+    padding: 7px 13px;
+    border-radius: 16px 16px 4px 16px;
+    font-size: 13px;
+    max-width: 75%;
+    line-height: 1.4;
+  }
+  .bubble {
+    background: white;
+    border-radius: 12px;
+    width: 100%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.04);
+    overflow: hidden;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #111;
+    align-self: flex-start;
+  }
+  .bubble-header {
+    padding: 11px 14px 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .bubble-body { padding: 6px 14px 12px; }
+  .bubble-body h4 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 4px 0 6px;
+    line-height: 1.3;
+  }
+  .bubble-body .why-title {
+    font-weight: 700;
+    color: #444;
+    font-size: 12px;
+    margin: 8px 0 2px;
+  }
+  .bubble-body .why-body {
+    color: #444;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .bubble-separator {
+    height: 1px;
+    background: #e5e7eb;
+    margin: 10px 0 8px;
+  }
+  .bubble-body .keystone-title {
+    color: #06c755;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin: 8px 0 4px;
+  }
+  .bubble-body .keystone-line {
+    font-size: 12px;
+    color: #1a1a1a;
+    margin: 2px 0;
+  }
+  .bubble-footer {
+    padding: 6px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .bubble-btn {
+    text-align: center;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 6px;
+    line-height: 1.3;
+  }
+  .bubble-btn.primary { color: white; }
+  .bubble-btn.secondary { background: white; color: #111; border: 1px solid #d1d5db; }
+  .bubble-btn.message { background: #f1f5f9; color: #0369a1; border: 1px solid #bae6fd; }
+
+  .chat-row {
+    display: flex;
+    gap: 1.25rem;
+    overflow-x: auto;
+    padding: 1rem 0.25rem 0.5rem;
+    scroll-snap-type: x mandatory;
+  }
+  .chat-row > .chat-frame { scroll-snap-align: start; }
+
+  /* Mock HQ screenshot */
+  .hq-mock {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    background: #fff;
+    box-shadow: 0px 2px 8px rgba(0,0,0,0.06);
+    margin-top: 1rem;
+  }
+  .hq-mock-card {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.85rem;
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .hq-mock-card.highlight {
+    border-color: var(--cyan);
+    background: var(--cyan-50);
+  }
+  .hq-mock-button {
+    background: var(--orange);
+    color: white;
+    padding: 0.4rem 0.85rem;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
 </style>
 </head>
 <body>
@@ -634,6 +775,191 @@
     </p>
   </section>
 
+  <!-- 11-A. 用戶實際看到什麼 — Flex 預覽 -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-everyone">⭕ 全員</span>
+    </div>
+    <div class="label">user-facing preview</div>
+    <h2>使用者在 LINE 實際看到什麼</h2>
+    <p style="margin-bottom:0.5rem;">模擬完整對話流程：加好友 → 月經來了 → 結束了 → PMS。每張卡都是 LINE Flex Message 真實渲染樣貌。</p>
+    <div class="chat-row">
+
+      <!-- Frame 1: Onboarding -->
+      <div class="chat-frame">
+        <div class="chat-frame-label">① 加好友 / 開場</div>
+        <div class="bubble">
+          <div class="bubble-header" style="color:#4f46e5;">🌱 歡迎</div>
+          <div class="bubble-body">
+            <h4>接下來 28 天，跟身體節奏和解。</h4>
+            <p class="why-body">這不是教妳「管控」月經，而是讓妳辨認週期裡每個階段的訊號，順著節奏照顧自己。</p>
+            <div class="bubble-separator"></div>
+            <div class="keystone-title">我會陪妳練 3 件事</div>
+            <div class="keystone-line">🍂 補 — 對的階段補對的營養</div>
+            <div class="keystone-line">💧 流 — 每天的補水節奏</div>
+            <div class="keystone-line">🌙 靜 — 每晚 wind-down 儀式</div>
+            <p class="why-body" style="margin-top:8px;">請在月經來的那天，傳「月經來了」給我，我們就開始。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame 2: User says 月經來了 -->
+      <div class="chat-frame">
+        <div class="chat-frame-label">② 月經來了</div>
+        <div class="user-msg">月經來了</div>
+        <div class="bubble">
+          <div class="bubble-header" style="color:#831843;">🩸 經期 Day 1</div>
+          <div class="bubble-body">
+            <h4>妳的身體正在做一場大掃除。</h4>
+            <div class="why-title">為什麼會這麼累？</div>
+            <p class="why-body">雌激素跟黃體素同時掉到谷底，身體用最多能量在子宮內膜剝離。妳沒有不勤勞，是真的不該勤勞。</p>
+            <div class="bubble-separator"></div>
+            <div class="keystone-title">今天 keystone</div>
+            <div class="keystone-line">🍂 補 — 鐵質很重要，紅肉/肝臟最好吸收</div>
+            <div class="keystone-line">💧 流 — 紅糖薑茶 8 杯，溫的最好</div>
+            <div class="keystone-line">🌙 靜 — 9 點上床，好好哭一場也行</div>
+          </div>
+          <div class="bubble-footer">
+            <div class="bubble-btn primary" style="background:#831843;">看補鐵組合</div>
+            <div class="bubble-btn secondary">🌙 我已完成今晚 wind-down</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame 3: User says 結束了 -->
+      <div class="chat-frame">
+        <div class="chat-frame-label">③ 月經結束了</div>
+        <div class="user-msg">月經結束了</div>
+        <div class="bubble">
+          <div class="bubble-header" style="color:#16a34a;">🌱 濾泡期 Day 1</div>
+          <div class="bubble-body">
+            <h4>黃金週開始。</h4>
+            <div class="why-title">為什麼這幾天特別有衝勁？</div>
+            <p class="why-body">雌激素一路爬升到巔峰。腦袋反應最快、體力代謝最高、社交慾望最強。把要動腦、要運動、要約人的事都排在這 7-10 天。</p>
+            <div class="bubble-separator"></div>
+            <div class="keystone-title">今天 keystone</div>
+            <div class="keystone-line">🍂 補 — 抗氧化（藍莓、維他命 C）</div>
+            <div class="keystone-line">💧 流 — 可以接受冷飲、補電解質</div>
+            <div class="keystone-line">🌙 靜 — 有體力做 HIIT，但晚上仍要降溫</div>
+          </div>
+          <div class="bubble-footer">
+            <div class="bubble-btn primary" style="background:#16a34a;">看抗氧化組合</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame 4: User says PMS -->
+      <div class="chat-frame">
+        <div class="chat-frame-label">④ PMS 感出現</div>
+        <div class="user-msg">PMS</div>
+        <div class="bubble">
+          <div class="bubble-header" style="color:#c2410c;">🍂 黃體期 Day 1</div>
+          <div class="bubble-body">
+            <h4>步調開始向內。</h4>
+            <p class="why-body">黃體素接管後，妳會比較想獨處、容易被細節煩擾。這不是妳變難搞，是身體在替「萬一懷孕」的可能性做準備，整個系統都在保溫、保留。</p>
+            <div class="bubble-separator"></div>
+            <div class="keystone-title">今天 keystone</div>
+            <div class="keystone-line">🍂 補 — Omega-3、鎂可以開始補</div>
+            <div class="keystone-line">💧 流 — 改回溫飲，少咖啡因</div>
+            <div class="keystone-line">🌙 靜 — 提前半小時上床，補鎂幫助睡眠</div>
+          </div>
+          <div class="bubble-footer">
+            <div class="bubble-btn primary" style="background:#c2410c;">看黃體期保健組</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <p style="font-size:0.85rem; color:var(--fg-muted); margin-top:0.5rem;">→ 拖橫向 / 滾動 看完整 4 個畫面</p>
+  </section>
+
+  <!-- 11-B. HQ 一鍵套用範本 -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-ops">🛠 HQ 操作</span>
+    </div>
+    <div class="label audience-ops">hq one-click</div>
+    <h2>HQ 一鍵套用：不用 ops 手動建</h2>
+    <p>HQ → 產品 → 任一個 demo 用產品 → 「<strong>範本（一鍵填入示範資料）</strong>」卡片：</p>
+    <div class="hq-mock">
+      <div style="font-weight:700; color:var(--fg); margin-bottom:0.6rem; font-size:1rem;">範本（一鍵填入示範資料）</div>
+      <p style="font-size:0.85rem; color:var(--fg-muted); margin-bottom:0.85rem;">套用範本會把內容、任務、徽章、Journey、意圖規則一次建立好。遇到相同 key 的項目會跳過保留你既有的設定。</p>
+      <div class="hq-mock-card">
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
+            <code style="background:#f1f5f9;padding:0.1rem 0.4rem;border-radius:3px;font-size:0.8rem;">wellness_21d</code>
+            <strong>21 天健康習慣</strong>
+          </div>
+          <p style="font-size:0.78rem; color:var(--fg-muted);">示範產品（既有）</p>
+        </div>
+        <div class="hq-mock-button">套用範本</div>
+      </div>
+      <div class="hq-mock-card highlight">
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
+            <code style="background:#fff;padding:0.1rem 0.4rem;border-radius:3px;font-size:0.8rem;">period_cycle_demo</code>
+            <strong>生理週期 28 天 (Demo)</strong>
+            <span style="background:var(--cyan);color:white;font-size:0.65rem;padding:0.1rem 0.4rem;border-radius:999px;">NEW</span>
+          </div>
+          <p style="font-size:0.78rem; color:var(--fg-muted);">使用者主動回報、phase-driven 內容、3 個 keystone（補/流/靜）</p>
+          <div style="font-size:0.7rem; color:var(--fg-muted); margin-top:0.35rem;">
+            內容 11 · 任務 3 · 徽章 0 · Journey 1 · 意圖 3
+          </div>
+        </div>
+        <div class="hq-mock-button">套用範本</div>
+      </div>
+    </div>
+    <p style="margin-top:1rem; font-size:0.95rem;">點下去 1 秒內全部建好。冪等 — 重按只跳過不覆蓋。</p>
+  </section>
+
+  <!-- 11-C. 套用後 HQ 看到什麼 -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-ops">🛠 HQ 操作</span>
+    </div>
+    <div class="label audience-ops">post-seed</div>
+    <h2>套用後在 HQ 各 tab 看到什麼</h2>
+    <div class="grid two">
+      <div class="card cyan">
+        <h4>📚 內容庫（11 個 ContentItem）</h4>
+        <div class="pill-list">
+          <code>period_follow_welcome</code>
+          <code>period_onboarding</code>
+          <code>menstrual_day_1</code>
+          <code>menstrual_day_3</code>
+          <code>menstrual_day_7</code>
+          <code>follicular_day_1</code>
+          <code>follicular_day_5</code>
+          <code>follicular_day_10</code>
+          <code>luteal_day_1</code>
+          <code>luteal_day_7</code>
+          <code>luteal_day_14</code>
+        </div>
+      </div>
+      <div class="card cyan">
+        <h4>🎯 任務（3 個 keystone MissionTemplate）</h4>
+        <ul style="margin-top:0.4rem; font-size:0.92rem;">
+          <li><code>period_supplement_log</code> — 🍂 日補（binary_daily, 9am 提醒）</li>
+          <li><code>period_hydration_log</code> — 💧 日流（quantitative, 8 杯）</li>
+          <li><code>period_wind_down</code> — 🌙 日靜（binary_daily, 9:30pm 提醒）</li>
+        </ul>
+      </div>
+      <div class="card cyan">
+        <h4>🔄 Journey 「period_cycle」</h4>
+        <p style="font-size:0.92rem; margin-top:0.4rem;">3 phases（🩸 經期 / 🌱 濾泡期 / 🍂 黃體期）+ 3 條 attribute_equals transition</p>
+      </div>
+      <div class="card cyan">
+        <h4>🎯 意圖規則（3 條）</h4>
+        <ul style="margin-top:0.4rem; font-size:0.92rem;">
+          <li>「月經來了」→ set period_state=menstrual + 推 menstrual_day_1</li>
+          <li>「月經結束了」→ set period_state=follicular + 推 follicular_day_1</li>
+          <li>「PMS」→ set period_state=luteal + 推 luteal_day_1</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:1rem; font-size:0.9rem; color:var(--fg-muted);">每個 tab 都還是可編輯的 — 套用範本只是把骨架建好，文案、按鈕、URL ops 都能再改。</p>
+  </section>
+
   <!-- 12-A. Task × Phase 框架問題 -->
   <section class="slide">
     <div class="audience-row">
@@ -825,7 +1151,7 @@
 
 <div class="nav">
   <button id="prev" aria-label="上一頁">←</button>
-  <span class="counter" id="counter">1 / 18</span>
+  <span class="counter" id="counter">1 / 21</span>
   <button id="next" aria-label="下一頁">→</button>
 </div>
 
