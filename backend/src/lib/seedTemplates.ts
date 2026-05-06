@@ -475,24 +475,24 @@ const PERIOD_CYCLE_DEMO: SeedTemplate = {
           // day_1 由 intent rule reply_content_key 即時推；day_2+ 由 cron。
           // 經期早晨 09:00 推，溫和提醒不打擾。
           schedule: [
-            { day: 3, time: '09:00' },
-            { day: 7, time: '09:00' },
+            { day: 3, time: '09:00', content_key: 'menstrual_day_3' },
+            { day: 7, time: '09:00', content_key: 'menstrual_day_7' },
           ],
         },
         {
           key: 'follicular', name: '🌱 濾泡期', icon: '🌱',
           // 濾泡能量好，中午 12:00 推（不會打斷早起運動）。
           schedule: [
-            { day: 5, time: '12:00' },
-            { day: 10, time: '12:00' },
+            { day: 5, time: '12:00', content_key: 'follicular_day_5' },
+            { day: 10, time: '12:00', content_key: 'follicular_day_10' },
           ],
         },
         {
           key: 'luteal', name: '🍂 黃體期', icon: '🍂',
           // 黃體較內斂，黃昏 20:00 推，搭配 wind-down 時段。
           schedule: [
-            { day: 7, time: '20:00' },
-            { day: 14, time: '20:00' },
+            { day: 7, time: '20:00', content_key: 'luteal_day_7' },
+            { day: 14, time: '20:00', content_key: 'luteal_day_14' },
           ],
         },
       ],
