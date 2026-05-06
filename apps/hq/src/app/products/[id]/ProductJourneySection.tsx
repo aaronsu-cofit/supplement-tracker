@@ -191,17 +191,17 @@ export default function ProductJourneySection({ productId }: Props) {
       <div className="flex flex-col gap-2 border border-slate-200 rounded p-2 bg-white">
         <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Phases（依序）</label>
         {form.phases.map((p, i) => (
-          <div key={i} className="flex flex-col gap-2 border border-slate-200 rounded p-2 bg-slate-50">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-mono text-slate-400 w-6">{i + 1}.</span>
-              <input className="hq-input text-sm flex-1 min-w-[100px]" placeholder="key"
+          <div key={i} className="flex flex-col gap-1.5 border border-slate-200 rounded p-2 bg-slate-50">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-slate-400 shrink-0">{i + 1}.</span>
+              <input className="hq-input text-sm flex-1 min-w-0" placeholder="key"
                 value={p.key} onChange={e => updatePhase(i, { key: e.target.value })} />
-              <input className="hq-input text-sm flex-1 min-w-[120px]" placeholder="name"
+              <input className="hq-input text-sm flex-1 min-w-0" placeholder="name"
                 value={p.name} onChange={e => updatePhase(i, { name: e.target.value })} />
-              <input className="hq-input text-sm w-16" placeholder="icon"
+              <input className="hq-input text-sm w-10 text-center" placeholder="🎯"
                 value={p.icon ?? ''} onChange={e => updatePhase(i, { icon: e.target.value || undefined })} />
               <button onClick={() => removePhase(i)}
-                className="text-xs text-red-600 hover:underline">移除</button>
+                className="text-xs text-red-600 hover:underline shrink-0">移除</button>
             </div>
             <PhaseScheduleEditor phase={p} contents={contents}
               onChange={next => updatePhase(i, { schedule: next })} />
@@ -519,28 +519,26 @@ function PhaseScheduleEditor({
     onChange([...schedule, { day: lastDay + 1, time: '09:00' }]);
   };
   return (
-    <div className="flex flex-col gap-1.5 mt-1 ml-8">
-      <div className="text-[11px] text-slate-500">
-        每日推送排程（day_1 由 phase 切換時的 intent 回覆推，這裡只設 day_2+）
+    <div className="flex flex-col gap-1 mt-0.5 pl-7">
+      <div className="text-[10px] text-slate-500 leading-tight">
+        每日推送排程（day_1 由 intent 回覆推；這裡只設 day_2+）
       </div>
       {schedule.length === 0 ? (
-        <p className="text-xs text-slate-400">尚未設定 — phase 內每天無自動推送</p>
+        <p className="text-[11px] text-slate-400">尚未設定</p>
       ) : (
         schedule.map((e, i) => (
-          <div key={i} className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] text-slate-500 w-8">Day</span>
-            <input type="number" min={2} className="hq-input text-xs w-14"
+          <div key={i} className="flex items-center gap-1.5">
+            <input type="number" min={2} className="hq-input text-xs w-12 text-center" title="day_in_phase"
               value={e.day} onChange={ev => update(i, { day: Math.max(2, parseInt(ev.target.value, 10) || 2) })} />
-            <span className="text-[11px] text-slate-500">@</span>
-            <input type="time" className="hq-input text-xs w-24"
+            <input type="time" className="hq-input text-xs w-20" title="HH:MM (user 時區)"
               value={e.time} onChange={ev => update(i, { time: ev.target.value })} />
-            <div className="flex-1 min-w-[180px]">
+            <div className="flex-1 min-w-0">
               <ContentKeyPicker value={e.content_key ?? ''} items={contents}
                 placeholder={`預設 ${phase.key || '<phase>'}_day_${e.day}`}
                 onChange={v => update(i, { content_key: v || undefined })} />
             </div>
             <button onClick={() => remove(i)}
-              className="text-[11px] text-red-600 hover:underline shrink-0">移除</button>
+              className="text-[11px] text-slate-400 hover:text-red-600 shrink-0" title="移除">✕</button>
           </div>
         ))
       )}
