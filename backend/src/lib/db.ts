@@ -1742,6 +1742,38 @@ export async function createJourneyTemplate(productId: string, data: CreateJourn
   });
 }
 
+/**
+ * Upsert a Journey template by (product_id, key). Used by the seed
+ * apply path so re-applying a template refreshes Journey to match the
+ * template (picks up new schedule fields, etc.) — unlike ContentItem /
+ * MissionTemplate which are skip-on-conflict to preserve ops edits.
+ *
+ * Trade-off: ops customizations to Journey phases/transitions get
+ * overwritten on re-apply. Acceptable for the seed flow because Journey
+ * structure is template-driven (the day-by-day content lives in
+ * ContentItem, where edits ARE preserved).
+ */
+export async function upsertJourneyTemplate(productId: string, data: CreateJourneyTemplateInput) {
+  return db().journeyTemplate.upsert({
+    where: { product_id_key: { product_id: productId, key: data.key } },
+    create: {
+      product_id: productId,
+      key: data.key,
+      name: data.name,
+      description: data.description ?? null,
+      phases: data.phases as unknown as Prisma.InputJsonValue,
+      transitions: data.transitions as unknown as Prisma.InputJsonValue,
+    },
+    update: {
+      name: data.name,
+      description: data.description ?? null,
+      phases: data.phases as unknown as Prisma.InputJsonValue,
+      transitions: data.transitions as unknown as Prisma.InputJsonValue,
+      is_active: true,
+    },
+  });
+}
+
 export async function updateJourneyTemplate(id: string, data: UpdateJourneyTemplateInput) {
   return db().journeyTemplate.update({
     where: { id },

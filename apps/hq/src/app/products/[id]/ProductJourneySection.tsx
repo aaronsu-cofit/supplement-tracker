@@ -7,9 +7,10 @@ import type {
   JourneyTransition,
   JourneyTrigger,
   MissionTemplate,
+  ContentItem,
 } from '../../../types';
 import HelpModal, { HelpButton } from './HelpModal';
-import { MissionKeyPicker } from '../../../components/KeyPickers';
+import { MissionKeyPicker, ContentKeyPicker } from '../../../components/KeyPickers';
 
 interface Props {
   productId: string;
@@ -75,6 +76,7 @@ function triggerSummary(tr: JourneyTrigger): string {
 export default function ProductJourneySection({ productId }: Props) {
   const [journeys, setJourneys] = useState<JourneyTemplate[]>([]);
   const [missions, setMissions] = useState<MissionTemplate[]>([]);
+  const [contents, setContents] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -98,14 +100,19 @@ export default function ProductJourneySection({ productId }: Props) {
         if (!r.ok) throw new Error(`missions HTTP ${r.status}`);
         return r.json() as Promise<{ missions: MissionTemplate[] }>;
       }),
+      apiFetch(`/api/products/${productId}/content`).then(async r => {
+        if (!r.ok) throw new Error(`content HTTP ${r.status}`);
+        return r.json() as Promise<{ items: ContentItem[] }>;
+      }),
     ])
-      .then(([{ journeys: d }, { missions: m }]) => {
+      .then(([{ journeys: d }, { missions: m }, { items: c }]) => {
         setJourneys(d ?? []);
         setMissions(m ?? []);
+        setContents(c ?? []);
       })
       .catch(err => {
         console.error('[product/journeys] error', err);
-        setError('無法載入 Journey 或任務');
+        setError('無法載入 Journey / 任務 / 內容庫');
       })
       .finally(() => setLoading(false));
   }, [productId]);
@@ -196,7 +203,7 @@ export default function ProductJourneySection({ productId }: Props) {
               <button onClick={() => removePhase(i)}
                 className="text-xs text-red-600 hover:underline">移除</button>
             </div>
-            <PhaseScheduleEditor phase={p}
+            <PhaseScheduleEditor phase={p} contents={contents}
               onChange={next => updatePhase(i, { schedule: next })} />
           </div>
         ))}
@@ -494,9 +501,11 @@ export default function ProductJourneySection({ productId }: Props) {
  *  intent reply, not by the daily cron. */
 function PhaseScheduleEditor({
   phase,
+  contents,
   onChange,
 }: {
   phase: JourneyPhase;
+  contents: ContentItem[];
   onChange: (next: JourneyPhase['schedule']) => void;
 }) {
   const schedule = phase.schedule ?? [];
@@ -506,12 +515,11 @@ function PhaseScheduleEditor({
   };
   const remove = (idx: number) => onChange(schedule.filter((_, i) => i !== idx));
   const add = () => {
-    // Default new entry to next-day after the last + 09:00
     const lastDay = Math.max(1, ...schedule.map(s => s.day));
     onChange([...schedule, { day: lastDay + 1, time: '09:00' }]);
   };
   return (
-    <div className="flex flex-col gap-1 mt-1 ml-8">
+    <div className="flex flex-col gap-1.5 mt-1 ml-8">
       <div className="text-[11px] text-slate-500">
         每日推送排程（day_1 由 phase 切換時的 intent 回覆推，這裡只設 day_2+）
       </div>
@@ -526,10 +534,11 @@ function PhaseScheduleEditor({
             <span className="text-[11px] text-slate-500">@</span>
             <input type="time" className="hq-input text-xs w-24"
               value={e.time} onChange={ev => update(i, { time: ev.target.value })} />
-            <input className="hq-input text-xs flex-1 min-w-[140px]"
-              placeholder={`content_key（預設 ${phase.key || '<phase>'}_day_${e.day}）`}
-              value={e.content_key ?? ''}
-              onChange={ev => update(i, { content_key: ev.target.value || undefined })} />
+            <div className="flex-1 min-w-[180px]">
+              <ContentKeyPicker value={e.content_key ?? ''} items={contents}
+                placeholder={`預設 ${phase.key || '<phase>'}_day_${e.day}`}
+                onChange={v => update(i, { content_key: v || undefined })} />
+            </div>
             <button onClick={() => remove(i)}
               className="text-[11px] text-red-600 hover:underline shrink-0">移除</button>
           </div>

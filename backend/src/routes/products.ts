@@ -25,6 +25,7 @@ import {
   deleteBadgeTemplate,
   getJourneyTemplatesForProduct,
   createJourneyTemplate,
+  upsertJourneyTemplate,
   updateJourneyTemplate,
   deleteJourneyTemplate,
 } from '../lib/db.js';
@@ -662,8 +663,17 @@ products.post('/:productId/seed', async (c) => {
   for (const badge of tpl.badges) {
     await tryCreate(`badge:${badge.key}`, 'badges', () => createBadgeTemplate(productId, badge));
   }
+  // Journey is upserted (not skip-on-conflict) so re-applying picks up
+  // schedule / transition / phase changes from the latest template.
+  // ContentItem / Mission / Badge stay skip-on-conflict to preserve
+  // ops content edits between seed runs.
   for (const journey of tpl.journeys) {
-    await tryCreate(`journey:${journey.key}`, 'journeys', () => createJourneyTemplate(productId, journey));
+    try {
+      await upsertJourneyTemplate(productId, journey);
+      summary.journeys.created++;
+    } catch (err) {
+      summary.errors.push(`journey:${journey.key}: ${(err as Error).message}`);
+    }
   }
   // Intents have no per-product unique key, so 409 can't happen the same
   // way — but we still wrap errors for reporting.
