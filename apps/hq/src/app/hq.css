@@ -30,7 +30,8 @@
 }
 
 .hq-layout {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background-color: var(--hq-bg-main);
   color: var(--hq-text-title);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -149,6 +150,11 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /* Lets nav scroll inside the sidebar if it ever grows beyond viewport,
+   * keeping the footer (release version) anchored at the bottom. */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .hq-nav-link {
@@ -193,7 +199,10 @@
 .hq-main {
   flex: 1;
   background-color: var(--hq-bg-main);
-  min-height: 100vh;
+  /* Bound by parent's 100vh; min-height:0 lets flex children shrink so
+   * the inner overflow-y:auto can actually scroll instead of pushing
+   * the whole hq-layout taller. */
+  min-height: 0;
   overflow-y: auto;
 }
 
