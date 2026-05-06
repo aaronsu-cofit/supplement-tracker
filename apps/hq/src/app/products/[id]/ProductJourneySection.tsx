@@ -193,15 +193,15 @@ export default function ProductJourneySection({ productId }: Props) {
         {form.phases.map((p, i) => (
           <div key={i} className="flex flex-col gap-1.5 border border-slate-200 rounded p-2 bg-slate-50">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-slate-400 shrink-0">{i + 1}.</span>
-              <input className="hq-input text-sm flex-1 min-w-0" placeholder="key"
+              <span className="text-xs font-mono text-slate-400 shrink-0 w-5">{i + 1}.</span>
+              <input className="hq-input text-sm flex-1 min-w-[120px]" placeholder="key（如 menstrual）"
                 value={p.key} onChange={e => updatePhase(i, { key: e.target.value })} />
-              <input className="hq-input text-sm flex-1 min-w-0" placeholder="name"
+              <input className="hq-input text-sm flex-1 min-w-[140px]" placeholder="顯示名稱"
                 value={p.name} onChange={e => updatePhase(i, { name: e.target.value })} />
-              <input className="hq-input text-sm w-10 text-center" placeholder="🎯"
+              <input className="hq-input text-sm w-12 text-center shrink-0" placeholder="🎯"
                 value={p.icon ?? ''} onChange={e => updatePhase(i, { icon: e.target.value || undefined })} />
               <button onClick={() => removePhase(i)}
-                className="text-xs text-red-600 hover:underline shrink-0">移除</button>
+                className="text-xs text-slate-400 hover:text-red-600 shrink-0" title="移除 phase">✕</button>
             </div>
             <PhaseScheduleEditor phase={p} contents={contents}
               onChange={next => updatePhase(i, { schedule: next })} />
