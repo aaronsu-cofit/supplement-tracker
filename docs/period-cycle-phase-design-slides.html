@@ -634,7 +634,135 @@
     </p>
   </section>
 
-  <!-- 12. 不做什麼 -->
+  <!-- 12-A. Task × Phase 框架問題 -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-everyone">⭕ 全員</span>
+    </div>
+    <div class="label warn">open question · for discussion</div>
+    <h2>「任務」要怎麼跟著 Phase 走？— 待團隊討論</h2>
+    <p>每天的內容包含兩種東西混在一起，要分清楚才好決定怎麼接到 Mission 系統：</p>
+    <table style="margin-top:1rem;">
+      <thead><tr><th>類型</th><th>例子</th><th>性質</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="fg">整個 phase 都該做</td>
+          <td>經期：補鐵料理、腹部熱敷、記錄經血量</td>
+          <td><strong>像 habit</strong>，每天反覆</td>
+        </tr>
+        <tr>
+          <td class="fg">那一天 only 的小提醒</td>
+          <td>Day 1 喝薑茶、Day 12 主持會議、Day 14 穿閃亮服裝</td>
+          <td><strong>像 advice</strong>，做完即逝</td>
+        </tr>
+      </tbody>
+    </table>
+    <blockquote class="warn" style="margin-top:1.5rem;">
+      Zoly excel 把這兩類混在「任務清單」裡。技術上這 <strong>不是同一件事</strong>，要拆開。
+    </blockquote>
+  </section>
+
+  <!-- 12-B. 三個候選模式 -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-everyone">⭕ 全員</span>
+    </div>
+    <div class="label warn">candidates</div>
+    <h2>三個候選模式</h2>
+    <div class="grid three" style="margin-top:1rem;">
+      <div class="card cyan">
+        <h4>① Phase 固定 mission 包</h4>
+        <p style="font-size:0.9rem;">每個 phase 對應 3-5 張固定卡，phase 切換才換一組</p>
+        <p style="margin-top:0.5rem; font-size:0.85rem; color:var(--success-fg);">✅ LIFF UX 乾淨、ops 好維護</p>
+        <p style="font-size:0.85rem; color:var(--error-fg);">❌ 失去 day-level 細節</p>
+      </div>
+      <div class="card purple">
+        <h4>② 每天 rotate（day_in_phase）</h4>
+        <p style="font-size:0.9rem;">menstrual_day_1 推內容時 assign Day 1 task，明天換 Day 2</p>
+        <p style="margin-top:0.5rem; font-size:0.85rem; color:var(--success-fg);">✅ 完全跟 day 對齊</p>
+        <p style="font-size:0.85rem; color:var(--error-fg);">❌ ~84 個 mission template、streak 沒意義、工程量大</p>
+      </div>
+      <div class="card orange">
+        <h4>③ Phase 進入一次給全部</h4>
+        <p style="font-size:0.9rem;">切到經期就 assign menstrual 全部 mission（10 張卡），切走時清掉</p>
+        <p style="margin-top:0.5rem; font-size:0.85rem; color:var(--success-fg);">✅ 實作最簡單</p>
+        <p style="font-size:0.85rem; color:var(--error-fg);">❌ LIFF 一次出現一堆，UX 雜</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12-C. 我的建議 = 兩層分工 -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-everyone">⭕ 全員</span>
+    </div>
+    <div class="label warn">my recommendation</div>
+    <h2>建議：兩層分工（hybrid）— 待團隊確認</h2>
+    <p><strong>不要把所有任務都放進 Mission 系統</strong>。把 phase-bound 的當 mission（用 #1 模式），把 day-specific 提醒嵌進每日 push Flex 卡片裡。</p>
+    <div class="grid two" style="margin-top:1.5rem;">
+      <div class="card cyan">
+        <h4>📋 Phase keystone mission（3-5 張 / phase）</h4>
+        <p style="font-size:0.92rem;">顯示位置：habits LIFF Today</p>
+        <ul style="margin-top:0.4rem; font-size:0.9rem;">
+          <li>例（經期）：記錄出血量 / 補鐵 / 熱敷</li>
+          <li>例（濾泡）：高強度運動 / 高蛋白 / 補維他命 E</li>
+          <li>整個 phase 都在那邊，每天可打卡</li>
+          <li>有 streak / heatmap 累積感</li>
+        </ul>
+      </div>
+      <div class="card pink">
+        <h4>💬 Day-specific 小提醒（3 個 / day）</h4>
+        <p style="font-size:0.92rem;">顯示位置：LINE 每日 push 的 Flex 卡片</p>
+        <ul style="margin-top:0.4rem; font-size:0.9rem;">
+          <li>例：Day 1 ☐ 喝薑茶 ☐ 暖宮貼 ☐ 9 點上床</li>
+          <li>嵌在 ContentItem 的 flex JSON 裡，<code>☐</code> 是 postback</li>
+          <li>不進 mission 系統，沒有 streak</li>
+          <li>postback 紀錄完成（給 ops 後續分析）</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:1.25rem; color:var(--fg-muted); font-size:0.9rem;">
+      另外加：<strong>跨 phase 永久 habit</strong>（記心情、喝水）— Onboarding 時 assign 一次，整個課程都在 LIFF Today。
+    </p>
+  </section>
+
+  <!-- 12-D. 工程量與待確認 -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-eng">⚙️ 程式</span>
+      <span class="audience-tag audience-ops">🛠 HQ 操作</span>
+    </div>
+    <div class="label warn">if hybrid is chosen</div>
+    <h2>若採用 hybrid，工程 + ops 量</h2>
+    <div class="grid two">
+      <div class="card purple">
+        <h4>⚙️ 工程（額外 ~半天）</h4>
+        <ul style="margin-top:0.4rem;">
+          <li>Phase 進入時 assign 該 phase mission pack（hook 進 evaluateJourneys）</li>
+          <li>Phase 切走時 unassign 該 phase mission</li>
+          <li>Flex 卡片的 <code>☐</code> postback 已有 mission checklist 那套，<strong>借用即可</strong></li>
+        </ul>
+        <p style="margin-top:0.5rem; font-size:0.9rem; color:var(--fg-muted);">原本 phase journey ~1 天 + 這段 0.5 天 = <strong>合計 ~1.5 天</strong></p>
+      </div>
+      <div class="card orange">
+        <h4>🛠 Ops 多做的事</h4>
+        <ul style="margin-top:0.4rem;">
+          <li>每個 phase 寫一份 mission_key 清單（哪幾個 mission 屬於這 phase）</li>
+          <li>~9-15 個 MissionTemplate（3 phase × 3-5 張）</li>
+          <li>ContentItem 的 flex JSON 內含 <code>☐</code> postback button（Zoly 的 spreadsheet 可以直接對應）</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ask">
+      <ul>
+        <li>採用 hybrid 嗎？還是另外兩個模式之一？</li>
+        <li>每個 phase 的 keystone mission 是哪幾個？（請 Grace / Zoly 從 spreadsheet 挑出真正屬於 phase-wide 的）</li>
+        <li>ContentItem 用 flex 還是 text？— flex 才能放 ☐ button，text 就只是文字</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 13. 不做什麼 -->
   <section class="slide">
     <div class="audience-row">
       <span class="audience-tag audience-everyone">⭕ 全員</span>
@@ -697,7 +825,7 @@
 
 <div class="nav">
   <button id="prev" aria-label="上一頁">←</button>
-  <span class="counter" id="counter">1 / 14</span>
+  <span class="counter" id="counter">1 / 18</span>
   <button id="next" aria-label="下一頁">→</button>
 </div>
 
