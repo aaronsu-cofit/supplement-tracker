@@ -15,19 +15,21 @@ export default function ManualPage() {
           <h3 className="text-lg font-bold mb-2">目錄</h3>
           <ol className="list-decimal pl-5 text-sm text-slate-700 flex flex-col gap-1">
             <li><a className="underline" href="#quickstart">快速開始：從零建一支產品</a></li>
+            <li><a className="underline" href="#seed">範本一鍵套用（Seed Templates）</a></li>
             <li><a className="underline" href="#concepts">平台核心概念</a></li>
             <li><a className="underline" href="#product">產品（Product）與 OA 綁定</a></li>
             <li><a className="underline" href="#content">內容庫（Content Library）</a></li>
             <li><a className="underline" href="#mission">任務（Mission）</a></li>
             <li><a className="underline" href="#badge">連續天數 + 徽章（Streak + Badge）</a></li>
             <li><a className="underline" href="#intent">意圖規則（Intent Rule）</a></li>
-            <li><a className="underline" href="#journey">Journey 狀態機</a></li>
+            <li><a className="underline" href="#journey">Journey 狀態機（含每日推送排程）</a></li>
             <li><a className="underline" href="#scenario">劇本（Scenario）與排程</a></li>
+            <li><a className="underline" href="#llm">LLM Fallback（AI Skill Platform）</a></li>
             <li><a className="underline" href="#flex">Flex 訊息（卡片）</a></li>
             <li><a className="underline" href="#flex-checklist">任務勾選 Checklist（Postback）</a></li>
             <li><a className="underline" href="#observe">排程觀察、預覽、lint</a></li>
             <li><a className="underline" href="#user">使用者狀態檢視</a></li>
-            <li><a className="underline" href="#conversations">對話紀錄與即時編輯</a></li>
+            <li><a className="underline" href="#conversations">對話紀錄、手動推送、即時編輯</a></li>
             <li><a className="underline" href="#richmenu">Rich Menu 評估</a></li>
             <li><a className="underline" href="#help">區塊內建「?」說明</a></li>
             <li><a className="underline" href="#faq">常見問題</a></li>
@@ -69,6 +71,38 @@ export default function ManualPage() {
               <strong>預覽 + 測試</strong>：「預覽」按鈕模擬某 user 在某天會收到什麼 →「立即執行排程」實際觸發一次。
             </li>
           </ol>
+        </section>
+
+        <section id="seed" className="hq-card">
+          <h3 className="text-lg font-bold mb-2">📦 範本一鍵套用（Seed Templates）</h3>
+          <div className="text-sm text-slate-700 flex flex-col gap-2">
+            <p>
+              不想從零建內容/任務/徽章/Journey/意圖規則？產品詳情頁「基本」tab 最下方有「<strong>範本（一鍵填入示範資料）</strong>」卡片。
+            </p>
+            <p>
+              點任一範本旁的「套用範本」→ 一秒內把整套配置（5 種資源）建到該產品。冪等：再點一次相同 key 的會跳過保留你既有編輯，<strong>但 Journey 例外為 upsert</strong>（每次套用會更新成範本最新版，吃進新加的 phase / schedule 等改動）。
+            </p>
+            <p>
+              <strong>目前可用範本</strong>：
+            </p>
+            <ul className="list-disc pl-5 flex flex-col gap-1">
+              <li><code>wellness_21d</code> 21 天健康習慣 — 通用 demo（喝水、散步、心情打卡 + 7 日戰士徽章 + 3 phase journey + 6 條意圖規則）</li>
+              <li><code>period_cycle_demo</code> 生理週期 28 天 — 11 個 ContentItem（onboarding + 9 phase day cards + 3 keystone habit）+ 3 條意圖規則 + period_cycle Journey 含 phase × day 排程</li>
+            </ul>
+            <p>
+              新範本要加在 <code>backend/src/lib/seedTemplates.ts</code>，登錄到 <code>SEED_TEMPLATES</code> 後 HQ 自動列出來。
+            </p>
+            <div className="bg-slate-50 border border-slate-200 rounded p-2 text-xs flex flex-col gap-1">
+              <strong>AC — 範本套用</strong>
+              <ul className="list-disc pl-4 flex flex-col gap-0.5">
+                <li>產品詳情「基本」tab 最下方看到「範本」卡片，列出可用範本</li>
+                <li>套用範本後，內容庫 / 任務 / 徽章 / Journey / 意圖規則 各 tab 都看到對應資料</li>
+                <li>重新套用 — ContentItem / Mission / Badge 自動 skip（保留 ops 編輯）</li>
+                <li>重新套用 — Journey 自動 upsert（更新成範本最新版）</li>
+                <li>套用結果區顯示 +N 建立 / N skipped 統計</li>
+              </ul>
+            </div>
+          </div>
         </section>
 
         <section id="concepts" className="hq-card">
@@ -248,7 +282,7 @@ export default function ManualPage() {
         </section>
 
         <section id="journey" className="hq-card">
-          <h3 className="text-lg font-bold mb-2">🗺️ Journey 狀態機</h3>
+          <h3 className="text-lg font-bold mb-2">🗺️ Journey 狀態機（含每日推送排程）</h3>
           <div className="text-sm text-slate-700 flex flex-col gap-2">
             <p>
               Journey 定義一串命名 phase（如 onboarding → active → completed）和轉換規則。使用者 phase 在完成任務、設屬性、取得徽章時自動推進。
@@ -259,15 +293,35 @@ export default function ManualPage() {
             <p>
               同 journey 內每事件只觸發一次轉換（依規則宣告順序第一個命中者勝）。
             </p>
+            <p>
+              <strong>每日推送排程（Phase × Day）</strong>：每個 phase 可定義一組「day_in_phase → 時間 → ContentItem」的排程。後端有一支每 5 分鐘 tick 的 cron <code>runPhaseDailyPush</code>，依使用者時區計算 day_in_phase（calendar-day 基準），對到 schedule 的時間窗（±5 min）就 push 對應內容。
+            </p>
+            <ul className="list-disc pl-5 flex flex-col gap-1">
+              <li><strong>day_1 不在這裡設</strong> — 由 phase 切換的 intent rule <code>reply_content_key</code> 即時推送，cron 跳過 day=1 避免雙發</li>
+              <li><strong>content_key 留空</strong> = 用命名約定 <code>{`${'${phase}'}_day_${'${N}'}`}</code> 自動找對應 ContentItem</li>
+              <li><strong>沒設 schedule 的天</strong> = 該天無 push（不會 fallback）</li>
+              <li><strong>idempotency</strong>：每天 × 每個 day_in_phase 只送一次（message_log unique on <code>source=phase_daily_push</code> + <code>journey:phase:day_N:date</code>）</li>
+              <li><strong>HQ 編輯</strong>：Journey tab 編輯每個 phase 卡片下方有「每日推送排程」表，可逐筆設 day / 時間 / content_key（下拉自動列出該產品內容庫）</li>
+              <li>關閉：<code>PHASE_DAILY_PUSH_CRON=off</code> env</li>
+            </ul>
+            <p>
+              <strong>典型流程</strong>（搭配 intent rule）：
+            </p>
+            <ol className="list-decimal pl-5 flex flex-col gap-1">
+              <li>使用者主動傳「月經來了」 → intent rule set_attribute period_state=menstrual + reply_content_key=menstrual_day_1（即時推 day_1）</li>
+              <li>set_attribute 自動觸發 evaluateJourneys → Journey 切到 menstrual phase（記 entered_at）</li>
+              <li>隔天 09:00 cron tick → 對到 menstrual.schedule[day=2 或 3] → push menstrual_day_3</li>
+              <li>循環直到使用者說「月經結束了」 → 切到 follicular phase，schedule 重新從 day_1 起算</li>
+            </ol>
             <div className="bg-slate-50 border border-slate-200 rounded p-2 text-xs flex flex-col gap-1">
-              <strong>AC — Journey</strong>
+              <strong>AC — Journey + 每日推送</strong>
               <ul className="list-disc pl-4 flex flex-col gap-0.5">
                 <li>新使用者觸發入口規則（from_phase 省略）→ <code>/admins/[id]</code> Journey 現況出現 phase</li>
-                <li>完成指定任務 → phase 前進</li>
-                <li>設指定屬性值 → phase 前進</li>
-                <li>取得指定徽章 → phase 前進</li>
-                <li>engagement events 應看到 <code>journey_transition</code> 類型紀錄</li>
+                <li>完成指定任務 / 設指定屬性值 / 取得指定徽章 → phase 前進</li>
+                <li>engagement events 看到 <code>journey_transition</code> 類型紀錄</li>
                 <li>在已達目標 phase 再次觸發 → phase 不變（不會回頭）</li>
+                <li>Phase 切換後當天 / 隔天 cron tick 會依 schedule 推 day_2+</li>
+                <li>對話紀錄 cron 推的訊息有 🌗「Phase 每日推送」紫色 badge</li>
               </ul>
             </div>
           </div>
@@ -307,6 +361,32 @@ export default function ManualPage() {
                 <li>劇本停用 → 下次排程不送</li>
               </ul>
             </div>
+          </div>
+        </section>
+
+        <section id="llm" className="hq-card">
+          <h3 className="text-lg font-bold mb-2">🤖 LLM Fallback（AI Skill Platform）</h3>
+          <div className="text-sm text-slate-700 flex flex-col gap-2">
+            <p>
+              使用者傳訊沒中任何意圖規則時，會 fallback 到外部 AI Skill Platform（內部部署在 GCP Cloud Run），由 platform 上的 agent 回覆。每筆 fallback 都會記到 <code>unmatched_intents</code> 表，供 ops review 並轉成正式意圖規則。
+            </p>
+            <p>
+              <strong>OA 設定</strong>：到該 OA 的「設定」tab，「AI Skill Platform」區塊填三欄：
+            </p>
+            <ul className="list-disc pl-5 flex flex-col gap-1">
+              <li><strong>Default Agent ID</strong>：fallback 預設用哪個 agent（例 <code>nutrition_analyst</code>）</li>
+              <li><strong>Platform URL</strong>：base URL（不含 <code>/vitera/run</code>，程式自己接）</li>
+              <li><strong>Bearer Token</strong>：在 warehouse 端用 <code>Token.tokenize(member)</code> 產出的 JWT。Vitera 不簽 token，原封轉發到 platform 的 <code>Authorization: Bearer</code> header</li>
+            </ul>
+            <p>
+              填完按「↻ 測連線」— 會用 OA 的設定走真 adkRun，綠燈代表使用者真的會收到回覆。
+            </p>
+            <p>
+              <strong>Fast-path / Slow-path</strong>：webhook 9 秒內收到 LLM 回應 → 用 replyToken 同步回覆（免費、有 reply 樣式）。超過 9 秒 → webhook 200 ack 後背景等，回來改用 pushText（會計入 push 配額）。對話紀錄 outbound 訊息源頭會顯示 🤖 紫色「AI Fallback」badge，慢回應會額外標 🐢、錯誤會標 ⚠。
+            </p>
+            <p>
+              更詳細的操作 / 排查見 <a className="underline" href="https://github.com/Cofit/Vitera/blob/main/docs/how-to/operating-llm-fallback.md" target="_blank" rel="noreferrer"><code>docs/how-to/operating-llm-fallback.md</code></a>。
+            </p>
           </div>
         </section>
 
@@ -422,15 +502,26 @@ export default function ManualPage() {
         </section>
 
         <section id="conversations" className="hq-card">
-          <h3 className="text-lg font-bold mb-2">💬 對話紀錄與即時編輯</h3>
+          <h3 className="text-lg font-bold mb-2">💬 對話紀錄、手動推送、即時編輯</h3>
           <div className="text-sm text-slate-700 flex flex-col gap-2">
             <p>
               OA 工作區「對話」tab（<code>/oa/[id]?tab=conversations</code>）三欄佈局：
             </p>
             <ul className="list-disc pl-5 flex flex-col gap-1">
-              <li><strong>左欄</strong>：此 OA 的使用者列表，依最近活動排序、可 user_id 搜尋</li>
-              <li><strong>中欄</strong>：訊息泡泡（outbound 綠色靠右、inbound 白色靠左），flex 可展開看完整 JSON，每則附 source 標籤（意圖/AI 顧問/排程推播/任務通知/徽章通知…）</li>
+              <li><strong>左欄</strong>：此 OA 的使用者列表，顯示 LINE display_name + 大頭貼，依最近活動排序、可名字 / user_id 搜尋。新訊息在頁面最上面（DESC），到底有「↓ 載入更早訊息」分頁按鈕</li>
+              <li><strong>中欄</strong>：訊息泡泡（outbound 綠色靠右、inbound 白色靠左），flex 可展開看完整 JSON，每則附 <strong>來源 badge</strong>（見下表）。中欄頂端有「<strong>🚀 手動推送</strong>」按鈕：選 ContentItem → 立刻推給該使用者，不需透過 LINE 或 cron</li>
               <li><strong>右欄</strong>：選中使用者的即時狀態 — Journey、連續天數、進行中任務、徽章、屬性</li>
+            </ul>
+            <p>
+              <strong>來源 badge 速查</strong>（每則 outbound 訊息底下）：
+            </p>
+            <ul className="list-disc pl-5 flex flex-col gap-1">
+              <li>🎯 <strong>意圖規則</strong>（綠）— 命中某條 intent rule，後面顯示規則名稱（hover 看 rule_id）</li>
+              <li>🤖 <strong>AI Fallback</strong>（紫）— 沒中 intent，走 LLM。後面顯示 agent。可附 🐢 慢回應 / ⚠ 錯誤</li>
+              <li>🌗 <strong>Phase 每日推送</strong>（紫）— Journey schedule cron 推的</li>
+              <li>🚀 <strong>手動推送</strong>（橘）— ops 從這個 tab 手動送的</li>
+              <li>⏰ <strong>習慣提醒</strong>（琥珀）— habit reminder cron</li>
+              <li>排程推播 / 任務通知 / 徽章通知 / 加好友歡迎 / Postback 回覆 — 各有對應顏色與 icon</li>
             </ul>
             <p>
               <strong>右欄可直接編輯（客服場景最常用）</strong>：
