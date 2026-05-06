@@ -44,6 +44,15 @@ products.get('/', async (c) => {
   return c.json({ products: rows });
 });
 
+// GET /api/products/seed-templates — list available templates.
+// Must register BEFORE /:id, otherwise Hono matches "seed-templates" as
+// a productId, hits the catch-all 404 in /:id, and the seed UI silently
+// renders "尚無範本可用". Same for any future literal-path routes — they
+// all need to come before the /:id pattern.
+products.get('/seed-templates', async (c) => {
+  return c.json({ templates: SEED_TEMPLATE_LIST });
+});
+
 // GET /api/products/:id
 products.get('/:id', async (c) => {
   const id = c.req.param('id');
@@ -599,12 +608,8 @@ products.delete('/:productId/journeys/:id', async (c) => {
 });
 
 // ─── Seed templates (demo data) ─────────────────────────────────────────────
-
-// GET /api/products/seed-templates — list available templates.
-// Mounted outside :productId so it's independent of any existing product.
-products.get('/seed-templates', async (c) => {
-  return c.json({ templates: SEED_TEMPLATE_LIST });
-});
+// (Note: GET /seed-templates is registered earlier, before /:id, to avoid
+//  Hono treating "seed-templates" as a productId.)
 
 // POST /api/products/:productId/seed
 // Body: { template: 'wellness_21d' }
