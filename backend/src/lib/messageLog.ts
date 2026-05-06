@@ -12,7 +12,8 @@ export type MessageLogSource =
   | 'scheduler_ai'
   | 'mission_notify'
   | 'badge_notify'
-  | 'habit_reminder';
+  | 'habit_reminder'
+  | 'manual_push';
 
 export interface LogInput {
   oaId: number;

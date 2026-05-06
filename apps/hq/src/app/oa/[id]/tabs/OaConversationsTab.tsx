@@ -1,7 +1,7 @@
 'use client';
 import { apiFetch } from '@vitera/lib';
 import { useCallback, useEffect, useState } from 'react';
-import type { MessageLogRow } from '../../../../types';
+import type { MessageLogRow, ContentItem } from '../../../../types';
 import UserInfoPanel from './UserInfoPanel';
 
 interface Props {
@@ -40,6 +40,7 @@ function sourceMeta(source: string | null): SourceMeta {
     case 'mission_notify': return { label: '任務通知',   className: 'bg-sky-100 text-sky-700' };
     case 'badge_notify':   return { label: '徽章通知',   className: 'bg-amber-100 text-amber-700' };
     case 'habit_reminder': return { label: '習慣提醒',   className: 'bg-amber-100 text-amber-700', icon: '⏰' };
+    case 'manual_push':    return { label: '手動推送',   className: 'bg-orange-100 text-orange-700', icon: '🚀' };
     case 'scheduler_push': return { label: '排程推播',   className: 'bg-sky-100 text-sky-700' };
     case 'scheduler_ai':   return { label: '排程 AI 推播', className: 'bg-violet-100 text-violet-700' };
     case 'user':           return { label: '', className: '' };
@@ -169,6 +170,11 @@ export default function OaConversationsTab({ oaId, productId }: Props) {
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
+  const [contents, setContents] = useState<ContentItem[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerKey, setPickerKey] = useState('');
+  const [pushing, setPushing] = useState(false);
+  const [pushStatus, setPushStatus] = useState<{ ok: boolean; msg: string } | null>(null);
 
   const loadUsers = useCallback(() => {
     setLoadingUsers(true);
@@ -238,6 +244,38 @@ export default function OaConversationsTab({ oaId, productId }: Props) {
     if (selectedUser) loadMessages(selectedUser);
     else { setMessages([]); setHasMore(false); }
   }, [selectedUser, loadMessages]);
+
+  // Pre-load the OA's bound product's content library so the test-push
+  // picker has options ready when admin opens the dropdown.
+  useEffect(() => {
+    if (!productId) { setContents([]); return; }
+    apiFetch(`/api/products/${productId}/content`)
+      .then(async r => r.ok ? r.json() as Promise<{ items: ContentItem[] }> : { items: [] })
+      .then(({ items }) => setContents(items ?? []))
+      .catch(err => console.error('[oa/conversations] load contents', err));
+  }, [productId]);
+
+  const testPush = async () => {
+    if (!selectedUser || !pickerKey) return;
+    setPushing(true);
+    setPushStatus(null);
+    try {
+      const res = await apiFetch(`/api/line/oa/${oaId}/manual-push`, {
+        method: 'POST',
+        body: JSON.stringify({ user_id: selectedUser, content_key: pickerKey }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      setPushStatus({ ok: true, msg: `已推送 ${pickerKey}` });
+      setTimeout(() => loadMessages(selectedUser), 800);  // refresh log
+    } catch (err) {
+      setPushStatus({ ok: false, msg: (err as Error).message });
+    } finally {
+      setPushing(false);
+    }
+  };
 
   const filteredUsers = filter.trim()
     ? (() => {
@@ -315,21 +353,53 @@ export default function OaConversationsTab({ oaId, productId }: Props) {
           </div>
         ) : (
           <>
-            <div className="bg-white border-b border-slate-200 px-4 py-2 flex items-center gap-2">
-              {(() => {
-                const u = users.find(x => x.user_id === selectedUser);
-                return (
-                  <>
-                    <span className="text-sm font-semibold text-slate-800 truncate">
-                      {u?.display_name ?? '(未命名)'}
-                    </span>
-                    <span className="font-mono text-[10px] text-slate-400 truncate" title={selectedUser}>
-                      {selectedUser}
-                    </span>
-                  </>
-                );
-              })()}
-              <span className="text-xs text-slate-400 whitespace-nowrap ml-auto">· {messages.length} 則</span>
+            <div className="bg-white border-b border-slate-200 px-4 py-2 flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const u = users.find(x => x.user_id === selectedUser);
+                  return (
+                    <>
+                      <span className="text-sm font-semibold text-slate-800 truncate">
+                        {u?.display_name ?? '(未命名)'}
+                      </span>
+                      <span className="font-mono text-[10px] text-slate-400 truncate" title={selectedUser}>
+                        {selectedUser}
+                      </span>
+                    </>
+                  );
+                })()}
+                <span className="text-xs text-slate-400 whitespace-nowrap ml-auto">· {messages.length} 則</span>
+                {productId && contents.length > 0 && (
+                  <button onClick={() => setPickerOpen(v => !v)}
+                    className="text-xs px-2.5 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50 shrink-0">
+                    🚀 手動推送
+                  </button>
+                )}
+              </div>
+              {pickerOpen && (
+                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded p-2">
+                  <select className="hq-input text-xs flex-1 min-w-0" value={pickerKey}
+                    onChange={e => setPickerKey(e.target.value)}>
+                    <option value="">— 選擇要推送的 ContentItem —</option>
+                    {contents.filter(c => c.is_active).map(c => (
+                      <option key={c.id} value={c.key}>
+                        {c.key}{c.title ? ` · ${c.title}` : ''} [{c.type}]
+                      </option>
+                    ))}
+                  </select>
+                  <button onClick={testPush} disabled={!pickerKey || pushing}
+                    className="text-xs px-3 py-1 rounded bg-orange-500 text-white disabled:opacity-50 shrink-0">
+                    {pushing ? '推送中...' : '送出'}
+                  </button>
+                  <button onClick={() => { setPickerOpen(false); setPickerKey(''); setPushStatus(null); }}
+                    className="text-xs text-slate-500 hover:text-slate-800 shrink-0">取消</button>
+                </div>
+              )}
+              {pushStatus && (
+                <div className={`text-xs px-2 py-1 rounded ${pushStatus.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                  {pushStatus.ok ? '✓' : '✗'} {pushStatus.msg}
+                </div>
+              )}
             </div>
             <div className="flex-1 overflow-y-auto p-4">
               {loadingMessages ? (

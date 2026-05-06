@@ -7,6 +7,7 @@ import {
 } from '../lib/db.js';
 import { fetchLineBotInfo } from '../lib/line.js';
 import { adkRun } from '../lib/adk.js';
+import { pushContentToUser } from '../lib/notify.js';
 
 const lineoa = new Hono();
 lineoa.use('*', authMiddleware);
@@ -103,6 +104,34 @@ lineoa.post('/:id/test-ai-platform', async (c) => {
       latency_ms: Date.now() - started,
       error: (err as Error).message,
     }, 502);
+  }
+});
+
+// POST /api/line/oa/:id/manual-push — manually push any ContentItem
+// from the OA's bound product to a specified user. Used by ops both
+// for day-N content demos before the cron lands AND as a real ongoing
+// tool for replaying / re-sending content to a single user. Bypasses
+// Journey state — purely renders the ContentItem and sends it as-is.
+lineoa.post('/:id/manual-push', async (c) => {
+  const id = c.req.param('id');
+  const oa = await getLineOAById(id);
+  if (!oa) return c.json({ error: '找不到此 LINE OA' }, 404);
+  if (!oa.product_id) return c.json({ error: 'OA 未綁定 product' }, 400);
+
+  let body: { user_id?: string; content_key?: string };
+  try { body = await c.req.json(); } catch { body = {}; }
+  if (!body.user_id || !body.content_key) {
+    return c.json({ error: 'user_id, content_key required' }, 400);
+  }
+
+  try {
+    await pushContentToUser(
+      oa.product_id, body.user_id, body.content_key,
+      'manual_push', `manual:${body.content_key}:${Date.now()}`,
+    );
+    return c.json({ ok: true, content_key: body.content_key, user_id: body.user_id });
+  } catch (err) {
+    return c.json({ ok: false, error: (err as Error).message }, 500);
   }
 });
 
