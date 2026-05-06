@@ -247,8 +247,268 @@ const WELLNESS_21D: SeedTemplate = {
   ],
 };
 
+// ─── 生理週期 28 天課程 ─────────────────────────────────────────────────────
+// 設計：identity transformation + 3 個 keystone habit（補/流/靜），
+// phase 切換完全由使用者主動回報（「月經來了」「結束了」「PMS」）。
+// 每個 phase 進入時靠 intent rule 的 reply_content_key 立即推 day_1
+// （之後加 evaluateJourneys hook 再改更乾淨）。
+
+const PERIOD_BUBBLE_DAY_1: object = {
+  type: 'bubble', size: 'mega',
+  header: { type: 'box', layout: 'vertical', contents: [
+    { type: 'text', text: '🩸 經期 Day 1', weight: 'bold', size: 'sm', color: '#831843' },
+  ] },
+  body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
+    { type: 'text', text: '妳的身體正在做一場大掃除。', weight: 'bold', size: 'lg', wrap: true },
+    { type: 'text', text: '為什麼會這麼累？', size: 'sm', color: '#666', weight: 'bold', margin: 'md' },
+    { type: 'text', text: '雌激素跟黃體素同時掉到谷底，身體用最多能量在子宮內膜剝離。妳沒有不勤勞，是真的不該勤勞。', size: 'sm', wrap: true, color: '#444' },
+    { type: 'separator', margin: 'md' },
+    { type: 'text', text: '今天 keystone：', size: 'xs', color: '#06c755', weight: 'bold', margin: 'md' },
+    { type: 'text', text: '🍂 補 — 鐵質很重要，紅肉/肝臟最好吸收', size: 'sm', wrap: true },
+    { type: 'text', text: '💧 流 — 紅糖薑茶 8 杯，溫的最好', size: 'sm', wrap: true },
+    { type: 'text', text: '🌙 靜 — 9 點上床，好好哭一場也行', size: 'sm', wrap: true },
+  ] },
+  footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
+    { type: 'button', style: 'primary', color: '#831843', action: { type: 'uri', label: '看補鐵組合', uri: 'https://example.com/iron' } },
+    { type: 'button', style: 'secondary', action: { type: 'postback', label: '🌙 我已完成今晚 wind-down', data: 'act=mission_complete&key=period_wind_down' } },
+  ] },
+};
+
+const PERIOD_BUBBLE_DAY_3: object = {
+  type: 'bubble', size: 'mega',
+  header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🩸 經期 Day 3', weight: 'bold', size: 'sm', color: '#831843' }] },
+  body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
+    { type: 'text', text: '最辛苦的兩天過了。', weight: 'bold', size: 'lg', wrap: true },
+    { type: 'text', text: '能量會慢慢回來，但別急。妳的身體還在修復內膜，這是接下來一個月精氣神的地基。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+    { type: 'separator', margin: 'md' },
+    { type: 'text', text: '今天 keystone：', size: 'xs', color: '#06c755', weight: 'bold', margin: 'md' },
+    { type: 'text', text: '🍂 補 — 桂圓紅棗茶補氣血', size: 'sm', wrap: true },
+    { type: 'text', text: '💧 流 — 仍是溫飲為主，避開冰', size: 'sm', wrap: true },
+    { type: 'text', text: '🌙 靜 — 試試貓牛式放鬆骨盆', size: 'sm', wrap: true },
+  ] },
+  footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
+    { type: 'button', style: 'primary', color: '#831843', action: { type: 'uri', label: '看溫補茶飲', uri: 'https://example.com/warm-tea' } },
+  ] },
+};
+
+const PERIOD_BUBBLE_DAY_7: object = {
+  type: 'bubble', size: 'mega',
+  header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🩸 經期 Day 7', weight: 'bold', size: 'sm', color: '#831843' }] },
+  body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
+    { type: 'text', text: '清理接近尾聲。', weight: 'bold', size: 'lg', wrap: true },
+    { type: 'text', text: '雌激素開始回升，妳會發現專注力跟皮膚狀態都在改善。經期結束時，傳「月經結束了」告訴我，我們就轉換頻道。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+  ] },
+  footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
+    { type: 'button', style: 'primary', action: { type: 'message', label: '月經結束了', text: '月經結束了' } },
+  ] },
+};
+
+const FOLLICULAR_BUBBLE_DAY_1: object = {
+  type: 'bubble', size: 'mega',
+  header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🌱 濾泡期 Day 1', weight: 'bold', size: 'sm', color: '#16a34a' }] },
+  body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
+    { type: 'text', text: '黃金週開始。', weight: 'bold', size: 'lg', wrap: true },
+    { type: 'text', text: '為什麼這幾天特別有衝勁？', size: 'sm', color: '#666', weight: 'bold', margin: 'md' },
+    { type: 'text', text: '雌激素一路爬升到巔峰。腦袋反應最快、體力代謝最高、社交慾望最強。把要動腦、要運動、要約人的事，都排在這 7-10 天。', size: 'sm', wrap: true, color: '#444' },
+    { type: 'separator', margin: 'md' },
+    { type: 'text', text: '今天 keystone：', size: 'xs', color: '#06c755', weight: 'bold', margin: 'md' },
+    { type: 'text', text: '🍂 補 — 抗氧化（藍莓、維他命 C）', size: 'sm', wrap: true },
+    { type: 'text', text: '💧 流 — 可以接受冷飲、補電解質', size: 'sm', wrap: true },
+    { type: 'text', text: '🌙 靜 — 有體力做 HIIT，但晚上仍要降溫', size: 'sm', wrap: true },
+  ] },
+  footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
+    { type: 'button', style: 'primary', color: '#16a34a', action: { type: 'uri', label: '看抗氧化組合', uri: 'https://example.com/antioxidant' } },
+  ] },
+};
+
+const FOLLICULAR_BUBBLE_DAY_5: object = {
+  type: 'bubble', size: 'mega',
+  header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🌱 濾泡期 Day 5（接近排卵）', weight: 'bold', size: 'sm', color: '#16a34a' }] },
+  body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
+    { type: 'text', text: '排卵期前的高光時刻。', weight: 'bold', size: 'lg', wrap: true },
+    { type: 'text', text: '基礎體溫即將拉高，黃體素開始準備接班。妳的吸引力跟語言感染力會在這幾天達到巔峰，是大膽說、大膽做的時候。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+  ] },
+};
+
+const FOLLICULAR_BUBBLE_DAY_10: object = {
+  type: 'bubble', size: 'mega',
+  header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🌱 濾泡期 Day 10', weight: 'bold', size: 'sm', color: '#16a34a' }] },
+  body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
+    { type: 'text', text: '黃金週末段。', weight: 'bold', size: 'lg', wrap: true },
+    { type: 'text', text: '能量還在但開始要收。如果妳今天感受到體溫升高、乳房微脹，那就是進入黃體期的訊號。傳「PMS」告訴我，我會切換到陪伴模式。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+  ] },
+  footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
+    { type: 'button', style: 'primary', action: { type: 'message', label: 'PMS', text: 'PMS' } },
+  ] },
+};
+
+const LUTEAL_BUBBLE_DAY_1: object = {
+  type: 'bubble', size: 'mega',
+  header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🍂 黃體期 Day 1', weight: 'bold', size: 'sm', color: '#c2410c' }] },
+  body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
+    { type: 'text', text: '步調開始向內。', weight: 'bold', size: 'lg', wrap: true },
+    { type: 'text', text: '黃體素接管後，妳會比較想獨處、容易被細節煩擾。這不是妳變難搞，是身體在替「萬一懷孕」的可能性做準備，整個系統都在保溫、保留。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+    { type: 'separator', margin: 'md' },
+    { type: 'text', text: '今天 keystone：', size: 'xs', color: '#06c755', weight: 'bold', margin: 'md' },
+    { type: 'text', text: '🍂 補 — Omega-3、鎂可以開始補', size: 'sm', wrap: true },
+    { type: 'text', text: '💧 流 — 改回溫飲，少咖啡因', size: 'sm', wrap: true },
+    { type: 'text', text: '🌙 靜 — 提前半小時上床，補鎂幫助睡眠', size: 'sm', wrap: true },
+  ] },
+  footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
+    { type: 'button', style: 'primary', color: '#c2410c', action: { type: 'uri', label: '看黃體期保健組', uri: 'https://example.com/luteal' } },
+  ] },
+};
+
+const LUTEAL_BUBBLE_DAY_7: object = {
+  type: 'bubble', size: 'mega',
+  header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🍂 黃體期 Day 7（PMS 高峰）', weight: 'bold', size: 'sm', color: '#c2410c' }] },
+  body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
+    { type: 'text', text: '可能會煩躁、想吃甜的、容易流淚。', weight: 'bold', size: 'lg', wrap: true },
+    { type: 'text', text: '這是激素波動，不是個性問題。允許自己今天少社交、晚上吃一塊 70% 黑巧克力安撫多巴胺。重點不是熬過去，是不要把這天的情緒當成定論。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+  ] },
+};
+
+const LUTEAL_BUBBLE_DAY_14: object = {
+  type: 'bubble', size: 'mega',
+  header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🍂 黃體期 Day 14', weight: 'bold', size: 'sm', color: '#c2410c' }] },
+  body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
+    { type: 'text', text: '清理即將開始。', weight: 'bold', size: 'lg', wrap: true },
+    { type: 'text', text: '把黑褲子、暖暖包、止痛藥放好。下次月經來時，傳「月經來了」我們就進入下一輪。妳已經完成第一個 cycle，不論做了多少 keystone，妳已經比上個月更認識自己一點點。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+  ] },
+  footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
+    { type: 'button', style: 'primary', action: { type: 'message', label: '月經來了', text: '月經來了' } },
+  ] },
+};
+
+const ONBOARDING_BUBBLE: object = {
+  type: 'bubble', size: 'mega',
+  header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🌱 歡迎', weight: 'bold', size: 'sm', color: '#4f46e5' }] },
+  body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
+    { type: 'text', text: '接下來 28 天，跟身體節奏和解。', weight: 'bold', size: 'lg', wrap: true },
+    { type: 'text', text: '這不是教妳「管控」月經，而是讓妳辨認週期裡每個階段的訊號，順著節奏照顧自己。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+    { type: 'separator', margin: 'md' },
+    { type: 'text', text: '我會陪妳練 3 件事：', size: 'xs', color: '#06c755', weight: 'bold', margin: 'md' },
+    { type: 'text', text: '🍂 補 — 對的階段補對的營養', size: 'sm' },
+    { type: 'text', text: '💧 流 — 每天的補水節奏', size: 'sm' },
+    { type: 'text', text: '🌙 靜 — 每晚 wind-down 儀式', size: 'sm' },
+    { type: 'text', text: '請在月經來的那天，傳「月經來了」給我，我們就開始。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+  ] },
+};
+
+const PERIOD_CYCLE_DEMO: SeedTemplate = {
+  key: 'period_cycle_demo',
+  name: '生理週期 28 天 (Demo)',
+  description: '使用者主動回報、phase-driven 內容、3 個 keystone（補/流/靜）。3 個 phase × 各取 3 個錨點日 = 9 張卡，可端到端跑完整循環。',
+
+  content: [
+    {
+      key: 'period_follow_welcome',
+      type: 'text',
+      body: '歡迎妳！我會陪妳跟身體節奏和解 28 天。\n\n請在月經來的那天，傳「月經來了」給我，我們就開始。',
+    },
+    {
+      key: 'period_onboarding',
+      type: 'flex',
+      title: '歡迎你的 28 天週期之旅',
+      body: JSON.stringify(ONBOARDING_BUBBLE),
+    },
+    { key: 'menstrual_day_1',  type: 'flex', title: '🩸 經期 Day 1',          body: JSON.stringify(PERIOD_BUBBLE_DAY_1) },
+    { key: 'menstrual_day_3',  type: 'flex', title: '🩸 經期 Day 3',          body: JSON.stringify(PERIOD_BUBBLE_DAY_3) },
+    { key: 'menstrual_day_7',  type: 'flex', title: '🩸 經期 Day 7（尾聲）',  body: JSON.stringify(PERIOD_BUBBLE_DAY_7) },
+    { key: 'follicular_day_1', type: 'flex', title: '🌱 濾泡 Day 1',          body: JSON.stringify(FOLLICULAR_BUBBLE_DAY_1) },
+    { key: 'follicular_day_5', type: 'flex', title: '🌱 濾泡 Day 5（接近排卵）', body: JSON.stringify(FOLLICULAR_BUBBLE_DAY_5) },
+    { key: 'follicular_day_10', type: 'flex', title: '🌱 濾泡 Day 10',         body: JSON.stringify(FOLLICULAR_BUBBLE_DAY_10) },
+    { key: 'luteal_day_1',     type: 'flex', title: '🍂 黃體 Day 1',          body: JSON.stringify(LUTEAL_BUBBLE_DAY_1) },
+    { key: 'luteal_day_7',     type: 'flex', title: '🍂 黃體 Day 7（PMS 高峰）', body: JSON.stringify(LUTEAL_BUBBLE_DAY_7) },
+    { key: 'luteal_day_14',    type: 'flex', title: '🍂 黃體 Day 14',         body: JSON.stringify(LUTEAL_BUBBLE_DAY_14) },
+  ],
+
+  missions: [
+    {
+      key: 'period_supplement_log',
+      name: '🍂 日補',
+      description: '對的階段補對的營養。經期補鐵、濾泡補抗氧化、黃體補鎂。',
+      mission_type: 'binary_daily',
+      frequency: 'daily',
+      category: 'period_keystone',
+      reminder: { enabled: true, time: '09:00' },
+    },
+    {
+      key: 'period_hydration_log',
+      name: '💧 日流',
+      description: '依階段不同的補水節奏。經期溫飲、濾泡電解質、黃體溫補。',
+      mission_type: 'quantitative_daily',
+      frequency: 'daily',
+      daily_target: 8,
+      unit: '杯',
+      step_value: 1,
+      category: 'period_keystone',
+    },
+    {
+      key: 'period_wind_down',
+      name: '🌙 日靜',
+      description: '每晚的 wind-down 儀式。11pm 前關手機、黃體期補鎂幫助入睡。',
+      mission_type: 'binary_daily',
+      frequency: 'daily',
+      category: 'period_keystone',
+      reminder: { enabled: true, time: '21:30' },
+    },
+  ],
+
+  // 第一輪 cycle 完成的徽章 — 黃體期最後一天觸發 luteal→menstrual transition 即視為一個 cycle 完成。
+  // 暫無乾淨的 trigger 對應，先用 mission_completed 對 supplement_log（會在習慣養成滿一週時自然觸發）。
+  badges: [],
+
+  journeys: [
+    {
+      key: 'period_cycle',
+      name: '生理週期',
+      description: '經期 → 濾泡 → 黃體 三階段，由使用者主動回報切換。',
+      phases: [
+        { key: 'menstrual',  name: '🩸 經期',   icon: '🩸' },
+        { key: 'follicular', name: '🌱 濾泡期', icon: '🌱' },
+        { key: 'luteal',     name: '🍂 黃體期', icon: '🍂' },
+      ],
+      transitions: [
+        { to_phase: 'menstrual',  trigger: { type: 'attribute_equals', attribute_key: 'period_state', value: 'menstrual' } },
+        { to_phase: 'follicular', trigger: { type: 'attribute_equals', attribute_key: 'period_state', value: 'follicular' } },
+        { to_phase: 'luteal',     trigger: { type: 'attribute_equals', attribute_key: 'period_state', value: 'luteal' } },
+      ],
+    },
+  ],
+
+  intents: [
+    {
+      name: '月經來了',
+      priority: 10,
+      match_type: 'keyword',
+      patterns: ['月經來了', '月經來', '來了', 'mc來', 'MC來', '經期開始', '生理期來'],
+      action_type: 'set_attribute',
+      // attribute_equals trigger fires Journey transition；reply_content_key 同步推 day_1 卡作為「進入 phase 立刻推」的暫時方案
+      action_config: { key: 'period_state', value: 'menstrual', reply_content_key: 'menstrual_day_1' },
+    },
+    {
+      name: '月經結束了',
+      priority: 10,
+      match_type: 'keyword',
+      patterns: ['月經結束', '結束了', '乾淨了', 'mc結束', 'MC結束', '生理期結束'],
+      action_type: 'set_attribute',
+      action_config: { key: 'period_state', value: 'follicular', reply_content_key: 'follicular_day_1' },
+    },
+    {
+      name: '進入黃體期 (PMS 感)',
+      priority: 10,
+      match_type: 'keyword',
+      patterns: ['PMS', 'pms', '黃體期', '快來月經了', '我快要月經了', '感覺要來了'],
+      action_type: 'set_attribute',
+      action_config: { key: 'period_state', value: 'luteal', reply_content_key: 'luteal_day_1' },
+    },
+  ],
+};
+
 export const SEED_TEMPLATES: Record<string, SeedTemplate> = {
   wellness_21d: WELLNESS_21D,
+  period_cycle_demo: PERIOD_CYCLE_DEMO,
 };
 
 export const SEED_TEMPLATE_LIST = Object.values(SEED_TEMPLATES).map(t => ({
