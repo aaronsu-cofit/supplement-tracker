@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>生理週期 Phase Journey — 設計討論</title>
+<style>
+  :root {
+    --bg: #FAFAFA;
+    --bg-card: #FFFFFF;
+    --fg: #1A202C;
+    --fg-body: #5E5873;
+    --fg-muted: #A2A2A2;
+    --border: #E7E7E7;
+    --border-strong: #D1D4D9;
+    --cyan: #00ACC8;
+    --cyan-50: #EDFDFD;
+    --cyan-700: #0987A0;
+    --orange: #EB901D;
+    --orange-50: #FFEED6;
+    --orange-100: #FEEBCB;
+    --warning-bg: #ffe1ba;
+    --warning-fg: #d07400;
+    --error-bg: #fee2e2;
+    --error-fg: #991b1b;
+    --success-bg: #dcfce7;
+    --success-fg: #166534;
+    --pink-50: #fdf2f8;
+    --pink-700: #9d174d;
+    --green-50: #f0fdf4;
+    --green-700: #166534;
+    --purple-50: #faf5ff;
+    --purple-700: #6b21a8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--fg-body);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.55;
+  }
+  .deck { width: 100vw; height: 100vh; position: relative; }
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 3.5rem 5rem 5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0;
+    transform: translateX(40px);
+    transition: opacity 350ms ease, transform 350ms ease;
+    pointer-events: none;
+    overflow: auto;
+  }
+  .slide.active { opacity: 1; transform: translateX(0); pointer-events: auto; }
+  .slide.prev { transform: translateX(-40px); }
+
+  .label {
+    color: var(--cyan);
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    font-weight: 700;
+  }
+  .label.warn { color: var(--orange); }
+  .label.audience-ops { color: var(--orange); }
+  .label.audience-eng { color: var(--purple-700); }
+
+  h1 {
+    font-size: 3.6rem;
+    line-height: 1.1;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin-bottom: 1.25rem;
+    color: var(--fg);
+  }
+  h1 small {
+    display: block;
+    font-size: 1.1rem;
+    color: var(--fg-muted);
+    font-weight: 500;
+    letter-spacing: 0;
+    margin-top: 1.25rem;
+    line-height: 1.5;
+  }
+  h2 {
+    font-size: 2.4rem;
+    line-height: 1.15;
+    font-weight: 700;
+    color: var(--fg);
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.005em;
+  }
+  h3 {
+    font-size: 1.4rem;
+    color: var(--fg);
+    margin-bottom: 0.75rem;
+    font-weight: 700;
+  }
+  p, li {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: var(--fg-body);
+  }
+  ul, ol { padding-left: 1.4rem; }
+  li { margin-bottom: 0.55rem; }
+  li::marker { color: var(--fg-muted); }
+  strong { color: var(--fg); font-weight: 700; }
+
+  .audience-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 0.4rem;
+  }
+  .audience-everyone { background: var(--cyan-50); color: var(--cyan-700); }
+  .audience-ops { background: var(--orange-50); color: var(--orange); }
+  .audience-eng { background: var(--purple-50); color: var(--purple-700); }
+  .audience-row {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.04);
+  }
+  .card h4 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--fg);
+    margin-bottom: 0.5rem;
+  }
+  .card p, .card li { font-size: 0.95rem; }
+  .card.cyan { border-left: 4px solid var(--cyan); }
+  .card.orange { border-left: 4px solid var(--orange); }
+  .card.purple { border-left: 4px solid var(--purple-700); }
+  .card.pink { border-left: 4px solid #db2777; }
+
+  .grid { display: grid; gap: 1rem; }
+  .grid.two { grid-template-columns: 1fr 1fr; }
+  .grid.three { grid-template-columns: repeat(3, 1fr); }
+
+  blockquote {
+    border-left: 3px solid var(--cyan);
+    padding: 0.8rem 1.2rem;
+    margin: 1rem 0;
+    background: var(--cyan-50);
+    border-radius: 4px;
+    color: var(--fg);
+    font-size: 1rem;
+  }
+  blockquote.warn {
+    border-color: var(--orange);
+    background: var(--orange-50);
+    color: #5d3a02;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 0.95rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.65rem 0.85rem;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    color: var(--fg-muted);
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  td.fg { color: var(--fg); font-weight: 600; }
+
+  code {
+    background: #F1F5F9;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.92em;
+    color: #0F172A;
+    font-family: 'Menlo', 'Monaco', monospace;
+  }
+  pre {
+    background: #0F172A;
+    color: #E2E8F0;
+    padding: 1.1rem 1.3rem;
+    border-radius: 8px;
+    font-family: 'Menlo', 'Monaco', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 0.75rem 0;
+  }
+  pre .kw { color: #fbbf24; }
+  pre .v  { color: #5ce0d8; }
+  pre .c  { color: #94a3b8; font-style: italic; }
+  pre .arrow { color: #f472b6; }
+
+  .nav {
+    position: fixed;
+    bottom: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1.25rem;
+    border-radius: 999px;
+    box-shadow: 0px 4px 24px rgba(0, 0, 0, 0.08);
+    z-index: 10;
+  }
+  .nav button {
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    color: var(--fg-body);
+    font-size: 1.1rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+  }
+  .nav button:hover { background: var(--cyan-50); color: var(--cyan); }
+  .nav .counter {
+    color: var(--fg-muted);
+    font-size: 0.85rem;
+    font-family: 'Montserrat', sans-serif;
+    min-width: 60px;
+    text-align: center;
+  }
+  .progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: var(--cyan);
+    transition: width 250ms ease;
+    z-index: 11;
+  }
+
+  .ask {
+    background: var(--orange-50);
+    border-left: 3px solid var(--orange);
+    padding: 1rem 1.2rem;
+    margin-top: 1.5rem;
+    border-radius: 0 6px 6px 0;
+  }
+  .ask::before {
+    content: "💬 待確認";
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--orange);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .ask ol, .ask ul { margin: 0; padding-left: 1.2rem; }
+  .ask li { color: #5d3a02; font-size: 1rem; margin-bottom: 0.5rem; }
+
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    align-items: center;
+    margin-top: 1rem;
+  }
+  .flow-step {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.65rem 1.2rem;
+    font-size: 0.95rem;
+    color: var(--fg);
+    box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.04);
+    text-align: center;
+    min-width: 320px;
+  }
+  .flow-step.user   { background: #fdf2f8; border-color: #fbcfe8; color: #831843; }
+  .flow-step.intent { background: #faf5ff; border-color: #e9d5ff; color: #6b21a8; }
+  .flow-step.attr   { background: #FFF7ED; border-color: #FED7AA; color: #9A3412; }
+  .flow-step.journey{ background: var(--cyan-50); border-color: #BAE6FD; color: var(--cyan-700); }
+  .flow-step.action { background: #ECFDF5; border-color: #A7F3D0; color: #065F46; }
+  .flow-step.cron   { background: #F5F3FF; border-color: #DDD6FE; color: #5B21B6; }
+  .flow-arrow {
+    font-size: 1.4rem;
+    color: var(--fg-muted);
+    line-height: 0.8;
+  }
+
+  .pill-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+  }
+  .pill-list code {
+    background: var(--cyan-50);
+    color: var(--cyan-700);
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+  }
+
+  .checkbox-list li {
+    list-style: none;
+    margin-left: -1.4rem;
+    padding-left: 1.6rem;
+    position: relative;
+  }
+  .checkbox-list li::before {
+    content: "☐";
+    position: absolute;
+    left: 0;
+    color: var(--cyan);
+    font-size: 1.1rem;
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 0. 標題 -->
+  <section class="slide">
+    <div class="label">design draft · 2026-05</div>
+    <h1>生理週期 Phase Journey<br/>設計討論
+      <small>使用者主動回報、Phase-driven 每日推送、不做預測。<br/>給操作 HQ 的同事 + 想理解流程的同事都看得懂。</small>
+    </h1>
+    <div class="audience-row">
+      <span class="audience-tag audience-everyone">⭕ 全員</span>
+      <span class="audience-tag audience-ops">🛠 HQ 操作</span>
+      <span class="audience-tag audience-eng">⚙️ 程式</span>
+      <span style="font-size: 0.85rem; color: var(--fg-muted); margin-left: 0.5rem;">每張投影片左上角會標示適合誰看</span>
+    </div>
+  </section>
+
+  <!-- 1. TL;DR -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-everyone">⭕ 全員</span>
+    </div>
+    <div class="label">tl;dr</div>
+    <h2>一句話設計</h2>
+    <blockquote>
+      <strong>使用者說「月經來了」/「結束了」 → 系統自動切 phase →
+      每天根據「user 在這個 phase 的第幾天」推對應內容。</strong>
+    </blockquote>
+    <p style="margin-top:1.5rem;">不做預測排程、不做時間 fallback、不做循環計數、不做退出流程。<br/>
+      把現有的 <strong>UserAttribute / Journey / ContentItem / IntentRule</strong> 拼起來就成立。</p>
+  </section>
+
+  <!-- 2. 流程圖 -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-everyone">⭕ 全員</span>
+    </div>
+    <div class="label">flow</div>
+    <h2>整體流程</h2>
+    <div class="flow">
+      <div class="flow-step user">👤 user 在 LINE 說「月經來了」</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step intent">🎯 Intent Rule 命中關鍵字</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step attr">📝 set_attribute period_state=menstrual</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step journey">🔄 Journey 自動切到 menstrual phase（記 entered_at）</div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step action">📩 立刻 push <code>menstrual_day_1</code> 歡迎內容</div>
+      <div class="flow-arrow" style="margin-top:0.6rem;">⋯</div>
+      <div class="flow-step cron">⏰ 每日 cron：算 day_in_phase = today − entered_at + 1<br/>查 ContentItem「menstrual_day_N」推送</div>
+    </div>
+  </section>
+
+  <!-- 3. 你做了哪些選擇 -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-everyone">⭕ 全員</span>
+    </div>
+    <div class="label">decisions</div>
+    <h2>5 個關鍵決定 → 5 個對應的「不做」</h2>
+    <table>
+      <thead><tr><th>決定</th><th>對應簡化</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="fg">只靠 user 主動回報</td>
+          <td>不寫預測排程、onboarding 不問 last_period_date / cycle_length</td>
+        </tr>
+        <tr>
+          <td class="fg">Phase 內每天不同 + 準備很多天份量</td>
+          <td>不寫條件分支；超過準備天數就停推</td>
+        </tr>
+        <tr>
+          <td class="fg">Phase 沒切走放著</td>
+          <td>不寫 timeout cron；user 不更新就停在原 phase</td>
+        </tr>
+        <tr>
+          <td class="fg">跨 cycle 沒差別</td>
+          <td>不寫 cycle counter；每次切回經期就是新一輪</td>
+        </tr>
+        <tr>
+          <td class="fg">直接退出</td>
+          <td>不寫 graceful exit；user 想停就 unfollow / mute</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 4. Phase 與 Day 範圍 -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-everyone">⭕ 全員</span>
+    </div>
+    <div class="label">phase × day</div>
+    <h2>3 個 Phase × 各自準備 N 天份量</h2>
+    <div class="grid three" style="margin-top:1rem;">
+      <div class="card pink">
+        <h4>🩸 menstrual（經期）</h4>
+        <p>實際：3-7 天<br/>準備：<strong>Day 1 ~ Day 10</strong></p>
+        <p style="margin-top:0.5rem; color:var(--fg-muted); font-size:0.85rem;">超過 10 天沒切換就停推</p>
+      </div>
+      <div class="card cyan">
+        <h4>🌱 follicular（濾泡期）</h4>
+        <p>實際：7-14 天<br/>準備：<strong>Day 1 ~ Day 14</strong></p>
+        <p style="margin-top:0.5rem; color:var(--fg-muted); font-size:0.85rem;">含排卵期內容</p>
+      </div>
+      <div class="card orange">
+        <h4>🍂 luteal（黃體期）</h4>
+        <p>實際：10-14 天<br/>準備：<strong>Day 1 ~ Day 20</strong></p>
+        <p style="margin-top:0.5rem; color:var(--fg-muted); font-size:0.85rem;">最容易拖延的階段</p>
+      </div>
+    </div>
+    <p style="margin-top:1.5rem;">合計 <strong>~44 個 ContentItem</strong>，由 Zoly 把 spreadsheet 的內容灌進來。</p>
+    <p style="margin-top:0.4rem; color:var(--fg-muted); font-size:0.95rem;">命名約定：<code>menstrual_day_1</code>、<code>follicular_day_8</code>、<code>luteal_day_3</code> ⋯</p>
+  </section>
+
+  <!-- 5. 觸發詞 / Intent Rule -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-everyone">⭕ 全員</span>
+      <span class="audience-tag audience-ops">🛠 HQ 操作</span>
+    </div>
+    <div class="label">trigger</div>
+    <h2>3 條觸發路徑（Intent Rule）</h2>
+    <table>
+      <thead><tr><th>關鍵字（user 說）</th><th>動作</th><th>結果</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="fg">「月經來了」「來了」「mc來」</td>
+          <td>set_attribute <code>period_state=menstrual</code></td>
+          <td>切到 🩸 經期 phase</td>
+        </tr>
+        <tr>
+          <td class="fg">「月經結束」「結束了」「乾淨了」</td>
+          <td>set_attribute <code>period_state=follicular</code></td>
+          <td>切到 🌱 濾泡 phase</td>
+        </tr>
+        <tr>
+          <td class="fg">（依後續設計）</td>
+          <td>set_attribute <code>period_state=luteal</code></td>
+          <td>切到 🍂 黃體 phase</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="margin-top:1.5rem; color:var(--fg-muted); font-size:0.9rem;">
+      ⚠ 「進入黃體期」目前難以靠 user 主動辨識（沒有明顯生理訊號）。可能需要：postback 按鈕、或濾泡 Day 14 自動切、或乾脆不分濾泡/黃體只用兩 phase。<strong>下次討論再決定</strong>。
+    </p>
+  </section>
+
+  <!-- 6. Journey 設定（Ops） -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-ops">🛠 HQ 操作</span>
+    </div>
+    <div class="label audience-ops">hq setup</div>
+    <h2>Journey「period_cycle」設定</h2>
+    <p>HQ → 產品 → Journey → 新增：</p>
+    <pre>{
+  <span class="kw">"key"</span>: <span class="v">"period_cycle"</span>,
+  <span class="kw">"name"</span>: <span class="v">"生理週期"</span>,
+  <span class="kw">"phases"</span>: [
+    { <span class="kw">"key"</span>: <span class="v">"menstrual"</span>,  <span class="kw">"name"</span>: <span class="v">"🩸 經期"</span> },
+    { <span class="kw">"key"</span>: <span class="v">"follicular"</span>, <span class="kw">"name"</span>: <span class="v">"🌱 濾泡期"</span> },
+    { <span class="kw">"key"</span>: <span class="v">"luteal"</span>,     <span class="kw">"name"</span>: <span class="v">"🍂 黃體期"</span> }
+  ],
+  <span class="kw">"transitions"</span>: [
+    { <span class="kw">"to_phase"</span>: <span class="v">"menstrual"</span>,  <span class="kw">"trigger"</span>: { <span class="kw">"type"</span>: <span class="v">"attribute_equals"</span>, <span class="kw">"attribute_key"</span>: <span class="v">"period_state"</span>, <span class="kw">"value"</span>: <span class="v">"menstrual"</span> } },
+    { <span class="kw">"to_phase"</span>: <span class="v">"follicular"</span>, <span class="kw">"trigger"</span>: { <span class="kw">"type"</span>: <span class="v">"attribute_equals"</span>, <span class="kw">"attribute_key"</span>: <span class="v">"period_state"</span>, <span class="kw">"value"</span>: <span class="v">"follicular"</span> } },
+    { <span class="kw">"to_phase"</span>: <span class="v">"luteal"</span>,     <span class="kw">"trigger"</span>: { <span class="kw">"type"</span>: <span class="v">"attribute_equals"</span>, <span class="kw">"attribute_key"</span>: <span class="v">"period_state"</span>, <span class="kw">"value"</span>: <span class="v">"luteal"</span> } }
+  ]
+}</pre>
+    <p style="font-size:0.9rem; color:var(--fg-muted);">不指定 from_phase = 從任何 phase 都可切過去（含黃體 → 經期循環自然成立）。</p>
+  </section>
+
+  <!-- 7. 切 phase 當下立即推 day_1 -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-everyone">⭕ 全員</span>
+      <span class="audience-tag audience-eng">⚙️ 程式</span>
+    </div>
+    <div class="label audience-eng">on transition</div>
+    <h2>切 Phase 當下：立刻推 day_1</h2>
+    <p>User 不用等到隔天才看到回應。在 <code>evaluateJourneys()</code> 切完 phase 後加一個 hook：</p>
+    <pre><span class="c">// in evaluateJourneys()</span>
+<span class="kw">await</span> upsertUserJourneyPhase(productId, userId, tpl.key, t.to_phase);
+
+<span class="c">// 新增：phase 進入時立刻推 day_1 內容</span>
+<span class="kw">const</span> contentKey = <span class="v">`${t.to_phase}_day_1`</span>;
+<span class="kw">await</span> pushContentToUser(productId, userId, contentKey,
+  <span class="v">'journey_phase_enter'</span>, <span class="v">`${tpl.key}:${t.to_phase}:day_1`</span>);</pre>
+    <p style="margin-top:1rem;">若該 ContentItem 不存在 → 安靜略過（沒 day_1 也能用，例如某 phase 只想靠 daily cron 推）</p>
+  </section>
+
+  <!-- 8. 每日 cron -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-everyone">⭕ 全員</span>
+      <span class="audience-tag audience-eng">⚙️ 程式</span>
+    </div>
+    <div class="label audience-eng">daily cron</div>
+    <h2>每日推送邏輯</h2>
+    <pre><span class="c">// 每天早上 9 點跑（或自訂時間）</span>
+<span class="kw">async function</span> runPhaseDailyPush() {
+  <span class="kw">const</span> rows = <span class="kw">await</span> db.userJourneyPhase.findMany({ <span class="kw">where</span>: {} });
+
+  <span class="kw">for</span> (<span class="kw">const</span> row <span class="kw">of</span> rows) {
+    <span class="kw">const</span> daysIn = daysBetween(today, row.entered_at) <span class="arrow">+</span> 1;
+
+    <span class="c">// 切 phase 當天已推 day_1，這裡跳過避免重複</span>
+    <span class="kw">if</span> (daysIn === 1) <span class="kw">continue</span>;
+
+    <span class="kw">const</span> contentKey = <span class="v">`${row.phase_key}_day_${daysIn}`</span>;
+    <span class="kw">const</span> sourceRef = <span class="v">`${row.journey_key}:${row.phase_key}:day_${daysIn}`</span>;
+
+    <span class="c">// pushContentToUser 內部已防重發（message_log 唯一性）</span>
+    <span class="kw">await</span> pushContentToUser(row.product_id, row.user_id, contentKey,
+      <span class="v">'journey_phase_daily'</span>, sourceRef);
+  }
+}</pre>
+    <p style="margin-top:1rem;">超出準備天數 → ContentItem 不存在 → push 函式 noop（不會壞）</p>
+  </section>
+
+  <!-- 9. ContentItem 命名與灌資料 -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-ops">🛠 HQ 操作</span>
+    </div>
+    <div class="label audience-ops">content authoring</div>
+    <h2>ContentItem 命名與內容</h2>
+    <h3 style="margin-top:1rem;">命名規範</h3>
+    <div class="pill-list">
+      <code>menstrual_day_1</code><code>menstrual_day_2</code><code>...</code><code>menstrual_day_10</code>
+      <code>follicular_day_1</code><code>...</code><code>follicular_day_14</code>
+      <code>luteal_day_1</code><code>...</code><code>luteal_day_20</code>
+    </div>
+    <h3 style="margin-top:1.5rem;">內容類型可以混搭</h3>
+    <ul>
+      <li><code>text</code> — 純文字短訊息（簡單日子）</li>
+      <li><code>flex</code> — Flex 卡片（重要日子，含 ☐ task 按鈕、引導圖等）</li>
+      <li>同一個 phase 內可以混用（Day 1 用 flex 歡迎，Day 2-3 用 text，Day 5 又 flex）</li>
+    </ul>
+    <h3 style="margin-top:1.5rem;">內容生產者</h3>
+    <p>Zoly 把現有 28 天 spreadsheet 拆成 phase × day_n 灌進 HQ 內容庫。<br/>
+      <span style="color:var(--fg-muted); font-size:0.9rem;">未來可加 CSV 批次匯入工具加速這段（議題 4 提過）</span></p>
+  </section>
+
+  <!-- 10. HQ 操作清單（Ops） -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-ops">🛠 HQ 操作</span>
+    </div>
+    <div class="label audience-ops">setup checklist</div>
+    <h2>HQ 操作清單（給 ops）</h2>
+    <p style="margin-bottom:1rem;">以下都<strong>不需工程介入</strong>，純 HQ 設定：</p>
+    <ul class="checkbox-list">
+      <li>產品 → Journey → 新增「period_cycle」+ 3 個 phase + 3 條 transition</li>
+      <li>產品 → 意圖規則 → 「月經來了」（set_attribute period_state=menstrual + 可選 reply_content）</li>
+      <li>產品 → 意圖規則 → 「月經結束了」（set_attribute period_state=follicular）</li>
+      <li>產品 → 意圖規則 → 黃體期切換（暫定，看後續決定怎麼觸發）</li>
+      <li>產品 → 內容庫 → 灌 ~44 個 ContentItem（menstrual_day_1 ~ luteal_day_20）</li>
+      <li>OA → 設定 → 確認該 OA 已綁定該產品</li>
+    </ul>
+    <blockquote class="warn" style="margin-top:1.5rem;">
+      <strong>建議先建 1-2 個 phase × 3 天的內容做端到端測試</strong>，確認 user 訊息進來真的會切 phase + 推內容，再大量生產文案。
+    </blockquote>
+  </section>
+
+  <!-- 11. 工程要寫什麼（Eng） -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-eng">⚙️ 程式</span>
+    </div>
+    <div class="label audience-eng">engineering</div>
+    <h2>程式要寫的部分（合計 ~1 天）</h2>
+    <div class="grid two" style="margin-top:1rem;">
+      <div class="card purple">
+        <h4>① Phase 進入立刻推 day_1（半天）</h4>
+        <ul style="margin-top:0.5rem;">
+          <li>修改 <code>lib/journey.ts</code> 的 <code>evaluateJourneys()</code></li>
+          <li><code>upsertUserJourneyPhase</code> 後加 hook：拼 <code>${to_phase}_day_1</code> 呼叫 <code>pushContentToUser</code></li>
+          <li>ContentItem 不存在就 noop</li>
+        </ul>
+      </div>
+      <div class="card purple">
+        <h4>② 每日 cron 推當天內容（半天）</h4>
+        <ul style="margin-top:0.5rem;">
+          <li>新檔 <code>lib/phaseDailyPush.ts</code> + cron 註冊在 <code>index.ts</code></li>
+          <li>查所有 <code>UserJourneyPhase</code> → 算 day_in_phase → push 對應 ContentItem</li>
+          <li>idempotency 靠 <code>message_log</code> 既有防重發</li>
+          <li>當 day_in_phase = 1 跳過（已由 ① 推過）</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:1.5rem; color:var(--fg-muted); font-size:0.95rem;">
+      Schema 不動。完全用現有的 UserJourneyPhase / ContentItem / message_log。
+    </p>
+  </section>
+
+  <!-- 12. 不做什麼 -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-everyone">⭕ 全員</span>
+    </div>
+    <div class="label">out of scope</div>
+    <h2>明確「不做」（避免後續誤會）</h2>
+    <ul>
+      <li>❌ <strong>預測排程</strong> — 不問上次經期、週期長度；不算下次月經何時來</li>
+      <li>❌ <strong>Timeout fallback</strong> — phase 待太久不主動切；user 不回就停在原 phase</li>
+      <li>❌ <strong>Cycle counter</strong> — 不記第幾輪；每次切回 menstrual 都當新一輪一樣對待</li>
+      <li>❌ <strong>Graceful exit</strong> — 沒「我要結束課程」按鈕；user 想停就 unfollow</li>
+      <li>❌ <strong>個人化內容</strong> — 所有 user 的 menstrual_day_3 看到一樣的字</li>
+      <li>❌ <strong>排除規則</strong> — 不過濾 PCOS / 更年期 / 服避孕藥使用者（行銷端決定）</li>
+      <li>❌ <strong>跟保健品 / 鄭醫師營養課的串接</strong> — Phase 1 不做，第二版迭代再加</li>
+    </ul>
+    <p style="margin-top:1.5rem; color:var(--fg-muted); font-size:0.95rem;">這些不是放棄，是<strong>明確延後</strong>。每一條都是日後可加的迭代點。</p>
+  </section>
+
+  <!-- 13. 待確認的 3 件事 -->
+  <section class="slide">
+    <div class="audience-row">
+      <span class="audience-tag audience-everyone">⭕ 全員</span>
+    </div>
+    <h2>下次會議前需要決定的 3 件事</h2>
+    <div class="ask">
+      <ol>
+        <li><strong>進入新 phase 立刻推 day_1 對嗎？</strong>還是寧可隔天 cron 才推？<br/>
+          <span style="font-size:0.9rem;">建議：立刻推（user 馬上看到回應 = 好 UX）</span></li>
+        <li><strong>超出準備天數時的行為？</strong><br/>
+          a) 停推 b) loop 到最後一天<br/>
+          <span style="font-size:0.9rem;">建議：a 停推</span></li>
+        <li><strong>怎麼切到「黃體期」？</strong><br/>
+          a) user 手動觸發（但 user 不知道自己進入黃體了）<br/>
+          b) 濾泡 Day 14 自動切（time-based）<br/>
+          c) 不分濾泡/黃體，只做 menstrual + non-menstrual 兩 phase<br/>
+          <span style="font-size:0.9rem;">建議：b 或 c，需團隊討論</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 14. 結尾 -->
+  <section class="slide">
+    <div class="label">next step</div>
+    <h2>下一步</h2>
+    <ol style="margin-top:1rem; font-size:1.15rem;">
+      <li><strong>團隊 review 這份設計</strong>（特別是待確認的 3 件事）</li>
+      <li><strong>Zoly 拆 spreadsheet</strong> 為 menstrual / follicular / luteal 三組，各組多天份量</li>
+      <li><strong>工程實作 ~1 天</strong>：phase 進入 hook + daily cron</li>
+      <li><strong>Ops 設 1 個 phase × 3 天 ContentItem 做端到端測試</strong></li>
+      <li><strong>確認 OK 後</strong>，Zoly 灌完整 ~44 個 ContentItem</li>
+      <li><strong>上線</strong></li>
+    </ol>
+    <blockquote style="margin-top:1.5rem; font-size:1.1rem;">
+      工程量極小（~1 天）、schema 不動、純拼接現有 building blocks。<br/>
+      <strong>內容生產（Zoly 那段）</strong>才是時程的瓶頸。
+    </blockquote>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button id="prev" aria-label="上一頁">←</button>
+  <span class="counter" id="counter">1 / 14</span>
+  <button id="next" aria-label="下一頁">→</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  let i = 0;
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, idx) => {
+      s.classList.toggle('active', idx === i);
+      s.classList.toggle('prev', idx < i);
+    });
+    counter.textContent = `${i + 1} / ${slides.length}`;
+    progress.style.width = `${((i + 1) / slides.length) * 100}%`;
+  }
+  document.getElementById('prev').addEventListener('click', () => show(i - 1));
+  document.getElementById('next').addEventListener('click', () => show(i + 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(slides.length - 1);
+  });
+  show(0);
+</script>
+</body>
+</html>
