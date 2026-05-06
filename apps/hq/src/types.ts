@@ -241,11 +241,18 @@ export interface BadgeTemplate {
 
 // ─── Journey state machine ──────────────────────────────────────────────────
 
+export interface JourneyPhaseScheduleEntry {
+  day: number;
+  time: string;
+  content_key?: string;
+}
+
 export interface JourneyPhase {
   key: string;
   name: string;
   description?: string;
   icon?: string;
+  schedule?: JourneyPhaseScheduleEntry[];
 }
 
 export type JourneyTrigger =

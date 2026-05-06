@@ -69,6 +69,23 @@ export function validatePhases(phases: JourneyPhase[]): string | null {
     if (!p.name || typeof p.name !== 'string') return 'phase.name 需為非空字串';
     if (keys.has(p.key)) return `phase.key 重複：${p.key}`;
     keys.add(p.key);
+    if (p.schedule !== undefined) {
+      if (!Array.isArray(p.schedule)) return `phase ${p.key} 的 schedule 需為陣列`;
+      const days = new Set<number>();
+      for (const e of p.schedule) {
+        if (!e || typeof e.day !== 'number' || e.day < 1) {
+          return `phase ${p.key} 的 schedule.day 需為正整數`;
+        }
+        if (days.has(e.day)) return `phase ${p.key} 的 schedule.day 重複：${e.day}`;
+        days.add(e.day);
+        if (typeof e.time !== 'string' || !/^\d{1,2}:\d{2}$/.test(e.time)) {
+          return `phase ${p.key} 的 schedule.day=${e.day} time 格式需為 HH:MM`;
+        }
+        if (e.content_key !== undefined && typeof e.content_key !== 'string') {
+          return `phase ${p.key} 的 schedule.day=${e.day} content_key 需為字串`;
+        }
+      }
+    }
   }
   return null;
 }

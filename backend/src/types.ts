@@ -322,11 +322,29 @@ export interface UpdateBadgeTemplateInput {
 
 // ─── Journey state machine ──────────────────────────────────────────────────
 
+export interface JourneyPhaseScheduleEntry {
+  /** 1-indexed day in this phase. day=1 is intentionally not pushed by
+   *  the daily cron — it's handled by the phase-transition intent reply
+   *  so user gets instant feedback. */
+  day: number;
+  /** "HH:MM" in user's local tz. Cron tick window is ±5 min. */
+  time: string;
+  /** ContentItem key to push. Defaults to `${phase.key}_day_${day}` if
+   *  omitted, so the convention-based naming (menstrual_day_3, etc.) is
+   *  the no-config path. */
+  content_key?: string;
+}
+
 export interface JourneyPhase {
   key: string;
   name: string;
   description?: string;
   icon?: string;
+  /** Daily push schedule for this phase. Each entry maps a day_in_phase
+   *  to a clock time + ContentItem. Empty / missing entries → silent
+   *  on that day. day_1 entries are ignored by the cron (handled
+   *  by intent reply on transition). */
+  schedule?: JourneyPhaseScheduleEntry[];
 }
 
 export type JourneyTrigger =

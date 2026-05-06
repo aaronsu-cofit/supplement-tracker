@@ -470,9 +470,31 @@ const PERIOD_CYCLE_DEMO: SeedTemplate = {
       name: '生理週期',
       description: '經期 → 濾泡 → 黃體 三階段，由使用者主動回報切換。',
       phases: [
-        { key: 'menstrual',  name: '🩸 經期',   icon: '🩸' },
-        { key: 'follicular', name: '🌱 濾泡期', icon: '🌱' },
-        { key: 'luteal',     name: '🍂 黃體期', icon: '🍂' },
+        {
+          key: 'menstrual', name: '🩸 經期', icon: '🩸',
+          // day_1 由 intent rule reply_content_key 即時推；day_2+ 由 cron。
+          // 經期早晨 09:00 推，溫和提醒不打擾。
+          schedule: [
+            { day: 3, time: '09:00' },
+            { day: 7, time: '09:00' },
+          ],
+        },
+        {
+          key: 'follicular', name: '🌱 濾泡期', icon: '🌱',
+          // 濾泡能量好，中午 12:00 推（不會打斷早起運動）。
+          schedule: [
+            { day: 5, time: '12:00' },
+            { day: 10, time: '12:00' },
+          ],
+        },
+        {
+          key: 'luteal', name: '🍂 黃體期', icon: '🍂',
+          // 黃體較內斂，黃昏 20:00 推，搭配 wind-down 時段。
+          schedule: [
+            { day: 7, time: '20:00' },
+            { day: 14, time: '20:00' },
+          ],
+        },
       ],
       transitions: [
         { to_phase: 'menstrual',  trigger: { type: 'attribute_equals', attribute_key: 'period_state', value: 'menstrual' } },

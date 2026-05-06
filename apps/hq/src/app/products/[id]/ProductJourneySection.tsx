@@ -184,16 +184,20 @@ export default function ProductJourneySection({ productId }: Props) {
       <div className="flex flex-col gap-2 border border-slate-200 rounded p-2 bg-white">
         <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Phases（依序）</label>
         {form.phases.map((p, i) => (
-          <div key={i} className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-mono text-slate-400 w-6">{i + 1}.</span>
-            <input className="hq-input text-sm flex-1 min-w-[100px]" placeholder="key"
-              value={p.key} onChange={e => updatePhase(i, { key: e.target.value })} />
-            <input className="hq-input text-sm flex-1 min-w-[120px]" placeholder="name"
-              value={p.name} onChange={e => updatePhase(i, { name: e.target.value })} />
-            <input className="hq-input text-sm w-16" placeholder="icon"
-              value={p.icon ?? ''} onChange={e => updatePhase(i, { icon: e.target.value || undefined })} />
-            <button onClick={() => removePhase(i)}
-              className="text-xs text-red-600 hover:underline">移除</button>
+          <div key={i} className="flex flex-col gap-2 border border-slate-200 rounded p-2 bg-slate-50">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-mono text-slate-400 w-6">{i + 1}.</span>
+              <input className="hq-input text-sm flex-1 min-w-[100px]" placeholder="key"
+                value={p.key} onChange={e => updatePhase(i, { key: e.target.value })} />
+              <input className="hq-input text-sm flex-1 min-w-[120px]" placeholder="name"
+                value={p.name} onChange={e => updatePhase(i, { name: e.target.value })} />
+              <input className="hq-input text-sm w-16" placeholder="icon"
+                value={p.icon ?? ''} onChange={e => updatePhase(i, { icon: e.target.value || undefined })} />
+              <button onClick={() => removePhase(i)}
+                className="text-xs text-red-600 hover:underline">移除</button>
+            </div>
+            <PhaseScheduleEditor phase={p}
+              onChange={next => updatePhase(i, { schedule: next })} />
           </div>
         ))}
         <div>
@@ -480,6 +484,63 @@ export default function ProductJourneySection({ productId }: Props) {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+/** Per-phase daily schedule editor. Each row maps a day_in_phase number
+ *  to a HH:MM time and an optional content_key override. day=1 is
+ *  intentionally excluded — that's handled by the phase-transition
+ *  intent reply, not by the daily cron. */
+function PhaseScheduleEditor({
+  phase,
+  onChange,
+}: {
+  phase: JourneyPhase;
+  onChange: (next: JourneyPhase['schedule']) => void;
+}) {
+  const schedule = phase.schedule ?? [];
+  const update = (idx: number, patch: Partial<NonNullable<JourneyPhase['schedule']>[number]>) => {
+    const next = schedule.map((e, i) => i === idx ? { ...e, ...patch } : e);
+    onChange(next);
+  };
+  const remove = (idx: number) => onChange(schedule.filter((_, i) => i !== idx));
+  const add = () => {
+    // Default new entry to next-day after the last + 09:00
+    const lastDay = Math.max(1, ...schedule.map(s => s.day));
+    onChange([...schedule, { day: lastDay + 1, time: '09:00' }]);
+  };
+  return (
+    <div className="flex flex-col gap-1 mt-1 ml-8">
+      <div className="text-[11px] text-slate-500">
+        每日推送排程（day_1 由 phase 切換時的 intent 回覆推，這裡只設 day_2+）
+      </div>
+      {schedule.length === 0 ? (
+        <p className="text-xs text-slate-400">尚未設定 — phase 內每天無自動推送</p>
+      ) : (
+        schedule.map((e, i) => (
+          <div key={i} className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] text-slate-500 w-8">Day</span>
+            <input type="number" min={2} className="hq-input text-xs w-14"
+              value={e.day} onChange={ev => update(i, { day: Math.max(2, parseInt(ev.target.value, 10) || 2) })} />
+            <span className="text-[11px] text-slate-500">@</span>
+            <input type="time" className="hq-input text-xs w-24"
+              value={e.time} onChange={ev => update(i, { time: ev.target.value })} />
+            <input className="hq-input text-xs flex-1 min-w-[140px]"
+              placeholder={`content_key（預設 ${phase.key || '<phase>'}_day_${e.day}）`}
+              value={e.content_key ?? ''}
+              onChange={ev => update(i, { content_key: ev.target.value || undefined })} />
+            <button onClick={() => remove(i)}
+              className="text-[11px] text-red-600 hover:underline shrink-0">移除</button>
+          </div>
+        ))
+      )}
+      <div>
+        <button onClick={add}
+          className="text-[11px] px-2 py-0.5 rounded border border-slate-300 bg-white hover:bg-slate-50">
+          + 新增排程日
+        </button>
+      </div>
     </div>
   );
 }

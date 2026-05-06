@@ -6,6 +6,7 @@ import { logger } from 'hono/logger';
 import cron from 'node-cron';
 import { runDailyCycle } from './lib/scheduler.js';
 import { runReminderCycle } from './lib/reminders.js';
+import { runPhaseDailyPush } from './lib/phaseDailyPush.js';
 
 import authRoutes from './routes/auth.js';
 import supplementRoutes from './routes/supplements.js';
@@ -157,4 +158,37 @@ if (reminderCronExpr && reminderCronExpr !== 'off') {
   }
 } else {
   console.log('🔔 Reminder cron disabled (REMINDER_CRON=off)');
+}
+
+// ─── Phase daily push cron ───────────────────────────────────────────
+// Every-5-min tick that walks each user's current Journey phase and,
+// when the user's local clock crosses a configured day×time slot in
+// the phase schedule, pushes the corresponding ContentItem (defaults
+// to `${phase}_day_${N}` by naming convention). day_1 is intentionally
+// skipped — the phase-transition intent reply already handles it.
+// Set PHASE_DAILY_PUSH_CRON=off to disable.
+const phaseCronExpr = process.env.PHASE_DAILY_PUSH_CRON ?? '*/5 * * * *';
+if (phaseCronExpr && phaseCronExpr !== 'off') {
+  try {
+    cron.schedule(phaseCronExpr, async () => {
+      try {
+        const result = await runPhaseDailyPush();
+        if (result.sent > 0 || result.errors.length > 0) {
+          console.log('[cron/phase-daily-push] result', {
+            evaluated: result.evaluated,
+            sent: result.sent,
+            skipped: result.skipped,
+            errorCount: result.errors.length,
+          });
+        }
+      } catch (err) {
+        console.error('[cron/phase-daily-push] fatal', err);
+      }
+    });
+    console.log(`🌗 Phase daily push cron scheduled: '${phaseCronExpr}'`);
+  } catch (err) {
+    console.error('[cron/phase-daily-push] setup failed', err);
+  }
+} else {
+  console.log('🌗 Phase daily push cron disabled (PHASE_DAILY_PUSH_CRON=off)');
 }

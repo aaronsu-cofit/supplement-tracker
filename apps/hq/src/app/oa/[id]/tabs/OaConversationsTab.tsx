@@ -41,6 +41,7 @@ function sourceMeta(source: string | null): SourceMeta {
     case 'badge_notify':   return { label: '徽章通知',   className: 'bg-amber-100 text-amber-700' };
     case 'habit_reminder': return { label: '習慣提醒',   className: 'bg-amber-100 text-amber-700', icon: '⏰' };
     case 'manual_push':    return { label: '手動推送',   className: 'bg-orange-100 text-orange-700', icon: '🚀' };
+    case 'phase_daily_push':return { label: 'Phase 每日推送', className: 'bg-violet-100 text-violet-700', icon: '🌗' };
     case 'scheduler_push': return { label: '排程推播',   className: 'bg-sky-100 text-sky-700' };
     case 'scheduler_ai':   return { label: '排程 AI 推播', className: 'bg-violet-100 text-violet-700' };
     case 'user':           return { label: '', className: '' };

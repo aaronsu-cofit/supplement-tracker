@@ -13,7 +13,8 @@ export type MessageLogSource =
   | 'mission_notify'
   | 'badge_notify'
   | 'habit_reminder'
-  | 'manual_push';
+  | 'manual_push'
+  | 'phase_daily_push';
 
 export interface LogInput {
   oaId: number;
