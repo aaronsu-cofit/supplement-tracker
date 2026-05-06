@@ -299,7 +299,7 @@ const PERIOD_BUBBLE_DAY_7: object = {
     { type: 'text', text: '雌激素開始回升，妳會發現專注力跟皮膚狀態都在改善。經期結束時，傳「月經結束了」告訴我，我們就轉換頻道。', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
   ] },
   footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
-    { type: 'button', style: 'primary', action: { type: 'message', label: '月經結束了', text: '月經結束了' } },
+    { type: 'button', style: 'primary', color: '#831843', action: { type: 'message', label: '月經結束了', text: '月經結束了' } },
   ] },
 };
 
@@ -338,7 +338,7 @@ const FOLLICULAR_BUBBLE_DAY_10: object = {
     { type: 'text', text: '能量還在但開始要收。如果妳今天感受到體溫升高、乳房微脹，那就是進入黃體期的訊號。傳「PMS」告訴我，我會切換到陪伴模式。', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
   ] },
   footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
-    { type: 'button', style: 'primary', action: { type: 'message', label: 'PMS', text: 'PMS' } },
+    { type: 'button', style: 'primary', color: '#16a34a', action: { type: 'message', label: 'PMS', text: 'PMS' } },
   ] },
 };
 
@@ -376,7 +376,7 @@ const LUTEAL_BUBBLE_DAY_14: object = {
     { type: 'text', text: '把黑褲子、暖暖包、止痛藥放好。下次月經來時，傳「月經來了」我們就進入下一輪。妳已經完成第一個 cycle，不論做了多少 keystone，妳已經比上個月更認識自己一點點。', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
   ] },
   footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
-    { type: 'button', style: 'primary', action: { type: 'message', label: '月經來了', text: '月經來了' } },
+    { type: 'button', style: 'primary', color: '#c2410c', action: { type: 'message', label: '月經來了', text: '月經來了' } },
   ] },
 };
 
