@@ -260,8 +260,8 @@ const PERIOD_BUBBLE_DAY_1: object = {
   ] },
   body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
     { type: 'text', text: '妳的身體正在做一場大掃除。', weight: 'bold', size: 'lg', wrap: true },
-    { type: 'text', text: '為什麼會這麼累？', size: 'sm', color: '#666', weight: 'bold', margin: 'md' },
-    { type: 'text', text: '雌激素跟黃體素同時掉到谷底，身體用最多能量在子宮內膜剝離。妳沒有不勤勞，是真的不該勤勞。', size: 'sm', wrap: true, color: '#444' },
+    { type: 'text', text: '為什麼會這麼累？', size: 'sm', color: '#666666', weight: 'bold', margin: 'md' },
+    { type: 'text', text: '雌激素跟黃體素同時掉到谷底，身體用最多能量在子宮內膜剝離。妳沒有不勤勞，是真的不該勤勞。', size: 'sm', wrap: true, color: '#444444' },
     { type: 'separator', margin: 'md' },
     { type: 'text', text: '今天 keystone：', size: 'xs', color: '#06c755', weight: 'bold', margin: 'md' },
     { type: 'text', text: '🍂 補 — 鐵質很重要，紅肉/肝臟最好吸收', size: 'sm', wrap: true },
@@ -279,7 +279,7 @@ const PERIOD_BUBBLE_DAY_3: object = {
   header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🩸 經期 Day 3', weight: 'bold', size: 'sm', color: '#831843' }] },
   body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
     { type: 'text', text: '最辛苦的兩天過了。', weight: 'bold', size: 'lg', wrap: true },
-    { type: 'text', text: '能量會慢慢回來，但別急。妳的身體還在修復內膜，這是接下來一個月精氣神的地基。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+    { type: 'text', text: '能量會慢慢回來，但別急。妳的身體還在修復內膜，這是接下來一個月精氣神的地基。', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
     { type: 'separator', margin: 'md' },
     { type: 'text', text: '今天 keystone：', size: 'xs', color: '#06c755', weight: 'bold', margin: 'md' },
     { type: 'text', text: '🍂 補 — 桂圓紅棗茶補氣血', size: 'sm', wrap: true },
@@ -296,7 +296,7 @@ const PERIOD_BUBBLE_DAY_7: object = {
   header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🩸 經期 Day 7', weight: 'bold', size: 'sm', color: '#831843' }] },
   body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
     { type: 'text', text: '清理接近尾聲。', weight: 'bold', size: 'lg', wrap: true },
-    { type: 'text', text: '雌激素開始回升，妳會發現專注力跟皮膚狀態都在改善。經期結束時，傳「月經結束了」告訴我，我們就轉換頻道。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+    { type: 'text', text: '雌激素開始回升，妳會發現專注力跟皮膚狀態都在改善。經期結束時，傳「月經結束了」告訴我，我們就轉換頻道。', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
   ] },
   footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
     { type: 'button', style: 'primary', action: { type: 'message', label: '月經結束了', text: '月經結束了' } },
@@ -308,8 +308,8 @@ const FOLLICULAR_BUBBLE_DAY_1: object = {
   header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🌱 濾泡期 Day 1', weight: 'bold', size: 'sm', color: '#16a34a' }] },
   body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
     { type: 'text', text: '黃金週開始。', weight: 'bold', size: 'lg', wrap: true },
-    { type: 'text', text: '為什麼這幾天特別有衝勁？', size: 'sm', color: '#666', weight: 'bold', margin: 'md' },
-    { type: 'text', text: '雌激素一路爬升到巔峰。腦袋反應最快、體力代謝最高、社交慾望最強。把要動腦、要運動、要約人的事，都排在這 7-10 天。', size: 'sm', wrap: true, color: '#444' },
+    { type: 'text', text: '為什麼這幾天特別有衝勁？', size: 'sm', color: '#666666', weight: 'bold', margin: 'md' },
+    { type: 'text', text: '雌激素一路爬升到巔峰。腦袋反應最快、體力代謝最高、社交慾望最強。把要動腦、要運動、要約人的事，都排在這 7-10 天。', size: 'sm', wrap: true, color: '#444444' },
     { type: 'separator', margin: 'md' },
     { type: 'text', text: '今天 keystone：', size: 'xs', color: '#06c755', weight: 'bold', margin: 'md' },
     { type: 'text', text: '🍂 補 — 抗氧化（藍莓、維他命 C）', size: 'sm', wrap: true },
@@ -326,7 +326,7 @@ const FOLLICULAR_BUBBLE_DAY_5: object = {
   header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🌱 濾泡期 Day 5（接近排卵）', weight: 'bold', size: 'sm', color: '#16a34a' }] },
   body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
     { type: 'text', text: '排卵期前的高光時刻。', weight: 'bold', size: 'lg', wrap: true },
-    { type: 'text', text: '基礎體溫即將拉高，黃體素開始準備接班。妳的吸引力跟語言感染力會在這幾天達到巔峰，是大膽說、大膽做的時候。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+    { type: 'text', text: '基礎體溫即將拉高，黃體素開始準備接班。妳的吸引力跟語言感染力會在這幾天達到巔峰，是大膽說、大膽做的時候。', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
   ] },
 };
 
@@ -335,7 +335,7 @@ const FOLLICULAR_BUBBLE_DAY_10: object = {
   header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🌱 濾泡期 Day 10', weight: 'bold', size: 'sm', color: '#16a34a' }] },
   body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
     { type: 'text', text: '黃金週末段。', weight: 'bold', size: 'lg', wrap: true },
-    { type: 'text', text: '能量還在但開始要收。如果妳今天感受到體溫升高、乳房微脹，那就是進入黃體期的訊號。傳「PMS」告訴我，我會切換到陪伴模式。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+    { type: 'text', text: '能量還在但開始要收。如果妳今天感受到體溫升高、乳房微脹，那就是進入黃體期的訊號。傳「PMS」告訴我，我會切換到陪伴模式。', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
   ] },
   footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
     { type: 'button', style: 'primary', action: { type: 'message', label: 'PMS', text: 'PMS' } },
@@ -347,7 +347,7 @@ const LUTEAL_BUBBLE_DAY_1: object = {
   header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🍂 黃體期 Day 1', weight: 'bold', size: 'sm', color: '#c2410c' }] },
   body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
     { type: 'text', text: '步調開始向內。', weight: 'bold', size: 'lg', wrap: true },
-    { type: 'text', text: '黃體素接管後，妳會比較想獨處、容易被細節煩擾。這不是妳變難搞，是身體在替「萬一懷孕」的可能性做準備，整個系統都在保溫、保留。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+    { type: 'text', text: '黃體素接管後，妳會比較想獨處、容易被細節煩擾。這不是妳變難搞，是身體在替「萬一懷孕」的可能性做準備，整個系統都在保溫、保留。', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
     { type: 'separator', margin: 'md' },
     { type: 'text', text: '今天 keystone：', size: 'xs', color: '#06c755', weight: 'bold', margin: 'md' },
     { type: 'text', text: '🍂 補 — Omega-3、鎂可以開始補', size: 'sm', wrap: true },
@@ -364,7 +364,7 @@ const LUTEAL_BUBBLE_DAY_7: object = {
   header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🍂 黃體期 Day 7（PMS 高峰）', weight: 'bold', size: 'sm', color: '#c2410c' }] },
   body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
     { type: 'text', text: '可能會煩躁、想吃甜的、容易流淚。', weight: 'bold', size: 'lg', wrap: true },
-    { type: 'text', text: '這是激素波動，不是個性問題。允許自己今天少社交、晚上吃一塊 70% 黑巧克力安撫多巴胺。重點不是熬過去，是不要把這天的情緒當成定論。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+    { type: 'text', text: '這是激素波動，不是個性問題。允許自己今天少社交、晚上吃一塊 70% 黑巧克力安撫多巴胺。重點不是熬過去，是不要把這天的情緒當成定論。', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
   ] },
 };
 
@@ -373,7 +373,7 @@ const LUTEAL_BUBBLE_DAY_14: object = {
   header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🍂 黃體期 Day 14', weight: 'bold', size: 'sm', color: '#c2410c' }] },
   body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
     { type: 'text', text: '清理即將開始。', weight: 'bold', size: 'lg', wrap: true },
-    { type: 'text', text: '把黑褲子、暖暖包、止痛藥放好。下次月經來時，傳「月經來了」我們就進入下一輪。妳已經完成第一個 cycle，不論做了多少 keystone，妳已經比上個月更認識自己一點點。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+    { type: 'text', text: '把黑褲子、暖暖包、止痛藥放好。下次月經來時，傳「月經來了」我們就進入下一輪。妳已經完成第一個 cycle，不論做了多少 keystone，妳已經比上個月更認識自己一點點。', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
   ] },
   footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
     { type: 'button', style: 'primary', action: { type: 'message', label: '月經來了', text: '月經來了' } },
@@ -385,13 +385,13 @@ const ONBOARDING_BUBBLE: object = {
   header: { type: 'box', layout: 'vertical', contents: [{ type: 'text', text: '🌱 歡迎', weight: 'bold', size: 'sm', color: '#4f46e5' }] },
   body: { type: 'box', layout: 'vertical', spacing: 'md', contents: [
     { type: 'text', text: '接下來 28 天，跟身體節奏和解。', weight: 'bold', size: 'lg', wrap: true },
-    { type: 'text', text: '這不是教妳「管控」月經，而是讓妳辨認週期裡每個階段的訊號，順著節奏照顧自己。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+    { type: 'text', text: '這不是教妳「管控」月經，而是讓妳辨認週期裡每個階段的訊號，順著節奏照顧自己。', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
     { type: 'separator', margin: 'md' },
     { type: 'text', text: '我會陪妳練 3 件事：', size: 'xs', color: '#06c755', weight: 'bold', margin: 'md' },
     { type: 'text', text: '🍂 補 — 對的階段補對的營養', size: 'sm' },
     { type: 'text', text: '💧 流 — 每天的補水節奏', size: 'sm' },
     { type: 'text', text: '🌙 靜 — 每晚 wind-down 儀式', size: 'sm' },
-    { type: 'text', text: '請在月經來的那天，傳「月經來了」給我，我們就開始。', size: 'sm', wrap: true, color: '#444', margin: 'md' },
+    { type: 'text', text: '請在月經來的那天，傳「月經來了」給我，我們就開始。', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
   ] },
 };
 
