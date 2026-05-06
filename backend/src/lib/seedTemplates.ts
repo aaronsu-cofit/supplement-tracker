@@ -270,7 +270,7 @@ const PERIOD_BUBBLE_DAY_1: object = {
   ] },
   footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
     { type: 'button', style: 'primary', color: '#831843', action: { type: 'uri', label: '看補鐵組合', uri: 'https://example.com/iron' } },
-    { type: 'button', style: 'secondary', action: { type: 'postback', label: '🌙 我已完成今晚 wind-down', data: 'act=mission_complete&key=period_wind_down' } },
+    { type: 'button', style: 'secondary', action: { type: 'postback', label: '🌙 我已完成今晚 wind-down', data: 'act=complete_mission&key=period_wind_down&reply_content=period_wind_down_done' } },
   ] },
 };
 
@@ -405,6 +405,11 @@ const PERIOD_CYCLE_DEMO: SeedTemplate = {
       key: 'period_follow_welcome',
       type: 'text',
       body: '歡迎妳！我會陪妳跟身體節奏和解 28 天。\n\n請在月經來的那天，傳「月經來了」給我，我們就開始。',
+    },
+    {
+      key: 'period_wind_down_done',
+      type: 'text',
+      body: '🌙 今晚 wind-down 完成。\n睡前的儀式感是給自己的禮物。',
     },
     {
       key: 'period_onboarding',
