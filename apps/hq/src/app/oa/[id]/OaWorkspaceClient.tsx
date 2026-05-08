@@ -9,23 +9,46 @@ import OaOverviewTab from './tabs/OaOverviewTab';
 import OaMenusTab from './tabs/OaMenusTab';
 import OaSettingsTab from './tabs/OaSettingsTab';
 import OaConversationsTab from './tabs/OaConversationsTab';
+import ProductContentSection from '../../products/[id]/ProductContentSection';
+import ProductMissionSection from '../../products/[id]/ProductMissionSection';
+import ProductBadgeSection from '../../products/[id]/ProductBadgeSection';
+import ProductJourneySection from '../../products/[id]/ProductJourneySection';
+import ProductIntentSection from '../../products/[id]/ProductIntentSection';
 
-type TabKey = 'scenarios' | 'menus' | 'overview' | 'conversations' | 'settings';
+type TabKey =
+  | 'scenarios' | 'menus' | 'overview' | 'conversations' | 'settings'
+  | 'content' | 'missions' | 'badges' | 'journey' | 'intents';
 
-const TABS: { key: TabKey; label: string }[] = [
+interface TabDef { key: TabKey; label: string; productScope?: boolean }
+const OA_TABS: TabDef[] = [
   { key: 'scenarios', label: '劇本' },
   { key: 'menus', label: '選單' },
   { key: 'overview', label: '概覽' },
   { key: 'conversations', label: '對話' },
   { key: 'settings', label: '設定' },
 ];
+// Right of the | separator: tabs that operate on the OA's bound product.
+// Same data as /products/[id] — just brought in-context so ops doesn't
+// have to bounce between top-level navs to author content. The 🌐 icon
+// hints "this is product-scoped: edits affect every OA bound to it".
+const PRODUCT_TABS: TabDef[] = [
+  { key: 'content',  label: '內容', productScope: true },
+  { key: 'missions', label: '任務', productScope: true },
+  { key: 'badges',   label: '徽章', productScope: true },
+  { key: 'journey',  label: 'Journey', productScope: true },
+  { key: 'intents',  label: '意圖', productScope: true },
+];
+const ALL_TABS: TabDef[] = [...OA_TABS, ...PRODUCT_TABS];
+
+interface BoundProduct { id: string; name: string }
 
 export default function OaWorkspaceClient({ oaId }: { oaId: string }) {
   const params = useSearchParams();
   const rawTab = params.get('tab') as TabKey | null;
-  const activeTab: TabKey = TABS.some(t => t.key === rawTab) ? (rawTab as TabKey) : 'scenarios';
+  const activeTab: TabKey = ALL_TABS.some(t => t.key === rawTab) ? (rawTab as TabKey) : 'scenarios';
 
   const [oa, setOa] = useState<LineOA | null>(null);
+  const [boundProduct, setBoundProduct] = useState<BoundProduct | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,6 +67,19 @@ export default function OaWorkspaceClient({ oaId }: { oaId: string }) {
         setError('無法載入 OA 資料');
       });
   }, [oaId]);
+
+  // Resolve the bound product's name for the header link. Cheap one-shot
+  // — using the same /api/products list every page already loads.
+  useEffect(() => {
+    if (!oa?.product_id) { setBoundProduct(null); return; }
+    apiFetch('/api/products')
+      .then(r => r.ok ? r.json() : { products: [] })
+      .then((d: { products: BoundProduct[] }) => {
+        const p = (d.products ?? []).find(x => x.id === oa.product_id);
+        setBoundProduct(p ?? null);
+      })
+      .catch(() => setBoundProduct(null));
+  }, [oa?.product_id]);
 
   if (error) {
     return (
@@ -70,9 +106,28 @@ export default function OaWorkspaceClient({ oaId }: { oaId: string }) {
               {oa.is_active ? '啟用' : '停用'}
             </span>
           )}
+          {/* Cross-link to the bound product (Plan A): saves the round-trip
+             through the top-level Products nav when ops just wants to peek
+             or do shared-product editing. */}
+          {boundProduct && (
+            <>
+              <div className="w-px h-4 bg-slate-200" />
+              <Link href={`/products/${boundProduct.id}`}
+                className="text-xs text-slate-500 hover:text-slate-900 inline-flex items-center gap-1"
+                title="跳到產品設定頁">
+                🌐 產品：<span className="font-medium text-slate-700">{boundProduct.name}</span> →
+              </Link>
+            </>
+          )}
+          {!oa?.product_id && oa && (
+            <Link href={`/oa/${oaId}?tab=settings`}
+              className="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+              ⚠ 尚未綁定產品
+            </Link>
+          )}
         </div>
-        <div className="px-6 flex items-center gap-1">
-          {TABS.map(t => (
+        <div className="px-6 flex items-center gap-1 flex-wrap">
+          {OA_TABS.map(t => (
             <Link
               key={t.key}
               href={`/oa/${oaId}?tab=${t.key}`}
@@ -85,6 +140,25 @@ export default function OaWorkspaceClient({ oaId }: { oaId: string }) {
               {t.label}
             </Link>
           ))}
+          {oa?.product_id && (
+            <>
+              <div className="w-px h-4 bg-slate-200 mx-2" />
+              {PRODUCT_TABS.map(t => (
+                <Link
+                  key={t.key}
+                  href={`/oa/${oaId}?tab=${t.key}`}
+                  title="此 tab 編輯的是產品全域設定，會影響所有綁此產品的 OA"
+                  className={`text-sm px-4 py-2 border-b-2 transition-colors inline-flex items-center gap-1 ${
+                    activeTab === t.key
+                      ? 'border-cyan-600 text-cyan-700 font-semibold'
+                      : 'border-transparent text-slate-500 hover:text-cyan-700'
+                  }`}
+                >
+                  <span className="text-[10px] opacity-60">🌐</span>{t.label}
+                </Link>
+              ))}
+            </>
+          )}
         </div>
       </div>
 
@@ -99,6 +173,24 @@ export default function OaWorkspaceClient({ oaId }: { oaId: string }) {
         {activeTab === 'overview' && <OaOverviewTab oaId={oaId} />}
         {activeTab === 'conversations' && <OaConversationsTab oaId={oaId} productId={oa?.product_id ?? null} />}
         {activeTab === 'settings' && oa && <OaSettingsTab oa={oa} onChange={setOa} />}
+
+        {/* Product-scoped tabs: pass productId from the bound product.
+           The same components rendered on /products/[id] — same data,
+           same edits, just brought into the OA workspace so ops doesn't
+           have to bounce. The 🌐 hint banner reminds it's shared. */}
+        {oa?.product_id && (activeTab === 'content' || activeTab === 'missions' || activeTab === 'badges' || activeTab === 'journey' || activeTab === 'intents') && (
+          <div className="p-6 max-w-5xl flex flex-col gap-3">
+            <div className="hq-alert text-xs bg-cyan-50 text-cyan-800 border border-cyan-200">
+              🌐 此頁編輯的是產品「{boundProduct?.name ?? oa.product_id}」的<strong>全域設定</strong>，所有綁此產品的 OA 都會同步生效。
+              <Link href={`/products/${oa.product_id}`} className="underline ml-2">開啟產品設定 →</Link>
+            </div>
+            {activeTab === 'content'  && <ProductContentSection productId={oa.product_id} />}
+            {activeTab === 'missions' && <ProductMissionSection productId={oa.product_id} />}
+            {activeTab === 'badges'   && <ProductBadgeSection productId={oa.product_id} />}
+            {activeTab === 'journey'  && <ProductJourneySection productId={oa.product_id} />}
+            {activeTab === 'intents'  && <ProductIntentSection productId={oa.product_id} />}
+          </div>
+        )}
       </div>
     </div>
   );

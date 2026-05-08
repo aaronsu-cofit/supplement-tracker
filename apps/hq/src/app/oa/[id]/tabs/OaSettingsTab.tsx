@@ -31,6 +31,9 @@ export default function OaSettingsTab({ oa, onChange }: Props) {
     product_id: oa.product_id || '',
   });
   const [products, setProducts] = useState<Product[]>([]);
+  const [creatingProduct, setCreatingProduct] = useState(false);
+  const [newProductName, setNewProductName] = useState('');
+  const [creatingProductBusy, setCreatingProductBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -117,6 +120,33 @@ export default function OaSettingsTab({ oa, onChange }: Props) {
     }
   };
 
+  // Inline-create a Product so ops doesn't have to bounce to /products
+  // when first wiring up an OA. Auto-binds the resulting product_id to
+  // this OA's form state — user still hits 「儲存」 to persist the bind.
+  const handleCreateProduct = async () => {
+    if (!newProductName.trim()) return;
+    setCreatingProductBusy(true);
+    try {
+      const res = await apiFetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newProductName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '建立失敗');
+      const created = data.product as Product;
+      setProducts(prev => [...prev, created]);
+      setForm(p => ({ ...p, product_id: created.id }));
+      setNewProductName('');
+      setCreatingProduct(false);
+      setStatus({ type: 'success', message: `已建立產品「${created.name}」並選中，請按下方「儲存」完成綁定` });
+    } catch (err) {
+      setStatus({ type: 'error', message: (err as Error).message });
+    } finally {
+      setCreatingProductBusy(false);
+    }
+  };
+
   return (
     <div className="p-6 max-w-3xl flex flex-col gap-4">
       {status && (
@@ -141,19 +171,50 @@ export default function OaSettingsTab({ oa, onChange }: Props) {
         <h3 className="font-semibold text-lg">綁定產品</h3>
         <div className="flex flex-col gap-1">
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Product</label>
-          <select
-            className="hq-input"
-            value={form.product_id}
-            onChange={e => setForm(p => ({ ...p, product_id: e.target.value }))}
-          >
-            <option value="">（未綁定）</option>
-            {products.map(p => (
-              <option key={p.id} value={p.id}>{p.name}{p.is_active ? '' : '（停用）'}</option>
-            ))}
-          </select>
-          <p className="text-xs text-slate-500">
-            綁定後此 OA 會共用該 Product 的內容庫、意圖規則、劇本等設定。管理請至「產品」頁。
-          </p>
+          <div className="flex items-center gap-2">
+            <select
+              className="hq-input flex-1"
+              value={form.product_id}
+              onChange={e => setForm(p => ({ ...p, product_id: e.target.value }))}
+            >
+              <option value="">（未綁定）</option>
+              {products.map(p => (
+                <option key={p.id} value={p.id}>{p.name}{p.is_active ? '' : '（停用）'}</option>
+              ))}
+            </select>
+            <button onClick={() => setCreatingProduct(v => !v)}
+              className="text-xs px-3 py-2 rounded border border-slate-300 bg-white hover:bg-slate-50 shrink-0">
+              {creatingProduct ? '取消' : '+ 建立新產品'}
+            </button>
+          </div>
+          {creatingProduct && (
+            <div className="flex items-center gap-2 mt-2 bg-cyan-50 border border-cyan-200 rounded p-2">
+              <input className="hq-input text-sm flex-1" placeholder="新產品名稱（建好就自動選中此 OA）"
+                value={newProductName}
+                onChange={e => setNewProductName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCreateProduct(); } }} />
+              <button onClick={handleCreateProduct} disabled={creatingProductBusy || !newProductName.trim()}
+                className="text-xs px-3 py-2 rounded bg-cyan-600 text-white disabled:opacity-50 shrink-0">
+                {creatingProductBusy ? '建立中...' : '建立'}
+              </button>
+            </div>
+          )}
+          {form.product_id && (
+            <p className="text-xs text-slate-500 mt-1">
+              綁定後此 OA 會共用該 Product 的內容庫、意圖規則、劇本等設定。
+              {' '}
+              <a href={`/products/${form.product_id}`} target="_blank" rel="noreferrer"
+                className="underline text-cyan-700 hover:text-cyan-900">
+                開啟產品設定頁 →
+              </a>
+              {' '}（或用上方 🌐 tab 直接編輯）
+            </p>
+          )}
+          {!form.product_id && (
+            <p className="text-xs text-slate-500 mt-1">
+              綁定後此 OA 會共用該 Product 的內容庫、意圖規則、劇本等設定。
+            </p>
+          )}
         </div>
       </div>
 

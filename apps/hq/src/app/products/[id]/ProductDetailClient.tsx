@@ -174,16 +174,18 @@ export default function ProductDetailClient({ id }: Props) {
             ) : (
               <ul className="flex flex-col gap-1">
                 {product.oas.map(oa => (
-                  <li key={oa.id} className="flex items-center justify-between border-b border-slate-100 last:border-0 py-2">
-                    <div className="flex items-center gap-2">
-                      <span>{oa.name}</span>
-                      <span className={`hq-badge ${oa.is_active ? 'hq-badge-green' : 'hq-badge-gray'}`}>
+                  <li key={oa.id} className="flex items-center justify-between border-b border-slate-100 last:border-0 py-2 gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Link href={`/oa/${oa.id}`} className="font-medium hover:underline truncate">{oa.name}</Link>
+                      <span className={`hq-badge ${oa.is_active ? 'hq-badge-green' : 'hq-badge-gray'} shrink-0`}>
                         {oa.is_active ? '啟用' : '停用'}
                       </span>
                     </div>
-                    <Link href={`/oa/${oa.id}`} className="text-xs text-slate-500 hover:text-slate-900">
-                      前往 →
-                    </Link>
+                    <div className="flex items-center gap-3 text-xs text-slate-500 shrink-0">
+                      <Link href={`/oa/${oa.id}?tab=conversations`} className="hover:text-slate-900">💬 對話</Link>
+                      <Link href={`/oa/${oa.id}?tab=scenarios`} className="hover:text-slate-900">📖 劇本</Link>
+                      <Link href={`/oa/${oa.id}?tab=settings`} className="hover:text-slate-900">⚙️ 設定</Link>
+                    </div>
                   </li>
                 ))}
               </ul>
