@@ -79,11 +79,11 @@ export async function runDailyCycle(opts: DailyCycleOptions = {}): Promise<Sched
 
 /**
  * Runs the push-message scheduler once. Iterates all active enrollments
- * matching LINE_OA_ID (or legacy 'default'), computes days_since_enrollment
- * in the user's timezone, finds day-nodes in the scenario's flow matching
- * that day, follows outgoing edges to push-message-nodes, and pushes the
- * message via LINE — with per-call claim-first idempotency and retry on
- * transient errors.
+ * for each OA, computes days_since_enrollment in the user's timezone,
+ * finds day-nodes in the scenario's flow matching that day, follows
+ * outgoing edges to push-message-nodes, and pushes the message via
+ * LINE — with per-call claim-first idempotency and retry on transient
+ * errors.
  */
 export async function runScheduler(now: Date = new Date()): Promise<SchedulerRunResult> {
   // Determine which OAs to run for:
@@ -391,10 +391,10 @@ export async function dryRunScheduler(opts: DryRunOptions): Promise<DryRunResult
       ? (enr.scenario.flow_edges as unknown as FlowEdge[]) : [];
 
     // Look up OA to resolve contentKey / mission_key product scope
-    const oaIdNum = parseInt(enr.scenario.oa_id, 10);
-    const oa = Number.isFinite(oaIdNum)
-      ? await db().lineOA.findUnique({ where: { id: oaIdNum }, select: { id: true, product_id: true } })
-      : null;
+    const oa = await db().lineOA.findUnique({
+      where: { id: enr.scenario.oa_id },
+      select: { id: true, product_id: true },
+    });
 
     const describe = async (node: FlowNode, day: number): Promise<DryRunAction> => {
       const existing = await db().messageDelivery.findUnique({

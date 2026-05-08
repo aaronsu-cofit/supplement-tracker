@@ -15,11 +15,15 @@ const wizard = new Hono()
 wizard.use('*', authMiddleware)
 
 wizard.get('/oa/:oaId/scenarios', async (c) => {
-  const scenarios = await getScenariosForOA(c.req.param('oaId'))
+  const oaId = parseInt(c.req.param('oaId'), 10)
+  if (!Number.isFinite(oaId)) return c.json({ error: 'invalid oaId' }, 400)
+  const scenarios = await getScenariosForOA(oaId)
   return c.json({ scenarios })
 })
 
 wizard.post('/oa/:oaId/scenarios', async (c) => {
+  const oaId = parseInt(c.req.param('oaId'), 10)
+  if (!Number.isFinite(oaId)) return c.json({ error: 'invalid oaId' }, 400)
   let body: { name: string; flow_nodes?: unknown; flow_edges?: unknown }
   try {
     body = await c.req.json<{ name: string; flow_nodes?: unknown; flow_edges?: unknown }>()
@@ -28,7 +32,7 @@ wizard.post('/oa/:oaId/scenarios', async (c) => {
   }
   const { name, flow_nodes, flow_edges } = body
   if (!name?.trim()) return c.json({ error: 'name required' }, 400)
-  const scenario = await createScenario(c.req.param('oaId'), name.trim())
+  const scenario = await createScenario(oaId, name.trim())
   // If flow data provided, update immediately (atomic first-save)
   if (flow_nodes !== undefined || flow_edges !== undefined) {
     const updated = await updateScenario(scenario.id, { flow_nodes, flow_edges })

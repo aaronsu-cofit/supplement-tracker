@@ -68,11 +68,8 @@ async function findRuleMatch(
 ): Promise<DeployedTemplate | null> {
   if (deployed.length === 0) return null;
   try {
-    const [byId, byDefault] = await Promise.all([
-      getScenariosForOA(oaId.toString()),
-      getScenariosForOA('default'),
-    ]);
-    const activeScenario = [...byId, ...byDefault].find(s => s.is_active);
+    const scenarios = await getScenariosForOA(oaId);
+    const activeScenario = scenarios.find(s => s.is_active);
     if (!activeScenario) return null;
 
     const flowNodes = Array.isArray(activeScenario.flow_nodes)

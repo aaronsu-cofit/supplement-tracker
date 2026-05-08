@@ -577,7 +577,7 @@ export async function deactivateAllTemplates(oaId: string) {
 
 // ─── CoBlocks Scenarios ──────────────────────────────────────────────────────
 
-export async function getScenariosForOA(oaId: string) {
+export async function getScenariosForOA(oaId: number) {
   return db().coBlocksScenario.findMany({
     where: { oa_id: oaId },
     orderBy: { created_at: 'desc' },
@@ -588,7 +588,7 @@ export async function getScenarioById(id: string) {
   return db().coBlocksScenario.findUnique({ where: { id } });
 }
 
-export async function createScenario(oaId: string, name: string) {
+export async function createScenario(oaId: number, name: string) {
   return db().coBlocksScenario.create({
     data: { oa_id: oaId, name },
   });
@@ -713,10 +713,7 @@ export async function getLineUsers() {
 
 export async function getActiveScenariosForOA(oaId: number) {
   return db().coBlocksScenario.findMany({
-    where: {
-      is_active: true,
-      OR: [{ oa_id: oaId.toString() }, { oa_id: 'default' }],
-    },
+    where: { is_active: true, oa_id: oaId },
   });
 }
 
@@ -763,11 +760,6 @@ export async function enrollAllLineUsersInScenario(scenarioId: string): Promise<
   return users.length;
 }
 
-/**
- * Returns active enrollments for scenarios that (a) are is_active=true and
- * (b) belong to the given OA (or to legacy oa_id='default'). Includes user
- * timezone and the scenario's flow JSON for scheduler consumption.
- */
 export async function logEngagementEvent(userId: string, eventType: string, payload?: string) {
   return db().engagementEvent.create({
     data: { user_id: userId, event_type: eventType, payload: payload ?? null },
@@ -776,17 +768,13 @@ export async function logEngagementEvent(userId: string, eventType: string, payl
 
 /**
  * List active enrollments, optionally filtered to scenarios belonging to
- * the given OA (or legacy 'default'). When oaId is omitted returns all.
+ * the given OA. When oaId is omitted returns all.
  */
 export async function getActiveEnrollmentsList(limit = 50, oaId?: number) {
   return db().enrollment.findMany({
     where: {
       status: 'active',
-      ...(oaId != null && {
-        scenario: {
-          OR: [{ oa_id: oaId.toString() }, { oa_id: 'default' }],
-        },
-      }),
+      ...(oaId != null && { scenario: { oa_id: oaId } }),
     },
     orderBy: { enrolled_at: 'desc' },
     take: limit,
@@ -797,10 +785,6 @@ export async function getActiveEnrollmentsList(limit = 50, oaId?: number) {
   });
 }
 
-/**
- * Recent deliveries. When oaId is provided, restricts to scenarios of that
- * OA (plus legacy 'default') via a subquery on scenario_id.
- */
 /**
  * Recent deliveries with each row enriched by the scenario name and the
  * matching flow node's type and a small data snapshot. Node-level detail
@@ -815,7 +799,7 @@ export async function getRecentDeliveries(limit = 50, oaId?: number) {
     }
     const scenarioIds = (
       await db().coBlocksScenario.findMany({
-        where: { OR: [{ oa_id: oaId.toString() }, { oa_id: 'default' }] },
+        where: { oa_id: oaId },
         select: { id: true },
       })
     ).map(s => s.id);
@@ -860,10 +844,7 @@ export async function getActiveEnrollmentsForOA(oaId: number) {
   return db().enrollment.findMany({
     where: {
       status: 'active',
-      scenario: {
-        is_active: true,
-        OR: [{ oa_id: oaId.toString() }, { oa_id: 'default' }],
-      },
+      scenario: { is_active: true, oa_id: oaId },
     },
     include: {
       user: { select: { id: true, timezone: true } },

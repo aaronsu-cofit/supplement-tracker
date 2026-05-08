@@ -8,29 +8,49 @@ datasource db {
 }
 
 model User {
-  id            String   @id @db.VarChar(64)
-  email         String?  @unique @db.VarChar(200)
-  password_hash String?  @db.VarChar(200)
-  display_name  String?  @db.VarChar(200)
+  id            String    @id @db.VarChar(64)
+  email         String?   @unique @db.VarChar(200)
+  password_hash String?   @db.VarChar(200)
+  display_name  String?   @db.VarChar(200)
   picture_url   String?
-  auth_provider String   @db.VarChar(20)
-  role          String   @default("user") @db.VarChar(20)
-  timezone      String   @default("Asia/Taipei") @db.VarChar(50)
-  created_at    DateTime @default(now())
+  auth_provider String    @db.VarChar(20)
+  role          String    @default("user") @db.VarChar(20)
+  timezone      String    @default("Asia/Taipei") @db.VarChar(50)
+  created_at    DateTime  @default(now())
+  // Soft-delete marker. NULL = active. See lib/userDeletion.ts for the
+  // soft-delete + hard-purge SOP. All per-user platform tables cascade
+  // on hard DELETE so a single users-row delete wipes the trail.
+  deleted_at    DateTime?
 
-  supplements          Supplement[]
-  check_ins            CheckIn[]
-  wounds               Wound[]
-  wound_logs           WoundLog[]
-  foot_assessments     FootAssessment[]
-  foot_images          FootImage[]
-  shoe_images          ShoeImage[]
-  intimacy_assessments IntimacyAssessment[]
-  enrollments          Enrollment[]
-  diary_entries        DiaryEntry[]
-  relief_sessions      ReliefSession[]
-  assessment_results   AssessmentResult[]
+  supplements           Supplement[]
+  check_ins             CheckIn[]
+  wounds                Wound[]
+  wound_logs            WoundLog[]
+  foot_assessments      FootAssessment[]
+  foot_images           FootImage[]
+  shoe_images           ShoeImage[]
+  intimacy_assessments  IntimacyAssessment[]
+  enrollments           Enrollment[]
+  diary_entries         DiaryEntry[]
+  relief_sessions       ReliefSession[]
+  assessment_results    AssessmentResult[]
+  // Platform tables (LINE OA / DTx layer). Cascade on user delete for
+  // PII compliance; back-relations declared here so Prisma accepts the
+  // ON DELETE CASCADE in the migration.
+  mission_assignments   MissionAssignment[]
+  mission_daily_logs    MissionDailyLog[]
+  user_mission_settings UserMissionSetting[]
+  user_attributes       UserAttribute[]
+  user_streaks          UserStreak[]
+  user_badges           UserBadge[]
+  user_journey_phases   UserJourneyPhase[]
+  message_logs          MessageLog[]
+  message_deliveries    MessageDelivery[]
+  engagement_events     EngagementEvent[]
+  unmatched_intents     UnmatchedIntent[]
+  user_menu_assignments UserMenuAssignment[]
 
+  @@index([deleted_at], name: "idx_users_deleted_at")
   @@map("users")
 }
 
@@ -183,22 +203,23 @@ model Module {
 }
 
 model LineOA {
-  id                         Int      @id @default(autoincrement())
-  name                       String   @db.VarChar(200)
-  description                String?
-  channel_access_token       String   @db.VarChar(500)
-  channel_secret             String?  @db.VarChar(200)
-  line_destination_id        String?  @db.VarChar(64)
-  default_agent_id           String   @default("ai-expert") @db.VarChar(100)
-  ai_skill_platform_url      String?  @db.VarChar(500)
-  ai_skill_platform_api_key  String?  @db.VarChar(500)
-  product_id                 String?  @db.VarChar(30)
-  is_active                  Boolean  @default(true)
-  created_at                 DateTime @default(now())
-  updated_at                 DateTime @updatedAt
+  id                        Int      @id @default(autoincrement())
+  name                      String   @db.VarChar(200)
+  description               String?
+  channel_access_token      String   @db.VarChar(500)
+  channel_secret            String?  @db.VarChar(200)
+  line_destination_id       String?  @db.VarChar(64)
+  default_agent_id          String   @default("ai-expert") @db.VarChar(100)
+  ai_skill_platform_url     String?  @db.VarChar(500)
+  ai_skill_platform_api_key String?  @db.VarChar(500)
+  product_id                String?  @db.VarChar(30)
+  is_active                 Boolean  @default(true)
+  created_at                DateTime @default(now())
+  updated_at                DateTime @updatedAt
 
   richMenuTemplates LineOARichMenuTemplate[]
-  product           Product? @relation(fields: [product_id], references: [id], onDelete: SetNull)
+  scenarios         CoBlocksScenario[]
+  product           Product?                 @relation(fields: [product_id], references: [id], onDelete: SetNull)
 
   @@index([line_destination_id], name: "idx_line_oa_destination")
   @@index([product_id], name: "idx_line_oa_product")
@@ -217,13 +238,13 @@ model Product {
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 
-  oas                LineOA[]
-  content_items      ContentItem[]
-  intent_rules       IntentRule[]
-  mission_templates  MissionTemplate[]
-  badge_templates    BadgeTemplate[]
-  user_streaks       UserStreak[]
-  journey_templates  JourneyTemplate[]
+  oas               LineOA[]
+  content_items     ContentItem[]
+  intent_rules      IntentRule[]
+  mission_templates MissionTemplate[]
+  badge_templates   BadgeTemplate[]
+  user_streaks      UserStreak[]
+  journey_templates JourneyTemplate[]
 
   @@map("products")
 }
@@ -262,17 +283,17 @@ model ContentItem {
 //   - 'reply_content': config = { content_key }
 //   - 'set_attribute': config = { key, value, reply_content_key? }
 model IntentRule {
-  id          String   @id @default(cuid()) @db.VarChar(30)
-  product_id  String   @db.VarChar(30)
-  name        String   @db.VarChar(200)
-  priority    Int      @default(100)
-  match_type  String   @default("keyword") @db.VarChar(20)
-  patterns    Json
-  action_type String   @db.VarChar(50)
+  id            String   @id @default(cuid()) @db.VarChar(30)
+  product_id    String   @db.VarChar(30)
+  name          String   @db.VarChar(200)
+  priority      Int      @default(100)
+  match_type    String   @default("keyword") @db.VarChar(20)
+  patterns      Json
+  action_type   String   @db.VarChar(50)
   action_config Json
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
 
   product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
 
@@ -291,15 +312,15 @@ model IntentRule {
 //     path. Supported: set_attribute, assign_mission (chain). Keeps
 //     rewards declarative on the template so any path completes the same way.
 model MissionTemplate {
-  id                         String   @id @default(cuid()) @db.VarChar(30)
-  product_id                 String   @db.VarChar(30)
-  key                        String   @db.VarChar(100)
-  name                       String   @db.VarChar(200)
+  id                         String  @id @default(cuid()) @db.VarChar(30)
+  product_id                 String  @db.VarChar(30)
+  key                        String  @db.VarChar(100)
+  name                       String  @db.VarChar(200)
   description                String?
-  progress_target            Int      @default(1)
+  progress_target            Int     @default(1)
   auto_complete_on_attribute Json?
-  on_complete_actions        Json     @default("[]")
-  notify_content_key         String?  @db.VarChar(100)
+  on_complete_actions        Json    @default("[]")
+  notify_content_key         String? @db.VarChar(100)
 
   // ── Habit-tracker extensions ──────────────────────────────────────
   // mission_type:
@@ -312,29 +333,29 @@ model MissionTemplate {
   // For daily types, MissionAssignment stays pending permanently (it
   // represents "subscribed to this habit"); MissionDailyLog holds
   // per-day progress.
-  mission_type               String   @default("one_shot") @db.VarChar(30)
+  mission_type String  @default("one_shot") @db.VarChar(30)
   // frequency describes the cadence expectation — UI grouping hint.
   // 'once' for one_shot; 'daily' / 'weekly' / 'monthly' for recurring.
-  frequency                  String   @default("once") @db.VarChar(20)
+  frequency    String  @default("once") @db.VarChar(20)
   // quantitative_daily settings
-  daily_target               Int?
-  unit                       String?  @db.VarChar(30)
-  step_value                 Int?
+  daily_target Int?
+  unit         String? @db.VarChar(30)
+  step_value   Int?
   // checklist_daily subtasks: array of { key, label }
-  subtasks                   Json?
+  subtasks     Json?
   // Display grouping in LIFF / admin
-  category                   String?  @db.VarChar(50)
+  category     String? @db.VarChar(50)
   // Optional URL opened from a mission card button (LIFF / web form).
   // When set, the checklist flex button becomes a uri action instead
   // of a postback; the LIFF then reports completion via /api/me/...
-  action_url                 String?
+  action_url   String?
   // Reminder settings: { enabled: bool, time: "HH:MM" }. Scheduler
   // will eventually read this; for now just stored.
-  reminder                   Json?
+  reminder     Json?
 
-  is_active                  Boolean  @default(true)
-  created_at                 DateTime @default(now())
-  updated_at                 DateTime @updatedAt
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   product     Product             @relation(fields: [product_id], references: [id], onDelete: Cascade)
   assignments MissionAssignment[]
@@ -360,6 +381,8 @@ model UserMissionSetting {
   reminder_time    String?  @db.VarChar(10)
   updated_at       DateTime @updatedAt
 
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
   @@unique([user_id, template_id])
   @@index([user_id], name: "idx_user_mission_setting_user")
   @@map("user_mission_settings")
@@ -378,19 +401,20 @@ model UserMissionSetting {
 // completed today" (fire hooks) from "already completed earlier today"
 // (no-op) so on_complete_actions / notify only fire once per day.
 model MissionDailyLog {
-  id            Int      @id @default(autoincrement())
-  user_id       String   @db.VarChar(64)
-  template_id   String   @db.VarChar(30)
-  date          DateTime @db.Date
-  completed     Boolean  @default(false)
-  skipped       Boolean  @default(false)
-  value         Int      @default(0)
+  id            Int       @id @default(autoincrement())
+  user_id       String    @db.VarChar(64)
+  template_id   String    @db.VarChar(30)
+  date          DateTime  @db.Date
+  completed     Boolean   @default(false)
+  skipped       Boolean   @default(false)
+  value         Int       @default(0)
   subtask_state Json?
-  note          String?  @db.VarChar(500)
+  note          String?   @db.VarChar(500)
   completed_at  DateTime?
-  updated_at    DateTime @updatedAt
+  updated_at    DateTime  @updatedAt
 
   template MissionTemplate @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, template_id, date])
   @@index([user_id, date], name: "idx_mission_daily_log_user_date")
@@ -415,6 +439,7 @@ model MissionAssignment {
   completed_at     DateTime?
 
   template MissionTemplate @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, status], name: "idx_mission_assignments_user_status")
   @@index([template_id], name: "idx_mission_assignments_template")
@@ -426,16 +451,17 @@ model MissionAssignment {
 // the user's timezone; `incrementStreak` in lib/gamification.ts handles
 // the "already counted today / continuing yesterday / resetting" logic.
 model UserStreak {
-  id               Int      @id @default(autoincrement())
-  product_id       String   @db.VarChar(30)
-  user_id          String   @db.VarChar(64)
-  streak_key       String   @db.VarChar(100)
-  count_current    Int      @default(0)
-  count_best       Int      @default(0)
+  id               Int       @id @default(autoincrement())
+  product_id       String    @db.VarChar(30)
+  user_id          String    @db.VarChar(64)
+  streak_key       String    @db.VarChar(100)
+  count_current    Int       @default(0)
+  count_best       Int       @default(0)
   last_occurred_on DateTime? @db.Date
-  updated_at       DateTime @updatedAt
+  updated_at       DateTime  @updatedAt
 
   product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([product_id, user_id, streak_key])
   @@index([product_id, streak_key], name: "idx_user_streaks_product_key")
@@ -449,22 +475,22 @@ model UserStreak {
 // Evaluation happens after streak increments and mission completions
 // (see lib/gamification.ts).
 model BadgeTemplate {
-  id          String   @id @default(cuid()) @db.VarChar(30)
-  product_id  String   @db.VarChar(30)
-  key         String   @db.VarChar(100)
-  name        String   @db.VarChar(200)
-  description String?
+  id                 String   @id @default(cuid()) @db.VarChar(30)
+  product_id         String   @db.VarChar(30)
+  key                String   @db.VarChar(100)
+  name               String   @db.VarChar(200)
+  description        String?
   // Stored as TEXT to fit: emoji (1-4 chars), URL (~100 chars), or
   // data: URI (base64 image, can be tens of KB).
-  icon        String?  @db.Text
-  criteria    Json
+  icon               String?  @db.Text
+  criteria           Json
   // Same semantics as MissionTemplate.notify_content_key — sends the
   // referenced content item when the badge is awarded (once, since
   // badges are unique-per-user).
-  notify_content_key String? @db.VarChar(100)
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  notify_content_key String?  @db.VarChar(100)
+  is_active          Boolean  @default(true)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
 
   product     Product     @relation(fields: [product_id], references: [id], onDelete: Cascade)
   user_badges UserBadge[]
@@ -483,6 +509,7 @@ model UserBadge {
   earned_at   DateTime @default(now())
 
   template BadgeTemplate @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, template_id])
   @@index([user_id], name: "idx_user_badges_user")
@@ -526,16 +553,18 @@ model JourneyTemplate {
 // 'scheduler_push' | 'scheduler_ai'. `source_ref` optionally carries
 // rule id / scenario:node / agent id for debugging.
 model MessageLog {
-  id            Int      @id @default(autoincrement())
-  oa_id         Int
-  user_id       String   @db.VarChar(64)
-  direction     String   @db.VarChar(10)
-  type          String   @db.VarChar(20)
-  content_text  String?  @db.Text
-  content_json  Json?
-  source        String?  @db.VarChar(30)
-  source_ref    String?  @db.VarChar(200)
-  created_at    DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  oa_id        Int
+  user_id      String   @db.VarChar(64)
+  direction    String   @db.VarChar(10)
+  type         String   @db.VarChar(20)
+  content_text String?  @db.Text
+  content_json Json?
+  source       String?  @db.VarChar(30)
+  source_ref   String?  @db.VarChar(200)
+  created_at   DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([oa_id, created_at], name: "idx_message_log_oa_time")
   @@index([user_id, created_at], name: "idx_message_log_user_time")
@@ -554,6 +583,8 @@ model UserJourneyPhase {
   entered_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
   @@unique([product_id, user_id, journey_key])
   @@index([product_id, journey_key, phase_key], name: "idx_user_journey_phase")
   @@map("user_journey_phases")
@@ -563,6 +594,14 @@ model UserJourneyPhase {
 // life_stage, onboarding_done, allergies). Set during onboarding, by
 // intent classifier, or by mission completion. Consumed by flow
 // routing, content selection, personalization.
+// Multi-product safety: this table is NOT scoped by product_id, so a
+// user bound to two products with the same `key` shares the value
+// across both. Cross-product collisions must be prevented with a key
+// prefix convention — see backend/docs/db-conventions.md ("UserAttribute
+// keys"). Common product-specific prefixes already in use:
+//   period_*  → 月經週期 product
+//   nutri_*   → 營養 product
+// Generic keys (life_stage, primary_concern) are intentionally shared.
 model UserAttribute {
   id      Int      @id @default(autoincrement())
   user_id String   @db.VarChar(64)
@@ -570,8 +609,11 @@ model UserAttribute {
   value   String?
   set_at  DateTime @default(now())
 
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
   @@unique([user_id, key])
   @@index([user_id], name: "idx_user_attributes_user")
+  @@index([key, value], name: "idx_user_attributes_key_value")
   @@map("user_attributes")
 }
 
@@ -593,7 +635,7 @@ model LineOARichMenuTemplate {
 
 model CoBlocksScenario {
   id         String   @id @default(cuid())
-  oa_id      String
+  oa_id      Int
   name       String
   flow_nodes Json     @default("[]")
   flow_edges Json     @default("[]")
@@ -601,8 +643,11 @@ model CoBlocksScenario {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
+  oa          LineOA       @relation(fields: [oa_id], references: [id], onDelete: Cascade)
   enrollments Enrollment[]
 
+  @@index([oa_id], name: "idx_coblocks_scenarios_oa")
+  @@index([is_active], name: "idx_coblocks_scenarios_active")
   @@map("coblocks_scenarios")
 }
 
@@ -632,6 +677,8 @@ model UserMenuAssignment {
   source      String   @db.VarChar(20)
   assigned_at DateTime @default(now())
 
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
   @@unique([user_id, oa_id])
   @@index([oa_id], name: "idx_user_menu_oa")
   @@map("user_menu_assignments")
@@ -644,6 +691,8 @@ model MessageDelivery {
   node_id      String   @db.VarChar(100)
   delivered_at DateTime @default(now())
 
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
   @@unique([user_id, scenario_id, node_id])
   @@index([user_id], name: "idx_message_delivery_user")
   @@map("message_deliveries")
@@ -655,6 +704,8 @@ model EngagementEvent {
   event_type  String   @db.VarChar(30)
   payload     String?
   occurred_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, occurred_at], name: "idx_engagement_user_time")
   @@index([event_type, occurred_at], name: "idx_engagement_type_time")
@@ -724,6 +775,8 @@ model UnmatchedIntent {
   resolved   Boolean  @default(false)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([oa_id, created_at(sort: Desc)], name: "idx_unmatched_intents_oa_created")
   @@index([resolved, created_at(sort: Desc)], name: "idx_unmatched_intents_resolved")
