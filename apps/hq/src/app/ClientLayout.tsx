@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { AppLayout } from "@vitera/lib";
+import { LiffProvider, AuthProvider, useAuth, LanguageProvider } from "@vitera/lib";
+
+const PUBLIC_ROUTES = ['/login'];
 
 const NAV_LINKS = [
   { href: "/", label: "系統總覽" },
@@ -12,6 +14,45 @@ const NAV_LINKS = [
   { href: "/admins", label: "權限管理" },
   { href: "/manual", label: "操作手冊" },
 ];
+
+function RouteGuard({ children }) {
+  const { isAuthenticated, isLoading, logout } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
+  const isPublic = PUBLIC_ROUTES.some(r => pathname.startsWith(r));
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && !isPublic) {
+      // Redirect unauthenticated users to login
+      const redirect = encodeURIComponent(window.location.href);
+      router.replace(`/login?redirect=${redirect}`);
+    }
+  }, [isLoading, isAuthenticated, isPublic, router, pathname]);
+
+  // Redirect authenticated users away from login page
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && pathname === '/login') {
+      router.replace('/');
+    }
+  }, [isLoading, isAuthenticated, pathname, router]);
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/login');
+  };
+
+  // Don't render anything while loading or on public routes
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-9 h-9 rounded-full border-[3px] border-white/10 border-t-white/60 animate-spin" />
+      </div>
+    );
+  }
+
+  // Render with AppShell which handles public vs protected layout
+  return <AppShell isPublic={isPublic} onLogout={handleLogout}>{children}</AppShell>;
+}
 
 // Pages that want full-height canvas (no hq-content padding wrapper)
 function isFullPath(pathname: string): boolean {
@@ -34,19 +75,31 @@ function formatBuildTime(iso: string | undefined): string {
   });
 }
 
-function SidebarFooter({ collapsed }: { collapsed: boolean }) {
+function SidebarFooter({ collapsed, onLogout }: { collapsed: boolean; onLogout: () => void }) {
   const buildTime = process.env.NEXT_PUBLIC_BUILD_TIME;
   const sha = process.env.NEXT_PUBLIC_GIT_SHA || '';
   const shortSha = sha ? sha.slice(0, 7) : '';
   if (collapsed) {
     return (
-      <div className="hq-sidebar-footer" title={`部署時間：${formatBuildTime(buildTime)}${sha ? ` · ${shortSha}` : ''}`}>
-        <div style={{ textAlign: 'center', fontSize: 10 }}>v</div>
+      <div className="hq-sidebar-footer">
+        <button
+          onClick={onLogout}
+          className="w-full py-2 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-sm transition-colors cursor-pointer"
+          title="登出"
+        >
+          登出
+        </button>
       </div>
     );
   }
   return (
     <div className="hq-sidebar-footer">
+      <button
+        onClick={onLogout}
+        className="w-full py-2 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-sm transition-colors cursor-pointer mb-3"
+      >
+        登出
+      </button>
       <div className="hq-sidebar-footer-label">部署版本</div>
       <div className="hq-sidebar-footer-row">
         <span>{formatBuildTime(buildTime)}</span>
@@ -56,9 +109,14 @@ function SidebarFooter({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-function AppShell({ children }) {
+function AppShell({ children, isPublic, onLogout }: { children: React.ReactNode; isPublic: boolean; onLogout: () => void }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+
+  // Don't show sidebar on public routes (like login)
+  if (isPublic) {
+    return children;
+  }
 
   return (
     <div className="hq-layout">
@@ -87,7 +145,7 @@ function AppShell({ children }) {
             ))}
           </nav>
         )}
-        <SidebarFooter collapsed={collapsed} />
+        <SidebarFooter collapsed={collapsed} onLogout={onLogout} />
       </aside>
       <main className={`hq-main${isFullPath(pathname) ? ' overflow-hidden flex flex-col h-screen' : ''}`}>
         {isFullPath(pathname) ? children : <div className="hq-content">{children}</div>}
@@ -98,8 +156,12 @@ function AppShell({ children }) {
 
 export default function ClientLayout({ children }) {
   return (
-    <AppLayout lineOnly>
-      <AppShell>{children}</AppShell>
-    </AppLayout>
+    <LiffProvider liffId="">
+      <AuthProvider>
+        <LanguageProvider>
+          <RouteGuard>{children}</RouteGuard>
+        </LanguageProvider>
+      </AuthProvider>
+    </LiffProvider>
   );
 }
