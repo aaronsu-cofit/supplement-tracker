@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { HonoEnv } from '../types.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
+import { requireRole } from '../middleware/requireRole.js';
 import {
   getAllModules, updateModule, getAllUsers, updateUserRole, getHQStats,
   getUserAttributes, deleteUserAttribute,
@@ -18,6 +19,7 @@ import { setUserAttributeWithHooks } from '../lib/missions.js';
 
 const hq = new Hono<HonoEnv>();
 hq.use('*', authMiddleware);
+hq.use('*', requireRole('admin', 'superadmin'));
 
 // GET /api/hq/modules
 hq.get('/modules', async (c) => {
