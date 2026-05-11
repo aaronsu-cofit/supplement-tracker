@@ -11,7 +11,7 @@ const NAV_LINKS = [
   { href: "/", label: "系統總覽" },
   { href: "/oa", label: "LINE OA" },
   { href: "/products", label: "產品" },
-  { href: "/admins", label: "權限管理" },
+  { href: "/admins", label: "人員管理" },
   { href: "/manual", label: "操作手冊" },
 ];
 

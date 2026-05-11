@@ -109,7 +109,7 @@ export default function HQAdminsClient() {
             case 'admin':
                 return <span className="hq-badge hq-badge-blue shadow-sm">Admin</span>;
             case 'user':
-                return <span className="hq-badge hq-badge-gray shadow-sm opacity-80">User</span>;
+                return <span className="hq-badge hq-badge-gray shadow-sm">User</span>;
             default:
                 return <span className="hq-badge hq-badge-gray shadow-sm">{role || 'User'}</span>;
         }
@@ -265,20 +265,26 @@ export default function HQAdminsClient() {
                             </tr>
                         ) : (
                             filteredUsers.map((user) => (
-                                <tr key={user.id} className="hover:bg-[#7c5cfc]/5 transition-colors group">
+                                <tr key={user.id} className={`${activeTab === 'admin' ? '' : 'hover:bg-[#7c5cfc]/5 cursor-default'} transition-colors group`}>
                                     <td className="pl-6">
                                         <div className="flex items-center gap-4">
                                             {user.picture_url ? (
-                                                <img src={user.picture_url} alt="" className="w-10 h-10 rounded-full border border-slate-100 group-hover:border-[#7c5cfc]/40 transition-colors" />
+                                                <img src={user.picture_url} alt="" className={`w-10 h-10 rounded-full border border-slate-100 ${activeTab === 'admin' ? '' : 'group-hover:border-[#7c5cfc]/40'} transition-colors`} />
                                             ) : (
-                                                <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-100 flex items-center justify-center text-sm font-bold text-slate-400 group-hover:text-[#7c5cfc] transition-colors">
+                                                <div className={`w-10 h-10 rounded-full bg-slate-100 border border-slate-100 flex items-center justify-center text-sm font-bold text-slate-400 ${activeTab === 'admin' ? '' : 'group-hover:text-[#7c5cfc]'} transition-colors`}>
                                                     {(user.display_name || user.email || 'U')[0].toUpperCase()}
                                                 </div>
                                             )}
                                             <div className="flex flex-col">
-                                                <Link href={`/admins/${user.id}`} className="font-semibold text-slate-700 hover:text-[#7c5cfc] transition-colors">
-                                                    {user.display_name || 'Anonymous User'}
-                                                </Link>
+                                                {activeTab === 'admin' ? (
+                                                    <span className="font-semibold text-slate-700">
+                                                        {user.display_name || 'Anonymous Admin'}
+                                                    </span>
+                                                ) : (
+                                                    <Link href={`/admins/${user.id}`} className="font-semibold text-slate-700 hover:text-[#7c5cfc] transition-colors">
+                                                        {user.display_name || 'Anonymous User'}
+                                                    </Link>
+                                                )}
                                                 <span className="text-xs text-slate-400 font-mono">{user.email || 'LINE OA Login'}</span>
                                             </div>
                                         </div>
