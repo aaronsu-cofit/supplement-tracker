@@ -11,6 +11,7 @@ import {
   createContentItem,
   updateContentItem,
   deleteContentItem,
+  verifyContentItemBelongsToProduct,
   getIntentRulesForProduct,
   createIntentRule,
   updateIntentRule,
@@ -147,8 +148,16 @@ products.post('/:productId/content', async (c) => {
 
 // PATCH /api/products/:productId/content/:id
 products.patch('/:productId/content/:id', async (c) => {
+  const productId = c.req.param('productId');
   const id = c.req.param('id');
   const body = await c.req.json();
+
+  // 驗證內容項目屬於該產品
+  const belongsToProduct = await verifyContentItemBelongsToProduct(id, productId);
+  if (!belongsToProduct) {
+    return c.json({ error: '找不到此內容' }, 404);
+  }
+
   if (body.key && !KEY_REGEX.test(body.key)) {
     return c.json({ error: 'key 格式不合法' }, 400);
   }
@@ -164,7 +173,15 @@ products.patch('/:productId/content/:id', async (c) => {
 
 // DELETE /api/products/:productId/content/:id
 products.delete('/:productId/content/:id', async (c) => {
+  const productId = c.req.param('productId');
   const id = c.req.param('id');
+
+  // 驗證內容項目屬於該產品
+  const belongsToProduct = await verifyContentItemBelongsToProduct(id, productId);
+  if (!belongsToProduct) {
+    return c.json({ error: '找不到此內容' }, 404);
+  }
+
   await deleteContentItem(id);
   return c.json({ success: true });
 });

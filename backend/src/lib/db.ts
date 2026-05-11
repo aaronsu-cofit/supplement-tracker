@@ -35,6 +35,9 @@ export function db(): PrismaClient {
   return _prisma;
 }
 
+// Export singleton Prisma instance for direct access
+export const prisma = db();
+
 export async function initializeDatabase(): Promise<{ success: boolean; mode: string }> {
   await db().$connect();
   return { success: true, mode: 'postgres' };
@@ -904,6 +907,13 @@ export async function getRecentEngagementEvents(limit = 50) {
   return db().engagementEvent.findMany({
     orderBy: { occurred_at: 'desc' },
     take: limit,
+    select: {
+      id: true,
+      user_id: true,
+      event_type: true,
+      payload: true,
+      occurred_at: true,
+    },
   });
 }
 
@@ -1088,6 +1098,11 @@ export async function updateContentItem(id: string, data: UpdateContentItemInput
       ...(data.is_active !== undefined && { is_active: data.is_active }),
     },
   });
+}
+
+export async function verifyContentItemBelongsToProduct(id: string, productId: string): Promise<boolean> {
+  const item = await db().contentItem.findUnique({ where: { id } });
+  return item?.product_id === productId;
 }
 
 export async function deleteContentItem(id: string): Promise<{ success: boolean }> {
