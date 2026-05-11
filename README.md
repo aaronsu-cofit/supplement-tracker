@@ -156,7 +156,7 @@ pnpm db:push                     # 直接 push schema（快速迭代用，不建
 pnpm db:deploy                   # 套用所有 pending migration（CI/CD 或部署前用）
 pnpm db:studio                   # 開啟 Prisma Studio（視覺化 DB 介面，瀏覽器訪問 http://localhost:5555）
 pnpm db:migrate-admins           # 遷移 User 表中的 admin/superadmin 用戶到 Admin 表
-pnpm db:migrate-staging-to-local # 將 Staging DB 的數據遷移到本地 Dev DB
+pnpm db:sync-staging-full          # 將 Staging DB 的全量數據遷移到本地 Dev DB
 ```
 
 #### 遷移管理員用戶
@@ -174,21 +174,23 @@ pnpm db:migrate-admins .env.staging
 pnpm db:migrate-admins .env.prod
 ```
 
-#### 從 Staging 同步數據到本地
+#### 從 Staging 同步數據到本地 (全量同步)
 
-同步 Staging DB 的用戶數據到本地開發環境（需要 SSH 隧道連接到 Staging DB）：
+同步 Staging DB 的全量數據到本地開發環境（需要 SSH 隧道連接到 Staging DB）：
 
 ```bash
-# 使用預設的 .env.staging.local
-pnpm db:migrate-staging-to-local
-
-# 或指定其他 staging 環境設置檔案
-pnpm db:migrate-staging-to-local .env.staging
+pnpm db:sync-staging-full
 ```
 
-> 📌 此命令會清空本地 DB 的 `users` 表並用 Staging 的數據覆蓋（確保本地 DB 已啟動）。
->
-> 📌 需要設置 SSH 隧道以訪問 Staging DB（通常在 localhost:5460）。
+> [!IMPORTANT]
+> **執行前置要求：**
+> 1. 確保已啟動本地 Docker 資料庫：`docker compose up -d`。
+> 2. 需開啟 SSH 隧道（SSH Tunnel）以存取 Staging DB，預設連線至 `localhost:5460`。
+>    *   *範例指令：* `ssh -L 5460:127.0.0.1:5432 <staging-user>@<staging-host>` (或使用 Cloud SQL Auth Proxy)。
+
+> [!NOTE]
+> **版本相容性說明：**
+> 由於 Staging 與本地環境的 PostgreSQL 版本差異（如 18 vs 15），執行時可能會出現 `unrecognized configuration parameter "transaction_timeout"` 的錯誤。腳本會忽略此類 session 參數警告，資料遷移仍會正常完成。只要看到「✅ Database sync process finished!」即代表成功。
 
 > 📌 修改 `schema.prisma` 後務必執行 `pnpm db:generate`，否則 TypeScript 類型和運行時會出現不同步的錯誤。
 
