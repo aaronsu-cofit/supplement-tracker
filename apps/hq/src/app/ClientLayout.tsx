@@ -156,7 +156,6 @@ function PasswordChangeModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const { apiFetch } = useAuth(); // Assuming apiFetch is available via useAuth or we can import it
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
