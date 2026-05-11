@@ -8,14 +8,18 @@ const AuthContext = createContext<{
   user: any;
   isAuthenticated: boolean;
   isLoading: boolean;
+  userType?: 'user' | 'admin';
   login: (email: string, password: string) => Promise<void>;
+  loginAsAdmin: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
 }>({
   user: null,
   isAuthenticated: false,
   isLoading: true,
+  userType: undefined,
   login: async () => {},
+  loginAsAdmin: async () => {},
   register: async () => {},
   logout: async () => {},
 });
@@ -92,6 +96,17 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     return data;
   }, []);
 
+  const loginAsAdmin = useCallback(async (email: string, password: string) => {
+    const res = await apiFetch('/api/auth/admin/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    setUser(data.user);
+    return data;
+  }, []);
+
   const register = useCallback(async (email: string, password: string, displayName: string) => {
     const res = await apiFetch('/api/auth/register', {
       method: 'POST',
@@ -116,8 +131,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     user,
     isAuthenticated: !!user,
     isLoading,
+    userType: user?.userType,
     isInLineClient,
     login,
+    loginAsAdmin,
     register,
     logout,
   };

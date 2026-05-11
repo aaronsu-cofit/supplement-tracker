@@ -622,7 +622,7 @@
 }
 
 .hq-table tr:hover td {
-  background-color: #151515;
+  background-color: rgba(124, 92, 252, 0.05);
 }
 
 .hq-table-empty {
@@ -706,9 +706,9 @@
 }
 
 .hq-badge-gray {
-  background-color: #222;
-  color: #888;
-  border-color: #333;
+  background-color: rgba(148, 163, 184, 0.1);
+  color: #64748b;
+  border-color: rgba(148, 163, 184, 0.2);
 }
 
 .hq-toggle-switch {

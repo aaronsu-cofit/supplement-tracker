@@ -28,7 +28,8 @@ export default function ManualPage() {
             <li><a className="underline" href="#flex">Flex 訊息（卡片）</a></li>
             <li><a className="underline" href="#flex-checklist">任務勾選 Checklist（Postback）</a></li>
             <li><a className="underline" href="#observe">排程觀察、預覽、lint</a></li>
-            <li><a className="underline" href="#user">使用者狀態檢視</a></li>
+            <li><a className="underline" href="#user">人員管理與權限（Admin / User）</a></li>
+            <li><a className="underline" href="#security">帳號安全：修改個人密碼</a></li>
             <li><a className="underline" href="#conversations">對話紀錄、手動推送、即時編輯</a></li>
             <li><a className="underline" href="#richmenu">Rich Menu 評估</a></li>
             <li><a className="underline" href="#help">區塊內建「?」說明</a></li>
@@ -477,27 +478,55 @@ export default function ManualPage() {
         </section>
 
         <section id="user" className="hq-card">
-          <h3 className="text-lg font-bold mb-2">👤 使用者狀態檢視</h3>
+          <h3 className="text-lg font-bold mb-2">👤 人員管理與權限（Admin / User）</h3>
           <div className="text-sm text-slate-700 flex flex-col gap-2">
             <p>
-              <code>/admins</code> 列表點使用者名字進 <code>/admins/[userId]</code> 看：屬性、任務、連續天數、徽章、Journey 現況、最近 engagement events、跨 OA 的對話紀錄。
+              <code>/admins</code> 頁面現已區分為兩個主要分頁：
             </p>
+            <ul className="list-disc pl-5 flex flex-col gap-1">
+              <li><strong>管理員 (Admins)</strong>：具備後端登入權限的人員。此處可「+ 加入管理員」、設定顯示名稱與密碼，並管理其 Role。</li>
+              <li><strong>一般使用者 (Users)</strong>：透過 LINE OA 註冊的終端病患或消費者。此處為唯讀資訊，僅能查看其 engagement 狀態。</li>
+            </ul>
             <p>
-              屬性可在此頁直接編輯，走的是和意圖相同的 hook 路徑（會觸發 mission 自動完成、journey 轉換）。徽章用可重用元件渲染，不管 icon 是 emoji / URL / data URI 都能正確顯示。
+              <strong>管理員權限定義</strong>：
             </p>
+            <ul className="list-disc pl-5 flex flex-col gap-1">
+              <li><code>Super Admin</code>：擁有最高權限，可建立新管理員、調整其他管理員角色，並存取所有系統設定。</li>
+              <li><code>Admin</code>：模組管理員。可操作產品配置、檢視使用者狀態與進行客服對話。</li>
+            </ul>
             <p>
-              任務、徽章、屬性的「編輯／刪除／指派」現在也可以直接在 OA 對話頁右欄做（見下節），不必跳到此頁。
+              點擊人員名字可進入詳情頁查看：屬性、任務、連續天數、徽章、Journey 現況、最近 engagement events。
             </p>
             <div className="bg-slate-50 border border-slate-200 rounded p-2 text-xs flex flex-col gap-1">
-              <strong>AC — 使用者狀態</strong>
+              <strong>AC — 人員管理</strong>
               <ul className="list-disc pl-4 flex flex-col gap-0.5">
-                <li>七個區塊（屬性/任務/連續/徽章/Journey/事件/對話）同時載入</li>
+                <li>「管理員」分頁點擊「加入管理員」，輸入資料後應立即出現在列表中</li>
+                <li>建立管理員時密碼必須為 6 位以上</li>
+                <li>切換分頁後列表資料應正確隔離（Admin 表 vs User 表）</li>
+                <li>在此頁手動修改管理員角色，變更應即時生效</li>
                 <li>在此頁手動新增屬性 → 若有對應 auto_complete 任務應自動完成</li>
-                <li>在此頁設屬性 → 若有對應 attribute_equals journey 規則應觸發轉換</li>
-                <li>engagement events 顯示近 50 筆、按時間倒序</li>
-                <li>對話紀錄含雙向訊息（inbound / outbound）和 source 標記</li>
               </ul>
             </div>
+          </div>
+        </section>
+
+        <section id="security" className="hq-card">
+          <h3 className="text-lg font-bold mb-2">🔐 帳號安全：修改個人密碼</h3>
+          <div className="text-sm text-slate-700 flex flex-col gap-2">
+            <p>
+              為了確保帳號安全，管理員可隨時更改自己的登入密碼。
+            </p>
+            <p>
+              <strong>操作方式</strong>：
+            </p>
+            <ul className="list-disc pl-5 flex flex-col gap-1">
+              <li>在左側導航列（Sidebar）最下方，點擊「登出」按鈕上方的「<strong>修改個人密碼</strong>」。</li>
+              <li>輸入「目前密碼」與「新密碼」（至少 6 位）。</li>
+              <li>驗證成功後，系統將自動更新加密後的密碼。</li>
+            </ul>
+            <p>
+              <strong>注意事項</strong>：若忘記目前密碼，請聯繫具備 <code>Super Admin</code> 權限之人員重新建立帳號。
+            </p>
           </div>
         </section>
 

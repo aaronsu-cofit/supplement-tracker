@@ -315,6 +315,70 @@ export async function updateUserRole(userId: string, newRole: string) {
 }
 
 // ============================================
+// Admin Auth
+// ============================================
+export async function findAdminByEmail(email: string) {
+  return db().admin.findUnique({ where: { email } });
+}
+
+export async function createEmailAdmin(
+  id: string,
+  email: string,
+  passwordHash: string,
+  displayName: string,
+  role: string = 'admin',
+) {
+  return db().admin.create({
+    data: {
+      id,
+      email,
+      password_hash: passwordHash,
+      display_name: displayName,
+      auth_provider: 'email',
+      role,
+    },
+  });
+}
+
+export async function findAdminById(adminId: string) {
+  return db().admin.findUnique({ where: { id: adminId } });
+}
+
+export async function getAllAdmins() {
+  return db().admin.findMany({
+    select: {
+      id: true,
+      email: true,
+      display_name: true,
+      picture_url: true,
+      auth_provider: true,
+      role: true,
+      created_at: true,
+    },
+    orderBy: { created_at: 'desc' },
+  });
+}
+
+export async function updateAdminRole(adminId: string, newRole: string) {
+  try {
+    return await db().admin.update({ where: { id: adminId }, data: { role: newRole } });
+  } catch {
+    return null;
+  }
+}
+
+export async function updateAdminPassword(adminId: string, newPasswordHash: string) {
+  try {
+    return await db().admin.update({
+      where: { id: adminId },
+      data: { password_hash: newPasswordHash },
+    });
+  } catch {
+    return null;
+  }
+}
+
+// ============================================
 // Foot Care / Bones
 // ============================================
 export async function getFootAssessments(userId: string) {
@@ -693,12 +757,15 @@ export async function getHQStats() {
   };
 }
 
-export async function getUserRole(userId: string): Promise<string | null> {
-  const row = await db().user.findUnique({
+export async function getAdminRole(userId: string): Promise<string | null> {
+  // Check if user is an admin
+  const admin = await db().admin.findUnique({
     where: { id: userId },
     select: { role: true },
   });
-  return row?.role ?? null;
+  if (admin) return admin.role;
+
+  return null;
 }
 
 // ============================================

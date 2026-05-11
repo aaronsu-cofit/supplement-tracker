@@ -1,6 +1,6 @@
 import type { Context, Next } from 'hono';
 import type { HonoEnv } from '../types.js';
-import { getUserRole } from '../lib/db.js';
+import { getAdminRole } from '../lib/db.js';
 
 type AnyRole = 'admin' | 'superadmin';
 
@@ -12,7 +12,7 @@ export function requireRole(...allowed: AnyRole[]) {
   return async function requireRoleMiddleware(c: Context<HonoEnv>, next: Next) {
     const userId = c.get('userId');
     if (!userId) return c.json({ error: 'Unauthorized' }, 401);
-    const role = await getUserRole(userId);
+    const role = await getAdminRole(userId);
     if (!role || !allowed.includes(role as AnyRole)) {
       return c.json({ error: 'Forbidden' }, 403);
     }
