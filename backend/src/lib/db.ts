@@ -367,6 +367,17 @@ export async function updateAdminRole(adminId: string, newRole: string) {
   }
 }
 
+export async function updateAdminPassword(adminId: string, newPasswordHash: string) {
+  try {
+    return await db().admin.update({
+      where: { id: adminId },
+      data: { password_hash: newPasswordHash },
+    });
+  } catch {
+    return null;
+  }
+}
+
 // ============================================
 // Foot Care / Bones
 // ============================================

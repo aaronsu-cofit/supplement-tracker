@@ -14,8 +14,13 @@ import {
   assignMission,
   abandonMissionAssignment,
   removeUserBadge,
+  createEmailAdmin,
+  findAdminByEmail,
+  findAdminById,
+  updateAdminPassword,
 } from '../lib/db.js';
 import { setUserAttributeWithHooks } from '../lib/missions.js';
+import { hashPassword, comparePassword } from '../lib/auth.js';
 
 const hq = new Hono<HonoEnv>();
 hq.use('*', authMiddleware);
@@ -66,6 +71,66 @@ hq.patch('/admins/:adminId', async (c) => {
     return c.json({ success: true, user: admin });
   } catch (error) {
     return c.json({ error: 'Failed to update admin role' }, 500);
+  }
+});
+
+// POST /api/hq/admins (create a new admin)
+hq.post('/admins', async (c) => {
+  try {
+    const { email, password, displayName, role } = await c.req.json();
+    if (!email || !password || !displayName) {
+      return c.json({ error: 'Email, password, and display name are required' }, 400);
+    }
+
+    const existing = await findAdminByEmail(email.toLowerCase());
+    if (existing) {
+      return c.json({ error: 'This email is already registered as an admin' }, 409);
+    }
+
+    const id = crypto.randomUUID();
+    const passwordHash = await hashPassword(password);
+    const admin = await createEmailAdmin(
+      id,
+      email.toLowerCase(),
+      passwordHash,
+      displayName,
+      role || 'admin'
+    );
+
+    return c.json({ success: true, user: admin }, 201);
+  } catch (error) {
+    console.error('Failed to create admin:', error);
+    return c.json({ error: 'Failed to create admin' }, 500);
+  }
+});
+
+// PATCH /api/hq/me/password (change self password)
+hq.patch('/me/password', async (c) => {
+  try {
+    const userId = c.get('userId');
+    const { oldPassword, newPassword } = await c.req.json();
+
+    if (!oldPassword || !newPassword) {
+      return c.json({ error: 'Current and new passwords are required' }, 400);
+    }
+
+    const admin = await findAdminById(userId);
+    if (!admin || !admin.password_hash) {
+      return c.json({ error: 'Admin not found or password not set' }, 404);
+    }
+
+    const isMatch = await comparePassword(oldPassword, admin.password_hash);
+    if (!isMatch) {
+      return c.json({ error: 'Current password is incorrect' }, 403);
+    }
+
+    const newHash = await hashPassword(newPassword);
+    await updateAdminPassword(userId, newHash);
+
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('Failed to update password:', error);
+    return c.json({ error: 'Failed to update password' }, 500);
   }
 });
 

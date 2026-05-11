@@ -15,6 +15,12 @@ export default function HQAdminsClient() {
     const [searchTerm, setSearchTerm] = useState('');
     const [roleChangeError, setRoleChangeError] = useState<string | null>(null);
 
+    // Add Admin Form State
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [newAdmin, setNewAdmin] = useState({ email: '', displayName: '', password: '', role: 'admin' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [addError, setAddError] = useState<string | null>(null);
+
     useEffect(() => {
         fetchData();
     }, [activeTab]);
@@ -54,6 +60,38 @@ export default function HQAdminsClient() {
         }
     };
 
+    const handleAddAdmin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setAddError(null);
+
+        if (!newAdmin.password || newAdmin.password.length < 6) {
+            setAddError('請輸入至少 6 個字元的密碼');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const res = await apiFetch('/api/hq/admins', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newAdmin)
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setAddError(data.error || '建立失敗');
+                return;
+            }
+            // Success
+            setShowAddModal(false);
+            setNewAdmin({ email: '', displayName: '', password: '', role: 'admin' });
+            fetchData(); // Refresh list
+        } catch (err) {
+            setAddError('網路錯誤，請稍後再試');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const filteredUsers = useMemo(() => {
         if (!searchTerm) return users;
         const low = searchTerm.toLowerCase();
@@ -86,6 +124,19 @@ export default function HQAdminsClient() {
                         <h2>人員管理 <span className="text-white/20 font-light ml-2">Personnel</span></h2>
                         <p className="mt-1">管理系統內部管理員與外部使用者的存取權限與基本資訊。</p>
                     </div>
+                    <div className="flex gap-3">
+                        {activeTab === 'admin' && (
+                            <button 
+                                onClick={() => setShowAddModal(true)}
+                                className="hq-btn-primary gap-2 text-sm"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                加入管理員
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Tabs & Search Row */}
@@ -96,11 +147,11 @@ export default function HQAdminsClient() {
                             className={`pb-4 px-1 text-sm font-semibold transition-all relative cursor-pointer ${
                                 activeTab === 'admin' 
                                 ? 'text-[#7c5cfc]' 
-                                : 'text-white/40 hover:text-white/70'
+                                : 'text-slate-400 hover:text-slate-600'
                             }`}
                         >
                             管理員 (Admins)
-                            <span className="ml-2 text-xs opacity-50 bg-white/5 px-2 py-0.5 rounded-full">
+                            <span className="ml-2 text-xs opacity-50 bg-slate-100 px-2 py-0.5 rounded-full">
                                 {activeTab === 'admin' ? users.length : '—'}
                             </span>
                             {activeTab === 'admin' && (
@@ -112,11 +163,11 @@ export default function HQAdminsClient() {
                             className={`pb-4 px-1 text-sm font-semibold transition-all relative cursor-pointer ${
                                 activeTab === 'user' 
                                 ? 'text-[#7c5cfc]' 
-                                : 'text-white/40 hover:text-white/70'
+                                : 'text-slate-400 hover:text-slate-600'
                             }`}
                         >
                             一般使用者 (Users)
-                            <span className="ml-2 text-xs opacity-50 bg-white/5 px-2 py-0.5 rounded-full">
+                            <span className="ml-2 text-xs opacity-50 bg-slate-100 px-2 py-0.5 rounded-full">
                                 {activeTab === 'user' ? users.length : '—'}
                             </span>
                             {activeTab === 'user' && (
@@ -188,10 +239,10 @@ export default function HQAdminsClient() {
                             <th className="text-right pr-6">操作設定</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-slate-100">
                         {isLoading ? (
                             <tr>
-                                <td colSpan={4} className="py-20 text-center text-white/20">
+                                <td colSpan={4} className="py-20 text-center text-slate-300">
                                     <div className="flex flex-col items-center gap-3">
                                         <div className="w-8 h-8 border-2 border-[#7c5cfc]/30 border-t-[#7c5cfc] rounded-full animate-spin" />
                                         <span className="text-sm tracking-widest">資料載入中</span>
@@ -201,7 +252,7 @@ export default function HQAdminsClient() {
                         ) : filteredUsers.length === 0 ? (
                             <tr>
                                 <td colSpan={4} className="py-20 text-center">
-                                    <div className="text-white/10 mb-2">
+                                    <div className="text-slate-300 mb-2">
                                         <svg className="w-12 h-12 mx-auto mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                         </svg>
@@ -218,17 +269,17 @@ export default function HQAdminsClient() {
                                     <td className="pl-6">
                                         <div className="flex items-center gap-4">
                                             {user.picture_url ? (
-                                                <img src={user.picture_url} alt="" className="w-10 h-10 rounded-full border border-white/10 group-hover:border-[#7c5cfc]/40 transition-colors" />
+                                                <img src={user.picture_url} alt="" className="w-10 h-10 rounded-full border border-slate-100 group-hover:border-[#7c5cfc]/40 transition-colors" />
                                             ) : (
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#222] to-[#111] border border-white/5 flex items-center justify-center text-sm font-bold text-white/40 group-hover:text-[#7c5cfc] transition-colors">
+                                                <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-100 flex items-center justify-center text-sm font-bold text-slate-400 group-hover:text-[#7c5cfc] transition-colors">
                                                     {(user.display_name || user.email || 'U')[0].toUpperCase()}
                                                 </div>
                                             )}
                                             <div className="flex flex-col">
-                                                <Link href={`/admins/${user.id}`} className="font-semibold text-white/90 hover:text-[#7c5cfc] transition-colors">
+                                                <Link href={`/admins/${user.id}`} className="font-semibold text-slate-700 hover:text-[#7c5cfc] transition-colors">
                                                     {user.display_name || 'Anonymous User'}
                                                 </Link>
-                                                <span className="text-xs text-white/30 font-mono">{user.email || 'LINE OA Login'}</span>
+                                                <span className="text-xs text-slate-400 font-mono">{user.email || 'LINE OA Login'}</span>
                                             </div>
                                         </div>
                                     </td>
@@ -237,7 +288,7 @@ export default function HQAdminsClient() {
                                             {getRoleBadge(user.role)}
                                         </div>
                                     </td>
-                                    <td className="text-white/30 text-xs font-mono">
+                                    <td className="text-slate-400 text-xs font-mono">
                                         {new Date(user.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' })}
                                     </td>
                                     <td className="text-right pr-6">
@@ -246,20 +297,20 @@ export default function HQAdminsClient() {
                                                 <select
                                                     value={user.role || 'admin'}
                                                     onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                                                    className="appearance-none bg-white/5 border border-white/10 text-white/70 text-xs rounded-md py-1.5 pl-3 pr-8 hover:border-white/20 focus:outline-none focus:border-[#7c5cfc]/50 transition-all cursor-pointer"
+                                                    className="appearance-none bg-[#f8fafc] border border-slate-200 text-slate-600 text-xs rounded-md py-1.5 pl-3 pr-8 hover:border-[#7c5cfc]/30 focus:outline-none focus:border-[#7c5cfc]/50 transition-all cursor-pointer"
                                                 >
                                                     <option value="admin">管理員 Admin</option>
                                                     <option value="superadmin">最高權限 Super</option>
                                                 </select>
-                                                <div className="pointer-events-none absolute right-2 top-2 text-white/30">
+                                                <div className="pointer-events-none absolute right-2 top-2 text-slate-400">
                                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                                     </svg>
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="flex items-center justify-end gap-2 text-white/20 text-[10px] uppercase tracking-tighter">
-                                                <div className="w-1 h-1 rounded-full bg-white/10" />
+                                            <div className="flex items-center justify-end gap-2 text-slate-300 text-[10px] uppercase tracking-tighter">
+                                                <div className="w-1 h-1 rounded-full bg-slate-200" />
                                                 ReadOnly
                                             </div>
                                         )}
@@ -270,9 +321,100 @@ export default function HQAdminsClient() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Add Admin Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl hq-fade-in p-6 border border-slate-100">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-bold text-slate-800">建立新管理員</h3>
+                            <button 
+                                onClick={() => setShowAddModal(false)}
+                                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {addError && (
+                            <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg">
+                                {addError}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleAddAdmin} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">顯示名稱</label>
+                                <input 
+                                    type="text" 
+                                    required
+                                    placeholder="例如：王小明"
+                                    value={newAdmin.displayName}
+                                    onChange={e => setNewAdmin({...newAdmin, displayName: e.target.value})}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7c5cfc] transition-colors"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">電子郵件 (Email)</label>
+                                <input 
+                                    type="email" 
+                                    required
+                                    placeholder="admin@example.com"
+                                    value={newAdmin.email}
+                                    onChange={e => setNewAdmin({...newAdmin, email: e.target.value})}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7c5cfc] transition-colors"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">登入密碼 (必填)</label>
+                                <input 
+                                    type="password" 
+                                    required
+                                    minLength={6}
+                                    autoComplete="new-password"
+                                    placeholder="請設定登入密碼"
+                                    value={newAdmin.password}
+                                    onChange={e => setNewAdmin({...newAdmin, password: e.target.value})}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7c5cfc] transition-colors"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">初始權限</label>
+                                <select 
+                                    value={newAdmin.role}
+                                    onChange={e => setNewAdmin({...newAdmin, role: e.target.value})}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7c5cfc] transition-colors"
+                                >
+                                    <option value="admin">管理員 (Admin)</option>
+                                    <option value="superadmin">最高權限 (Super Admin)</option>
+                                </select>
+                            </div>
+
+                            <div className="pt-4 flex gap-3">
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowAddModal(false)}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
+                                >
+                                    取消
+                                </button>
+                                <button 
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-[#7c5cfc] rounded-lg hover:bg-[#6d4df5] transition-colors shadow-lg shadow-[#7c5cfc]/20 disabled:opacity-50 cursor-pointer"
+                                >
+                                    {isSubmitting ? '建立中...' : '確認建立'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
             
             <div className="flex justify-end pt-4">
-                <p className="text-[10px] text-white/10 tracking-widest uppercase">Vitera Identity Access Management System</p>
+                <p className="text-[10px] text-slate-300 tracking-widest uppercase">Vitera Identity Access Management System</p>
             </div>
         </div>
     );
