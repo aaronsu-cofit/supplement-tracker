@@ -24,6 +24,7 @@
     "db:deploy": "pnpm -C backend db:deploy",
     "db:seed": "pnpm -C backend db:seed",
     "db:migrate-admins": "pnpm -C backend exec tsx prisma/migrate-admins.ts",
+    "db:migrate-staging-to-local": "pnpm -C backend exec tsx prisma/migrate-staging-to-local.ts",
     "db:studio": "pnpm -C backend db:studio"
   },
   "devDependencies": {
