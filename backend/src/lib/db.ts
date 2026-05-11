@@ -746,12 +746,15 @@ export async function getHQStats() {
   };
 }
 
-export async function getUserRole(userId: string): Promise<string | null> {
-  const row = await db().user.findUnique({
+export async function getAdminRole(userId: string): Promise<string | null> {
+  // Check if user is an admin
+  const admin = await db().admin.findUnique({
     where: { id: userId },
     select: { role: true },
   });
-  return row?.role ?? null;
+  if (admin) return admin.role;
+
+  return null;
 }
 
 // ============================================
