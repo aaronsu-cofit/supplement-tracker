@@ -622,7 +622,7 @@
 }
 
 .hq-table tr:hover td {
-  background-color: #151515;
+  background-color: rgba(124, 92, 252, 0.05);
 }
 
 .hq-table-empty {

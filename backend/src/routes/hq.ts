@@ -3,7 +3,7 @@ import type { HonoEnv } from '../types.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { requireRole } from '../middleware/requireRole.js';
 import {
-  getAllModules, updateModule, getAllUsers, updateUserRole, getHQStats,
+  getAllModules, updateModule, getAllAdmins, updateAdminRole, getAllUsers, updateUserRole, getHQStats,
   getUserAttributes, deleteUserAttribute,
   getUserMissionAssignments,
   getUserStreaks, getUserBadges,
@@ -45,27 +45,37 @@ hq.patch('/modules/:id', async (c) => {
   }
 });
 
-// GET /api/hq/admins (list all users)
+// GET /api/hq/admins (list all admins)
 hq.get('/admins', async (c) => {
+  try {
+    const admins = await getAllAdmins();
+    return c.json({ users: admins }); // Keep 'users' key for frontend compatibility
+  } catch (error) {
+    return c.json({ error: 'Failed to fetch admins' }, 500);
+  }
+});
+
+// PATCH /api/hq/admins/:adminId
+hq.patch('/admins/:adminId', async (c) => {
+  try {
+    const adminId = c.req.param('adminId');
+    const { role } = await c.req.json();
+    if (!role) return c.json({ error: 'role is required' }, 400);
+    const admin = await updateAdminRole(adminId, role);
+    if (!admin) return c.json({ error: 'Admin not found' }, 404);
+    return c.json({ success: true, user: admin });
+  } catch (error) {
+    return c.json({ error: 'Failed to update admin role' }, 500);
+  }
+});
+
+// GET /api/hq/users (list all users/patients)
+hq.get('/users', async (c) => {
   try {
     const users = await getAllUsers();
     return c.json({ users });
   } catch (error) {
     return c.json({ error: 'Failed to fetch users' }, 500);
-  }
-});
-
-// PATCH /api/hq/admins/:userId
-hq.patch('/admins/:userId', async (c) => {
-  try {
-    const userId = c.req.param('userId');
-    const { role } = await c.req.json();
-    if (!role) return c.json({ error: 'role is required' }, 400);
-    const user = await updateUserRole(userId, role);
-    if (!user) return c.json({ error: 'User not found' }, 404);
-    return c.json({ success: true, user });
-  } catch (error) {
-    return c.json({ error: 'Failed to update user role' }, 500);
   }
 });
 
