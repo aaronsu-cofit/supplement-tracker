@@ -6,6 +6,8 @@ import {
   createEmailUser,
   findUserById,
   findOrCreateLineUser,
+  findAdminByEmail,
+  findAdminById,
 } from '../lib/db.js';
 import { comparePassword, hashPassword, signToken, verifyToken } from '../lib/auth.js';
 import type { LoginRequestBody, RegisterRequestBody, LineLoginRequestBody } from '../types.js';
@@ -43,7 +45,7 @@ function cookieOptions(): CookieOptions {
   };
 }
 
-// POST /api/auth/login
+// POST /api/auth/login — Patient/User login
 auth.post('/login', async (c) => {
   try {
     await initializeDatabase();
@@ -59,6 +61,9 @@ auth.post('/login', async (c) => {
     const valid = await comparePassword(password, user.password_hash!);
     if (!valid) return c.json({ error: 'Email 或密碼不正確' }, 401);
 
+    // Check if user is soft-deleted
+    if (user.deleted_at) return c.json({ error: '此帳號已被停用' }, 403);
+
     const token = await signToken(user.id);
     setCookie(c, 'auth_token', token, cookieOptions());
 
@@ -69,6 +74,8 @@ auth.post('/login', async (c) => {
         email: user.email,
         displayName: user.display_name,
         authProvider: user.auth_provider,
+        role: user.role,
+        userType: 'user',
       },
     });
   } catch (error) {
@@ -77,7 +84,7 @@ auth.post('/login', async (c) => {
   }
 });
 
-// POST /api/auth/register
+// POST /api/auth/register — Patient/User registration
 auth.post('/register', async (c) => {
   try {
     await initializeDatabase();
@@ -109,6 +116,8 @@ auth.post('/register', async (c) => {
           email: user.email,
           displayName: user.display_name,
           authProvider: user.auth_provider,
+          role: user.role,
+          userType: 'user',
         },
       },
       201,
@@ -133,7 +142,15 @@ auth.get('/me', async (c) => {
     const payload = await verifyToken(token);
     if (!payload?.userId) return c.json({ authenticated: false }, 401);
 
-    const user = await findUserById(payload.userId);
+    // Try to find as User first, then as Admin
+    let user = await findUserById(payload.userId);
+    let userType = 'user';
+
+    if (!user) {
+      user = await findAdminById(payload.userId);
+      userType = 'admin';
+    }
+
     if (!user) return c.json({ authenticated: false }, 401);
 
     return c.json({
@@ -144,10 +161,50 @@ auth.get('/me', async (c) => {
         displayName: user.display_name,
         pictureUrl: user.picture_url,
         authProvider: user.auth_provider,
+        role: user.role,
+        userType,
       },
     });
   } catch {
     return c.json({ authenticated: false }, 401);
+  }
+});
+
+// POST /api/auth/admin/login — Admin login
+auth.post('/admin/login', async (c) => {
+  try {
+    await initializeDatabase();
+    const { email, password } = await c.req.json<LoginRequestBody>();
+
+    if (!email || !password) {
+      return c.json({ error: '請輸入 Email 和密碼' }, 400);
+    }
+
+    const admin = await findAdminByEmail(email.toLowerCase());
+    if (!admin) return c.json({ error: 'Email 或密碼不正確' }, 401);
+
+    const valid = await comparePassword(password, admin.password_hash);
+    if (!valid) return c.json({ error: 'Email 或密碼不正確' }, 401);
+
+    // Check if admin is soft-deleted
+    if (admin.deleted_at) return c.json({ error: '此帳號已被停用' }, 403);
+
+    const token = await signToken(admin.id);
+    setCookie(c, 'auth_token', token, cookieOptions());
+
+    return c.json({
+      success: true,
+      user: {
+        id: admin.id,
+        email: admin.email,
+        displayName: admin.display_name,
+        role: admin.role,
+        userType: 'admin',
+      },
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    return c.json({ error: '登入失敗，請稍後再試' }, 500);
   }
 });
 
@@ -170,6 +227,8 @@ auth.post('/me', async (c) => {
         displayName: user.display_name,
         pictureUrl: user.picture_url,
         authProvider: user.auth_provider,
+        role: user.role,
+        userType: 'user',
       },
     });
   } catch (error) {

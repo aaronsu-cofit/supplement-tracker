@@ -6,33 +6,51 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // Check if admin user already exists
-  const existingAdmin = await prisma.user.findUnique({
+  // 1. Seed Admin user (separate Admin table)
+  const existingAdmin = await prisma.admin.findUnique({
     where: { email: 'admin@cofit.me' },
   });
 
   if (existingAdmin) {
     console.log('✓ Admin user already exists, skipping...');
-    return;
+  } else {
+    const adminPasswordHash = await bcrypt.hash('password', 10);
+    const admin = await prisma.admin.create({
+      data: {
+        id: crypto.randomUUID(),
+        email: 'admin@cofit.me',
+        password_hash: adminPasswordHash,
+        display_name: '系統管理員',
+        auth_provider: 'email',
+        role: 'admin',
+        timezone: 'Asia/Taipei',
+      },
+    });
+    console.log('✓ Admin user created:', admin.email);
   }
 
-  // Hash the password
-  const passwordHash = await bcrypt.hash('password', 10);
-
-  // Create admin user
-  const adminUser = await prisma.user.create({
-    data: {
-      id: crypto.randomUUID(),
-      email: 'admin@cofit.me',
-      password_hash: passwordHash,
-      display_name: 'Admin',
-      auth_provider: 'email',
-      role: 'admin',
-      timezone: 'Asia/Taipei',
-    },
+  // 2. Seed test patient user (User table for testing)
+  const existingPatient = await prisma.user.findUnique({
+    where: { email: 'patient@cofit.me' },
   });
 
-  console.log('✓ Admin user created:', adminUser.email);
+  if (existingPatient) {
+    console.log('✓ Test patient user already exists, skipping...');
+  } else {
+    const patientPasswordHash = await bcrypt.hash('password', 10);
+    const patient = await prisma.user.create({
+      data: {
+        id: crypto.randomUUID(),
+        email: 'patient@cofit.me',
+        password_hash: patientPasswordHash,
+        display_name: '測試患者',
+        auth_provider: 'email',
+        role: 'user',
+        timezone: 'Asia/Taipei',
+      },
+    });
+    console.log('✓ Test patient user created:', patient.email);
+  }
 }
 
 main()

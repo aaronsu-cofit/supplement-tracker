@@ -34,7 +34,7 @@ function getSafeRedirectUrl() {
 }
 
 export default function LoginPage() {
-    const { login, isLoading } = useAuth();
+    const { loginAsAdmin, isLoading } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -45,7 +45,7 @@ export default function LoginPage() {
         setError('');
         setSubmitting(true);
         try {
-            await login(email, password);
+            await loginAsAdmin(email, password);
             window.location.href = getSafeRedirectUrl();
         } catch (err) {
             setError((err as Error).message);

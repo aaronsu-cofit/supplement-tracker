@@ -315,6 +315,59 @@ export async function updateUserRole(userId: string, newRole: string) {
 }
 
 // ============================================
+// Admin Auth
+// ============================================
+export async function findAdminByEmail(email: string) {
+  return db().admin.findUnique({ where: { email } });
+}
+
+export async function createEmailAdmin(
+  id: string,
+  email: string,
+  passwordHash: string,
+  displayName: string,
+  role: string = 'admin',
+) {
+  return db().admin.create({
+    data: {
+      id,
+      email,
+      password_hash: passwordHash,
+      display_name: displayName,
+      auth_provider: 'email',
+      role,
+    },
+  });
+}
+
+export async function findAdminById(adminId: string) {
+  return db().admin.findUnique({ where: { id: adminId } });
+}
+
+export async function getAllAdmins() {
+  return db().admin.findMany({
+    select: {
+      id: true,
+      email: true,
+      display_name: true,
+      picture_url: true,
+      auth_provider: true,
+      role: true,
+      created_at: true,
+    },
+    orderBy: { created_at: 'desc' },
+  });
+}
+
+export async function updateAdminRole(adminId: string, newRole: string) {
+  try {
+    return await db().admin.update({ where: { id: adminId }, data: { role: newRole } });
+  } catch {
+    return null;
+  }
+}
+
+// ============================================
 // Foot Care / Bones
 // ============================================
 export async function getFootAssessments(userId: string) {

@@ -54,6 +54,25 @@ model User {
   @@map("users")
 }
 
+// Admin users: HQ backend access control
+// Separate from Patient Users to maintain clear separation of concerns.
+// Roles: 'admin' (basic management), 'superadmin' (full system access)
+model Admin {
+  id            String    @id @db.VarChar(64)
+  email         String    @unique @db.VarChar(200)
+  password_hash String    @db.VarChar(200)
+  display_name  String?   @db.VarChar(200)
+  picture_url   String?
+  auth_provider String    @default("email") @db.VarChar(20)  // "email" or "line"
+  role          String    @default("admin") @db.VarChar(20)  // "admin" or "superadmin"
+  timezone      String    @default("Asia/Taipei") @db.VarChar(50)
+  created_at    DateTime  @default(now())
+  deleted_at    DateTime?
+
+  @@index([deleted_at], name: "idx_admins_deleted_at")
+  @@map("admins")
+}
+
 model Supplement {
   id          Int      @id @default(autoincrement())
   user_id     String   @db.VarChar(64)

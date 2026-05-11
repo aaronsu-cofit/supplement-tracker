@@ -18,10 +18,12 @@
     "clean:wounds": "rm -rf apps/wounds/.next",
     "clean:bones": "rm -rf apps/bones/.next",
     "clean:intimacy": "rm -rf apps/intimacy/.next",
+    "db:generate": "pnpm -C backend exec prisma generate",
     "db:migrate": "pnpm -C backend db:migrate",
     "db:push": "pnpm -C backend db:push",
     "db:deploy": "pnpm -C backend db:deploy",
     "db:seed": "pnpm -C backend db:seed",
+    "db:migrate-admins": "pnpm -C backend exec tsx prisma/migrate-admins.ts",
     "db:studio": "pnpm -C backend db:studio"
   },
   "devDependencies": {

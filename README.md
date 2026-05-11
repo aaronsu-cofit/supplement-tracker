@@ -150,11 +150,30 @@ pnpm dev             # 啟動全部（較耗資源）
 > ⚠️ **前提**：確保已執行 `docker compose up -d` 啟動資料庫
 
 ```bash
-pnpm db:migrate   # 建立新 migration（開發用）
-pnpm db:push      # 直接 push schema（快速迭代用，不建立 migration）
-pnpm db:deploy    # 套用所有 pending migration（CI/CD 或部署前用）
-pnpm db:studio    # 開啟 Prisma Studio（視覺化 DB 介面，瀏覽器訪問 http://localhost:5555）
+pnpm db:generate       # 重新生成 Prisma Client（修改 schema.prisma 後執行）
+pnpm db:migrate        # 建立新 migration（開發用）
+pnpm db:push           # 直接 push schema（快速迭代用，不建立 migration）
+pnpm db:deploy         # 套用所有 pending migration（CI/CD 或部署前用）
+pnpm db:studio         # 開啟 Prisma Studio（視覺化 DB 介面，瀏覽器訪問 http://localhost:5555）
+pnpm db:migrate-admins # 遷移 User 表中的 admin/superadmin 用戶到 Admin 表
 ```
+
+#### 遷移管理員用戶
+
+當需要將現有的 admin/superadmin 用戶從 User 表遷移到 Admin 表時：
+
+```bash
+# 本地開發環境（使用 .env）
+pnpm db:migrate-admins
+
+# Staging 環境（使用 .env.staging）
+pnpm db:migrate-admins .env.staging
+
+# Production 環境（使用 .env.prod）
+pnpm db:migrate-admins .env.prod
+```
+
+> 📌 修改 `schema.prisma` 後務必執行 `pnpm db:generate`，否則 TypeScript 類型和運行時會出現不同步的錯誤。
 
 ---
 

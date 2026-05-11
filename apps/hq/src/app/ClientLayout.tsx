@@ -16,7 +16,7 @@ const NAV_LINKS = [
 ];
 
 function RouteGuard({ children }) {
-  const { isAuthenticated, isLoading, logout, user } = useAuth();
+  const { isAuthenticated, isLoading, logout, user, userType } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const isPublic = PUBLIC_ROUTES.some(r => pathname.startsWith(r));
@@ -30,13 +30,19 @@ function RouteGuard({ children }) {
         return;
       }
 
-      // Check authorization: only admin or superadmin can access HQ
+      // Check user type: only admin users can access HQ
+      if (userType !== 'admin') {
+        router.replace('/login');
+        return;
+      }
+
+      // Check authorization: only admin or superadmin role can access HQ
       if (!user?.role || !['admin', 'superadmin'].includes(user.role)) {
         router.replace('/login');
         return;
       }
     }
-  }, [isLoading, isAuthenticated, isPublic, user, router, pathname]);
+  }, [isLoading, isAuthenticated, isPublic, userType, user, router, pathname]);
 
   // Redirect authenticated users away from login page
   useEffect(() => {
