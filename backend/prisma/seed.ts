@@ -28,29 +28,6 @@ async function main() {
     });
     console.log('✓ Admin user created:', admin.email);
   }
-
-  // 2. Seed test patient user (User table for testing)
-  const existingPatient = await prisma.user.findUnique({
-    where: { email: 'patient@cofit.me' },
-  });
-
-  if (existingPatient) {
-    console.log('✓ Test patient user already exists, skipping...');
-  } else {
-    const patientPasswordHash = await bcrypt.hash('password', 10);
-    const patient = await prisma.user.create({
-      data: {
-        id: crypto.randomUUID(),
-        email: 'patient@cofit.me',
-        password_hash: patientPasswordHash,
-        display_name: '測試患者',
-        auth_provider: 'email',
-        role: 'user',
-        timezone: 'Asia/Taipei',
-      },
-    });
-    console.log('✓ Test patient user created:', patient.email);
-  }
 }
 
 main()
