@@ -1,5 +1,8 @@
 -- CreateEnum
-CREATE TYPE "ReliefType" AS ENUM ('BREATHING', 'BODY_SCAN', 'SLEEP_QUOTES');
+DO $$ BEGIN
+  CREATE TYPE "ReliefType" AS ENUM ('BREATHING', 'BODY_SCAN', 'SLEEP_QUOTES');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- AlterTable
 ALTER TABLE "unmatched_intents" ALTER COLUMN "created_at" SET DATA TYPE TIMESTAMP(3),
@@ -7,7 +10,7 @@ ALTER COLUMN "updated_at" DROP DEFAULT,
 ALTER COLUMN "updated_at" SET DATA TYPE TIMESTAMP(3);
 
 -- CreateTable
-CREATE TABLE "shoe_images" (
+CREATE TABLE IF NOT EXISTS "shoe_images" (
     "id" SERIAL NOT NULL,
     "user_id" VARCHAR(64) NOT NULL,
     "image_data" TEXT,
@@ -21,7 +24,7 @@ CREATE TABLE "shoe_images" (
 );
 
 -- CreateTable
-CREATE TABLE "line_oa_rich_menu_template" (
+CREATE TABLE IF NOT EXISTS "line_oa_rich_menu_template" (
     "id" SERIAL NOT NULL,
     "oa_id" INTEGER NOT NULL,
     "name" VARCHAR(200) NOT NULL,
@@ -35,7 +38,7 @@ CREATE TABLE "line_oa_rich_menu_template" (
 );
 
 -- CreateTable
-CREATE TABLE "diary_entries" (
+CREATE TABLE IF NOT EXISTS "diary_entries" (
     "id" TEXT NOT NULL,
     "user_id" VARCHAR(64) NOT NULL,
     "date" DATE NOT NULL,
@@ -49,7 +52,7 @@ CREATE TABLE "diary_entries" (
 );
 
 -- CreateTable
-CREATE TABLE "relief_sessions" (
+CREATE TABLE IF NOT EXISTS "relief_sessions" (
     "id" TEXT NOT NULL,
     "user_id" VARCHAR(64) NOT NULL,
     "type" "ReliefType" NOT NULL,
@@ -60,7 +63,7 @@ CREATE TABLE "relief_sessions" (
 );
 
 -- CreateTable
-CREATE TABLE "assessment_results" (
+CREATE TABLE IF NOT EXISTS "assessment_results" (
     "id" TEXT NOT NULL,
     "user_id" VARCHAR(64) NOT NULL,
     "result_type" VARCHAR(1) NOT NULL,
@@ -73,31 +76,46 @@ CREATE TABLE "assessment_results" (
 );
 
 -- CreateIndex
-CREATE INDEX "idx_shoe_images_user" ON "shoe_images"("user_id");
+CREATE INDEX IF NOT EXISTS "idx_shoe_images_user" ON "shoe_images"("user_id");
 
 -- CreateIndex
-CREATE INDEX "idx_rich_menu_templates_oa" ON "line_oa_rich_menu_template"("oa_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_rich_menu_templates_oa" ON "line_oa_rich_menu_template"("oa_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "diary_entries_user_id_date_key" ON "diary_entries"("user_id", "date");
+CREATE UNIQUE INDEX IF NOT EXISTS "diary_entries_user_id_date_key" ON "diary_entries"("user_id", "date");
 
 -- CreateIndex
-CREATE INDEX "idx_relief_sessions_user" ON "relief_sessions"("user_id");
+CREATE INDEX IF NOT EXISTS "idx_relief_sessions_user" ON "relief_sessions"("user_id");
 
 -- CreateIndex
-CREATE INDEX "idx_assessment_results_user" ON "assessment_results"("user_id");
+CREATE INDEX IF NOT EXISTS "idx_assessment_results_user" ON "assessment_results"("user_id");
 
 -- AddForeignKey
-ALTER TABLE "shoe_images" ADD CONSTRAINT "shoe_images_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "shoe_images" ADD CONSTRAINT "shoe_images_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "line_oa_rich_menu_template" ADD CONSTRAINT "line_oa_rich_menu_template_oa_id_fkey" FOREIGN KEY ("oa_id") REFERENCES "line_oa"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "line_oa_rich_menu_template" ADD CONSTRAINT "line_oa_rich_menu_template_oa_id_fkey" FOREIGN KEY ("oa_id") REFERENCES "line_oa"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "diary_entries" ADD CONSTRAINT "diary_entries_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "diary_entries" ADD CONSTRAINT "diary_entries_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "relief_sessions" ADD CONSTRAINT "relief_sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "relief_sessions" ADD CONSTRAINT "relief_sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "assessment_results" ADD CONSTRAINT "assessment_results_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "assessment_results" ADD CONSTRAINT "assessment_results_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
