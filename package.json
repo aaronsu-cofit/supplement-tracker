@@ -5,7 +5,7 @@
     "dev": "turbo dev",
     "dev:wounds": "turbo dev --filter=@vitera/backend --filter=@vitera/wounds --filter=@vitera/portal",
     "dev:bones": "turbo dev --filter=@vitera/backend --filter=@vitera/bones --filter=@vitera/portal",
-    "dev:hq": "turbo dev --filter=@vitera/backend --filter=@vitera/hq --filter=@vitera/portal",
+    "dev:hq": "turbo dev --filter=@vitera/backend --filter=@vitera/hq",
     "dev:intimacy": "turbo dev --filter=@vitera/backend --filter=@vitera/intimacy --filter=@vitera/portal",
     "dev:portal": "turbo dev --filter=@vitera/backend --filter=@vitera/portal",
     "dev:portal-only": "turbo dev --filter=@vitera/portal",
