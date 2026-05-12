@@ -23,9 +23,18 @@ export class WomenHealingController extends BaseController {
    * 取得今日日記
    */
   async getTodayDiary() {
-    const userId = (this.request as any).userId;
-    const entry = await this.womenHealingService.getTodayDiary(userId);
-    return entry ?? null;
+    try {
+      const userId = this.getUserId();
+      this.logDebug('Fetching today diary', { userId });
+
+      const entry = await this.womenHealingService.getTodayDiary(userId);
+      return entry ?? null;
+    } catch (error) {
+      console.error('[women/diary/today] error:', error);
+      this.logError('[WomenHealing /getTodayDiary]', error);
+      this.reply.code(500);
+      return { error: (error as Error).message };
+    }
   }
 
   /**
@@ -33,16 +42,26 @@ export class WomenHealingController extends BaseController {
    * 取得日記列表（分頁）
    */
   async getDiaryEntries() {
-    const userId = (this.request as any).userId;
-    const { page, limit } = this.request.query as any;
-    const pageNum = parseInt(page ?? '1', 10);
-    const limitNum = parseInt(limit ?? '20', 10);
-    const result = await this.womenHealingService.getDiaryEntries(
-      userId,
-      pageNum,
-      Math.min(limitNum, 50)
-    );
-    return result;
+    try {
+      const userId = this.getUserId();
+      const { page, limit } = this.request.query as any;
+      const pageNum = parseInt(page ?? '1', 10);
+      const limitNum = parseInt(limit ?? '20', 10);
+
+      this.logDebug('Fetching diary entries', { userId, page: pageNum, limit: limitNum });
+
+      const result = await this.womenHealingService.getDiaryEntries(
+        userId,
+        pageNum,
+        Math.min(limitNum, 50)
+      );
+      return result;
+    } catch (error) {
+      console.error('[women/diary] error:', error);
+      this.logError('[WomenHealing /getDiaryEntries]', error);
+      this.reply.code(500);
+      return { error: (error as Error).message };
+    }
   }
 
   /**
@@ -50,15 +69,18 @@ export class WomenHealingController extends BaseController {
    * 新增或更新日記，並生成 AI 反饋
    */
   async createDiaryEntry(body: any) {
-    const userId = (this.request as any).userId;
-
-    // 驗證輸入
-    const validationError = this.womenHealingService.validateDiaryInput(body);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
-
     try {
+      const userId = this.getUserId();
+
+      // 驗證輸入
+      const validationError = this.womenHealingService.validateDiaryInput(body);
+      if (validationError) {
+        this.reply.code(400);
+        return { error: validationError };
+      }
+
+      this.logDebug('Creating diary entry', { userId, mood: body.mood, sleep: body.sleep });
+
       // 生成 AI 反饋
       const aiFeedback = await this.womenHealingService.generateDiaryFeedback(
         body.mood,
@@ -76,8 +98,10 @@ export class WomenHealingController extends BaseController {
 
       return entry;
     } catch (error) {
-      this.logError('Failed to create diary entry', error);
-      throw error;
+      console.error('[women/diary/create] error:', error);
+      this.logError('[WomenHealing /createDiaryEntry]', error);
+      this.reply.code(500);
+      return { error: (error as Error).message };
     }
   }
 
@@ -89,10 +113,14 @@ export class WomenHealingController extends BaseController {
    */
   async scanFaceAssessment(body: any) {
     try {
+      this.logDebug('Scanning face assessment', { hasImage: !!body.imageBase64 });
+
       const insight = await this.womenHealingService.scanFaceInsight(body.imageBase64);
       return { insight };
     } catch (error) {
-      this.logError('Face assessment scan error', error);
+      console.error('[women/assessment/scan] error:', error);
+      this.logError('[WomenHealing /scanFaceAssessment]', error);
+      this.reply.code(500);
       return { insight: '' };
     }
   }
@@ -102,15 +130,18 @@ export class WomenHealingController extends BaseController {
    * 根據問卷和臉部掃描結果生成個人化評估報告
    */
   async analyzeAssessment(body: any) {
-    const userId = (this.request as any).userId;
-
-    // 驗證輸入
-    const validationError = this.womenHealingService.validateAssessmentAnalysisInput(body);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
-
     try {
+      const userId = this.getUserId();
+
+      // 驗證輸入
+      const validationError = this.womenHealingService.validateAssessmentAnalysisInput(body);
+      if (validationError) {
+        this.reply.code(400);
+        return { error: validationError };
+      }
+
+      this.logDebug('Analyzing assessment', { userId });
+
       const { scores, scanInsight, answers } = body;
 
       // 判斷評估類型
@@ -134,8 +165,10 @@ export class WomenHealingController extends BaseController {
 
       return analysis;
     } catch (error) {
-      this.logError('Assessment analysis error', error);
-      return this.reply.code(500).send({ error: (error as Error).message });
+      console.error('[women/assessment/analyze] error:', error);
+      this.logError('[WomenHealing /analyzeAssessment]', error);
+      this.reply.code(500);
+      return { error: (error as Error).message };
     }
   }
 
@@ -146,23 +179,29 @@ export class WomenHealingController extends BaseController {
    * 記錄救濟療程會話
    */
   async createReliefSession(body: any) {
-    const userId = (this.request as any).userId;
-
-    // 驗證輸入
-    const validationError = this.womenHealingService.validateReliefSessionInput(body);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
-
     try {
+      const userId = this.getUserId();
+
+      // 驗證輸入
+      const validationError = this.womenHealingService.validateReliefSessionInput(body);
+      if (validationError) {
+        this.reply.code(400);
+        return { error: validationError };
+      }
+
+      this.logDebug('Creating relief session', { userId, type: body.type });
+
       const session = await this.womenHealingService.saveReliefSession(userId, {
         type: body.type as any,
         durationSec: body.durationSec ?? 0,
       });
-      return this.reply.code(201).send(session);
+      this.reply.code(201);
+      return session;
     } catch (error) {
-      this.logError('Failed to create relief session', error);
-      throw error;
+      console.error('[women/relief/create] error:', error);
+      this.logError('[WomenHealing /createReliefSession]', error);
+      this.reply.code(500);
+      return { error: (error as Error).message };
     }
   }
 }

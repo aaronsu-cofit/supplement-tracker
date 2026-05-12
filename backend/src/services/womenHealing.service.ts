@@ -57,7 +57,7 @@ export class WomenHealingService {
   // ─── Business Logic Methods ─────────────────────────────────────
 
   /**
-   * 生成日記的 AI 反饋
+   * 生成日記的 AI 反饋 (含本地備用機制)
    */
   async generateDiaryFeedback(mood: number, sleep: number, diary: string): Promise<string> {
     const moodLabels = ['', '極差', '偏低', '普通', '不錯', '極佳'];
@@ -77,8 +77,35 @@ export class WomenHealingService {
 
       return await callGeminiText(GEMINI_API_KEY, prompt);
     } catch {
-      return '謝謝妳願意分享這些心裡的聲音。每一天的觀察與書寫，都能幫助妳更拿回情緒的主導權。今晚好好睡一覺吧，晚安。';
+      // 使用本地備用機制
+      return this.localDiaryFallback(diary || '', mood, sleep);
     }
+  }
+
+  /**
+   * 日記反饋的本地備用機制
+   */
+  private localDiaryFallback(text: string, mood: number, sleep: number): string {
+    const keywords = {
+      grief: ['狗', '貓', '寵物', '走', '離', '離世', '過世', '死', '不見', '痛', '想念'],
+      burnout: ['累', '疲', '煩', '壓力', '忙', '喘不過氣', '無力', '工作'],
+      anger: ['氣', '怒', '不爽', '討厭', '恨', '生氣', '火', '爆炸'],
+      body: ['熱', '汗', '痛', '不舒服', '病', '暈', '燥', '盜汗', '心悸'],
+    };
+
+    if (keywords.grief.some((k) => text.includes(k)))
+      return '面對摯愛的離開，那種深沉的痛與失落是無法用言語簡單形容的。允許自己悲傷，不需要急著好起來... 這段時間請溫柔地陪著自己。';
+    if (keywords.burnout.some((k) => text.includes(k)))
+      return '看來最近真的承擔了太多壓力呢。大腦和身體都在發出罷工的警訊，今天的妳已經足夠努力了，現在請把重擔暫時放下。';
+    if (keywords.anger.some((k) => text.includes(k)))
+      return '感到生氣和煩躁是完全可以被接受的！目前荷爾蒙波動讓神經系統變得異常敏感，試著透過深呼吸，把體內的濁氣吐出來。';
+    if (keywords.body.some((k) => text.includes(k)))
+      return '身體的種種不適，確實會讓人感到沮喪無力。請給她多一點耐心與包容，等一下去喝杯溫熱的水，做點輕柔的伸展吧。';
+    if (mood <= 2)
+      return '今天的心情似乎有些低落。能誠實地記錄下來，就是照顧自己最好的第一步！偶爾在谷底休息一下也是必要的，想哭就哭吧。';
+    if (sleep <= 2)
+      return '昨晚沒睡好，今天白天一定特別疲憊吧... 今晚試著去「線上舒緩區」使用引導工具，給自己一個不受打擾的睡眠儀式。';
+    return '謝謝妳願意分享這些心裡的聲音。每一天的觀察與書寫，都能幫助妳更拿回情緒的主導權。今晚好好睡一覺吧，晚安。';
   }
 
   /**
