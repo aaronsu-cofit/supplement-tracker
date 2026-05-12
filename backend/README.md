@@ -89,14 +89,14 @@ pnpm db:seed
 ```bash
 pnpm dev
 
-# 服務器將在 http://localhost:8081 啟動
+# 服務器將在 http://localhost:8080 啟動
 ```
 
 ### 驗證安裝
 
 ```bash
 # 健康檢查
-curl http://localhost:8081/health
+curl http://localhost:8080/health
 
 # 預期響應:
 # {
@@ -340,7 +340,7 @@ HTTP Response
 
 ```bash
 # Email + Password 登入
-curl -X POST http://localhost:8081/api/auth/login \
+curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"user@example.com","password":"password123"}'
 ```
@@ -354,7 +354,7 @@ Token 自動存儲在 httpOnly Cookie 中，瀏覽器自動發送。
 #### Authorization Header
 
 ```bash
-curl -X GET http://localhost:8081/api/supplements \
+curl -X GET http://localhost:8080/api/supplements \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -377,8 +377,8 @@ echo $DATABASE_URL
 #### 2. 端口被占用
 
 ```bash
-# 查看 8081 端口占用
-lsof -i :8081
+# 查看 8080 端口占用
+lsof -i :8080
 
 # 殺死進程
 kill -9 <PID>
@@ -432,7 +432,7 @@ pnpm build
 bash scripts/benchmark-performance.sh
 
 # 使用 wrk
-wrk -t4 -c100 -d30s http://localhost:8081/health
+wrk -t4 -c100 -d30s http://localhost:8080/health
 ```
 
 ---
