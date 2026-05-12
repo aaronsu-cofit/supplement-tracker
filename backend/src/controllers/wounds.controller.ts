@@ -57,8 +57,7 @@ export class WoundsController extends BaseController {
       } catch (error: unknown) {
         if (error instanceof ValidationError) {
           this.logDebug('[GET /api/wounds/:woundId] 無效的 wound ID', error);
-          this.reply.code(400);
-          return (error as ValidationError).toJSON();
+          throw error;
         }
         throw error;
       }
@@ -70,13 +69,11 @@ export class WoundsController extends BaseController {
     } catch (error: unknown) {
       if (error instanceof NotFoundError) {
         this.logDebug('[GET /api/wounds/:woundId] 傷口不存在或無權限');
-        this.reply.code(404);
-        return error.toJSON();
+        throw error;
       }
       console.error('[GET /api/wounds/:woundId] 錯誤:', error);
       this.logError('[GET /api/wounds/:woundId] 錯誤', error);
-      this.reply.code(500);
-      return { error: 'Failed to fetch wound' };
+      throw error;
     }
   }
 
@@ -126,7 +123,7 @@ export class WoundsController extends BaseController {
         if (error instanceof ValidationError) {
           this.logDebug('[PATCH /api/wounds/:woundId] 無效的 wound ID', error);
           this.reply.code(400);
-          return (error as ValidationError).toJSON();
+          throw error;
         }
         throw error;
       }
@@ -148,12 +145,12 @@ export class WoundsController extends BaseController {
       if (error instanceof NotFoundError) {
         this.logDebug('[PATCH /api/wounds/:woundId] 傷口不存在或無權限');
         this.reply.code(404);
-        return error.toJSON();
+        throw error;
       }
       if (error instanceof ValidationError) {
         this.logDebug('[PATCH /api/wounds/:woundId] 驗證錯誤', error);
         this.reply.code(400);
-        return (error as ValidationError).toJSON();
+        throw error;
       }
       console.error('[PATCH /api/wounds/:woundId] 錯誤:', error);
       this.logError('[PATCH /api/wounds/:woundId] 錯誤', error);
@@ -178,7 +175,7 @@ export class WoundsController extends BaseController {
         if (error instanceof ValidationError) {
           this.logDebug('[DELETE /api/wounds/:woundId] 無效的 wound ID', error);
           this.reply.code(400);
-          return (error as ValidationError).toJSON();
+          throw error;
         }
         throw error;
       }
@@ -191,7 +188,7 @@ export class WoundsController extends BaseController {
       if (error instanceof NotFoundError) {
         this.logDebug('[DELETE /api/wounds/:woundId] 傷口不存在或無權限');
         this.reply.code(404);
-        return error.toJSON();
+        throw error;
       }
       console.error('[DELETE /api/wounds/:woundId] 錯誤:', error);
       this.logError('[DELETE /api/wounds/:woundId] 錯誤', error);
@@ -238,7 +235,7 @@ export class WoundsController extends BaseController {
         if (error instanceof ValidationError) {
           this.logDebug('[GET /api/wounds/:woundId/logs] 無效的 wound ID', error);
           this.reply.code(400);
-          return (error as ValidationError).toJSON();
+          throw error;
         }
         throw error;
       }
@@ -251,7 +248,7 @@ export class WoundsController extends BaseController {
       if (error instanceof NotFoundError) {
         this.logDebug('[GET /api/wounds/:woundId/logs] 傷口不存在或無權限');
         this.reply.code(404);
-        return error.toJSON();
+        throw error;
       }
       console.error('[GET /api/wounds/:woundId/logs] 錯誤:', error);
       this.logError('[GET /api/wounds/:woundId/logs] 錯誤', error);
@@ -276,7 +273,7 @@ export class WoundsController extends BaseController {
         if (error instanceof ValidationError) {
           this.logDebug('[POST /api/wounds/:woundId/logs] 無效的 wound ID', error);
           this.reply.code(400);
-          return (error as ValidationError).toJSON();
+          throw error;
         }
         throw error;
       }
@@ -299,7 +296,7 @@ export class WoundsController extends BaseController {
       if (error instanceof NotFoundError) {
         this.logDebug('[POST /api/wounds/:woundId/logs] 傷口不存在或無權限');
         this.reply.code(404);
-        return error.toJSON();
+        throw error;
       }
       console.error('[POST /api/wounds/:woundId/logs] 錯誤:', error);
       this.logError('[POST /api/wounds/:woundId/logs] 錯誤', error);
@@ -323,7 +320,7 @@ export class WoundsController extends BaseController {
         if (error instanceof ValidationError) {
           this.logDebug('[POST /api/wounds/:woundId/soap] 無效的 wound ID', error);
           this.reply.code(400);
-          return (error as ValidationError).toJSON();
+          throw error;
         }
         throw error;
       }
@@ -343,7 +340,7 @@ export class WoundsController extends BaseController {
       if (error instanceof ValidationError) {
         this.logDebug('[POST /api/wounds/:woundId/soap] 驗證錯誤', error);
         this.reply.code(400);
-        return (error as ValidationError).toJSON();
+        throw error;
       }
       console.error('[POST /api/wounds/:woundId/soap] 錯誤:', error);
       this.logError('[POST /api/wounds/:woundId/soap] 錯誤', error);
