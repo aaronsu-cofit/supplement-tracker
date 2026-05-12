@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/fastify-app.ts",
-    "start": "node dist/fastify-app.js",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
     "build": "prisma generate && tsc",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
