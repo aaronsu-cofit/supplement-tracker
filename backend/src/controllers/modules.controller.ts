@@ -12,7 +12,13 @@ export class ModulesController extends BaseController {
   }
 
   async getModules() {
-    const moduleList = await this.modulesService.getActiveModules();
-    return this.sendSuccess({ modules: moduleList });
+    try {
+      const moduleList = await this.modulesService.getActiveModules();
+      this.logDebug('Fetched active modules', { count: moduleList.length });
+      return { modules: moduleList };
+    } catch (error) {
+      this.logError('[Modules /getModules]', error);
+      return this.reply.code(500).send({ error: 'Failed to fetch modules' });
+    }
   }
 }
