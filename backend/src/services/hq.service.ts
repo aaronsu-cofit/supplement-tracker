@@ -1,6 +1,6 @@
 // /Users/chingchingyeh/cofit/dtx-space/Vitera/backend/src/services/hq.service.ts
 import { PrismaClient } from '@prisma/client';
-import { ValidationError, NotFoundError, ForbiddenError } from '../middleware/errorHandler.js';
+import { ValidationError, NotFoundError, ForbiddenError, BadRequestError, ConflictError } from '../middleware/errorHandler.js';
 import { hashPassword, comparePassword } from '../lib/auth.js';
 import { setUserAttributeWithHooks } from '../lib/missions.js';
 import { getHQStats } from '../lib/db.js';
@@ -126,19 +126,13 @@ export class HQService {
   ) {
     // 驗證必填字段
     if (!email || !password || !displayName) {
-      throw new ValidationError('Email, password, and display name are required', [
-        { field: 'email', message: 'Email is required' },
-        { field: 'password', message: 'Password is required' },
-        { field: 'displayName', message: 'Display name is required' },
-      ]);
+      throw new BadRequestError('Email, password, and display name are required');
     }
 
     // 檢查 Email 是否已存在
     const existing = await this.findAdminByEmail(email);
     if (existing) {
-      throw new ValidationError('This email is already registered as an admin', [
-        { field: 'email', message: 'Email already exists' },
-      ]);
+      throw new ConflictError('This email is already registered as an admin');
     }
 
     // 哈希密碼
@@ -369,10 +363,7 @@ export class HQService {
   async assignMission(userId: string, productId: string, missionKey: string) {
     // 驗證參數
     if (!productId || !missionKey) {
-      throw new ValidationError('product_id and mission_key required', [
-        { field: 'product_id', message: 'product_id is required' },
-        { field: 'mission_key', message: 'mission_key is required' },
-      ]);
+      throw new BadRequestError('product_id and mission_key required');
     }
 
     // 查找任務模板

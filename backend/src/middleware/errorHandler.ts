@@ -78,6 +78,24 @@ export class BadRequestError extends Error {
   }
 }
 
+export class InternalServerError extends Error {
+  public statusCode = 500;
+
+  constructor(message: string = 'Internal Server Error') {
+    super(message);
+    this.name = 'InternalServerError';
+  }
+}
+
+export class ServiceUnavailableError extends Error {
+  public statusCode = 503;
+
+  constructor(message: string = 'Service Unavailable') {
+    super(message);
+    this.name = 'ServiceUnavailableError';
+  }
+}
+
 /**
  * 註冊全局錯誤處理器到 Fastify 應用
  */
