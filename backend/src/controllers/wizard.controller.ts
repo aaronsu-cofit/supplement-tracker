@@ -2,6 +2,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { WizardService } from '../services/wizard.service.js';
+import { ValidationError, NotFoundError } from '../middleware/errorHandler.js';
 
 interface CreateScenarioBody {
   name?: string;
@@ -37,85 +38,208 @@ export class WizardController extends BaseController {
    * GET /api/wizard/oa/:oaId/scenarios - 獲取 OA 的所有場景
    */
   async getScenarios() {
-    const params = this.request.params as { oaId: string };
-    const oaId = parseInt(params.oaId, 10);
+    try {
+      this.logDebug('[GET /api/wizard/oa/:oaId/scenarios] 開始獲取 OA 場景');
+      const params = this.request.params as { oaId: string };
+      const oaId = parseInt(params.oaId, 10);
 
-    const scenarios = await this.wizardService.getScenariosForOA(oaId);
-    return { scenarios };
+      const scenarios = await this.wizardService.getScenariosForOA(oaId);
+      this.logDebug(`[GET /api/wizard/oa/:oaId/scenarios] 成功取得 ${scenarios.length} 個場景`);
+      return { scenarios };
+    } catch (error: unknown) {
+      if (error instanceof ValidationError) {
+        this.logDebug('[GET /api/wizard/oa/:oaId/scenarios] 驗證錯誤', error);
+        this.reply.code(400);
+        return error.toJSON();
+      }
+      console.error('[GET /api/wizard/oa/:oaId/scenarios] 錯誤:', error);
+      this.logError('[GET /api/wizard/oa/:oaId/scenarios] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to fetch scenarios' };
+    }
   }
 
   /**
    * POST /api/wizard/oa/:oaId/scenarios - 創建新場景
    */
   async createScenario() {
-    const params = this.request.params as { oaId: string };
-    const oaId = parseInt(params.oaId, 10);
-    const body = (await this.request.body) as CreateScenarioBody;
+    try {
+      this.logDebug('[POST /api/wizard/oa/:oaId/scenarios] 開始創建場景');
+      const params = this.request.params as { oaId: string };
+      const oaId = parseInt(params.oaId, 10);
 
-    const scenario = await this.wizardService.createScenario(oaId, {
-      name: body.name || '',
-      flow_nodes: body.flow_nodes,
-      flow_edges: body.flow_edges,
-    });
+      let body: CreateScenarioBody;
+      try {
+        body = (await this.request.body) as CreateScenarioBody;
+      } catch {
+        this.logDebug('[POST /api/wizard/oa/:oaId/scenarios] 無效的 JSON');
+        this.reply.code(400);
+        return { error: 'invalid JSON' };
+      }
 
-    this.reply.code(201);
-    return { scenario };
+      const scenario = await this.wizardService.createScenario(oaId, {
+        name: body.name || '',
+        flow_nodes: body.flow_nodes,
+        flow_edges: body.flow_edges,
+      });
+
+      this.logDebug(`[POST /api/wizard/oa/:oaId/scenarios] 成功創建場景 ID: ${scenario.id}`);
+      this.reply.code(201);
+      return { scenario };
+    } catch (error: unknown) {
+      if (error instanceof ValidationError) {
+        this.logDebug('[POST /api/wizard/oa/:oaId/scenarios] 驗證錯誤', error);
+        this.reply.code(400);
+        return error.toJSON();
+      }
+      console.error('[POST /api/wizard/oa/:oaId/scenarios] 錯誤:', error);
+      this.logError('[POST /api/wizard/oa/:oaId/scenarios] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to create scenario' };
+    }
   }
 
   /**
    * GET /api/wizard/scenarios/:id - 獲取單個場景
    */
   async getScenario() {
-    const params = this.request.params as { id: string };
-    const scenario = await this.wizardService.getScenarioById(params.id);
-    return { scenario };
+    try {
+      this.logDebug('[GET /api/wizard/scenarios/:id] 開始獲取場景');
+      const params = this.request.params as { id: string };
+      const scenario = await this.wizardService.getScenarioById(params.id);
+      this.logDebug(`[GET /api/wizard/scenarios/:id] 成功取得場景 ID: ${params.id}`);
+      return { scenario };
+    } catch (error: unknown) {
+      if (error instanceof NotFoundError) {
+        this.logDebug('[GET /api/wizard/scenarios/:id] 場景不存在');
+        this.reply.code(404);
+        return error.toJSON();
+      }
+      console.error('[GET /api/wizard/scenarios/:id] 錯誤:', error);
+      this.logError('[GET /api/wizard/scenarios/:id] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to fetch scenario' };
+    }
   }
 
   /**
    * PATCH /api/wizard/scenarios/:id - 更新場景
    */
   async updateScenario() {
-    const params = this.request.params as { id: string };
-    const body = (await this.request.body) as UpdateScenarioBody;
+    try {
+      this.logDebug('[PATCH /api/wizard/scenarios/:id] 開始更新場景');
+      const params = this.request.params as { id: string };
 
-    const scenario = await this.wizardService.updateScenario(params.id, body);
-    return { scenario };
+      let body: UpdateScenarioBody;
+      try {
+        body = (await this.request.body) as UpdateScenarioBody;
+      } catch {
+        this.logDebug('[PATCH /api/wizard/scenarios/:id] 無效的 JSON');
+        this.reply.code(400);
+        return { error: 'invalid JSON' };
+      }
+
+      const scenario = await this.wizardService.updateScenario(params.id, body);
+      this.logDebug(`[PATCH /api/wizard/scenarios/:id] 成功更新場景 ID: ${params.id}`);
+      return { scenario };
+    } catch (error: unknown) {
+      if (error instanceof NotFoundError) {
+        this.logDebug('[PATCH /api/wizard/scenarios/:id] 場景不存在');
+        this.reply.code(404);
+        return error.toJSON();
+      }
+      console.error('[PATCH /api/wizard/scenarios/:id] 錯誤:', error);
+      this.logError('[PATCH /api/wizard/scenarios/:id] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to update scenario' };
+    }
   }
 
   /**
    * DELETE /api/wizard/scenarios/:id - 刪除場景
    */
   async deleteScenario() {
-    const params = this.request.params as { id: string };
-    const result = await this.wizardService.deleteScenario(params.id);
-    return result;
+    try {
+      this.logDebug('[DELETE /api/wizard/scenarios/:id] 開始刪除場景');
+      const params = this.request.params as { id: string };
+      const result = await this.wizardService.deleteScenario(params.id);
+      this.logDebug(`[DELETE /api/wizard/scenarios/:id] 成功刪除場景 ID: ${params.id}`);
+      return result;
+    } catch (error: unknown) {
+      if (error instanceof NotFoundError) {
+        this.logDebug('[DELETE /api/wizard/scenarios/:id] 場景不存在');
+        this.reply.code(404);
+        return error.toJSON();
+      }
+      console.error('[DELETE /api/wizard/scenarios/:id] 錯誤:', error);
+      this.logError('[DELETE /api/wizard/scenarios/:id] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to delete scenario' };
+    }
   }
 
   /**
    * POST /api/wizard/scenarios/:id/enroll-all - 批量註冊所有 LINE 用戶
    */
   async enrollAllUsers() {
-    const params = this.request.params as { id: string };
-    const count = await this.wizardService.enrollAllLineUsers(params.id);
-    return { enrolled: count };
+    try {
+      this.logDebug('[POST /api/wizard/scenarios/:id/enroll-all] 開始批量註冊用戶');
+      const params = this.request.params as { id: string };
+      const count = await this.wizardService.enrollAllLineUsers(params.id);
+      this.logDebug(`[POST /api/wizard/scenarios/:id/enroll-all] 成功註冊 ${count} 個用戶`);
+      return { enrolled: count };
+    } catch (error: unknown) {
+      if (error instanceof NotFoundError) {
+        this.logDebug('[POST /api/wizard/scenarios/:id/enroll-all] 場景不存在');
+        this.reply.code(404);
+        return error.toJSON();
+      }
+      console.error('[POST /api/wizard/scenarios/:id/enroll-all] 錯誤:', error);
+      this.logError('[POST /api/wizard/scenarios/:id/enroll-all] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to enroll users' };
+    }
   }
 
   /**
    * DELETE /api/wizard/enrollments/:id - 刪除單個註冊
    */
   async deleteEnrollment() {
-    const params = this.request.params as { id: string };
-    const id = parseInt(params.id, 10);
-    const result = await this.wizardService.deleteEnrollment(id);
-    return result;
+    try {
+      this.logDebug('[DELETE /api/wizard/enrollments/:id] 開始刪除註冊');
+      const params = this.request.params as { id: string };
+      const id = parseInt(params.id, 10);
+      const result = await this.wizardService.deleteEnrollment(id);
+      this.logDebug(`[DELETE /api/wizard/enrollments/:id] 成功刪除註冊 ID: ${id}`);
+      return result;
+    } catch (error: unknown) {
+      if (error instanceof ValidationError) {
+        this.logDebug('[DELETE /api/wizard/enrollments/:id] 驗證錯誤', error);
+        this.reply.code(400);
+        return error.toJSON();
+      }
+      console.error('[DELETE /api/wizard/enrollments/:id] 錯誤:', error);
+      this.logError('[DELETE /api/wizard/enrollments/:id] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to delete enrollment' };
+    }
   }
 
   /**
    * DELETE /api/wizard/scenarios/:id/enrollments - 刪除場景的所有註冊
    */
   async deleteAllEnrollments() {
-    const params = this.request.params as { id: string };
-    const count = await this.wizardService.deleteAllEnrollments(params.id);
-    return { deleted: count };
+    try {
+      this.logDebug('[DELETE /api/wizard/scenarios/:id/enrollments] 開始刪除場景的所有註冊');
+      const params = this.request.params as { id: string };
+      const count = await this.wizardService.deleteAllEnrollments(params.id);
+      this.logDebug(`[DELETE /api/wizard/scenarios/:id/enrollments] 成功刪除 ${count} 個註冊`);
+      return { deleted: count };
+    } catch (error: unknown) {
+      console.error('[DELETE /api/wizard/scenarios/:id/enrollments] 錯誤:', error);
+      this.logError('[DELETE /api/wizard/scenarios/:id/enrollments] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to delete enrollments' };
+    }
   }
 }
