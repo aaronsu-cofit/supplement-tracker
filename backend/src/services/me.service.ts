@@ -2,10 +2,10 @@ import { PrismaClient } from '@prisma/client';
 import {
   findUserById, getHabitsForUserProduct, getMissionDailyHistory, getMissionTemplateByKey,
   deleteMissionDailyLog as deleteMissionDailyLogDb, getMissionTemplatesForProduct, assignMission, abandonMissionAssignment,
-  upsertUserMissionSetting, getUserMissionSetting, db,
+  upsertUserMissionSetting, getUserMissionSetting, db, upsertMissionDailyLog as upsertMissionDailyLogDb,
 } from '../lib/db.js';
 import { logHabitDay } from '../lib/habits.js';
-import { sendHabitReminder } from '../lib/reminders.js';
+import { sendHabitReminder as sendHabitReminderLib } from '../lib/reminders.js';
 import { localDateInTz } from '../lib/time.js';
 
 /**
@@ -262,14 +262,53 @@ export class MeService {
   /**
    * 發送習慣提醒
    */
-  async sendHabitReminder(userId: string, templateId: string) {
-    return (sendHabitReminder as any)(userId, templateId);
+  async sendHabitReminder(input: {
+    userId: string;
+    template: any;
+    setting: any;
+    sourceRef: string;
+  }) {
+    return sendHabitReminderLib(input);
   }
 
   /**
-   * 刪除任務日誌
+   * 刪除任務日誌（按 templateId 和日期）
    */
-  async deleteMissionDailyLog(logId: string, userId: string) {
-    return (deleteMissionDailyLogDb as any)(logId, userId);
+  async deleteMissionDailyLog(userId: string, templateId: string, date: Date) {
+    return deleteMissionDailyLogDb(userId, templateId, date);
+  }
+
+  /**
+   * 更新或創建任務日誌
+   */
+  async upsertMissionDailyLog(userId: string, templateId: string, date: Date, data: any) {
+    const result = await upsertMissionDailyLogDb(userId, templateId, date, data);
+    return result.next;
+  }
+
+  /**
+   * 獲取用戶的所有任務訂閱（pending 狀態）
+   */
+  async getUserMissionAssignments(userId: string) {
+    return db().missionAssignment.findMany({
+      where: { user_id: userId, status: 'pending' },
+      select: { template_id: true },
+    });
+  }
+
+  /**
+   * 獲取用戶對特定任務的待決訂閱
+   */
+  async getPendingMissionAssignment(userId: string, templateId: string) {
+    return db().missionAssignment.findFirst({
+      where: { user_id: userId, template_id: templateId, status: 'pending' },
+    });
+  }
+
+  /**
+   * 重新導出 localDateInTz 方便使用
+   */
+  localDateInTz(date: Date, tz: string) {
+    return localDateInTz(date, tz);
   }
 }

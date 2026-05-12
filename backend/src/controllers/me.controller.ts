@@ -22,27 +22,32 @@ export class MeController extends BaseController {
    * GET /api/me/habits?product_id=xxx
    * 獲取用戶的習慣列表
    */
-  async getHabits(productId: string) {
-    const userId = (this.request as any).userId;
-
-    // 驗證 product_id
-    const validationError = this.meService.validateProductId(productId);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
-
+  async getHabits() {
     try {
+      this.logDebug('[GET /api/me/habits] 開始獲取習慣列表');
+      const userId = this.getUserId();
+      const productId = (this.request.query as any)?.product_id;
+
+      if (!productId) {
+        this.logDebug('[GET /api/me/habits] product_id 查詢參數缺少');
+        this.reply.code(400);
+        return { error: 'product_id query required' };
+      }
+
       const { tz, today } = this.meService.parseDateAndTimezone(userId);
       const rows = await this.meService.getHabitsForUserProduct(userId, productId, today);
 
+      this.logDebug('[GET /api/me/habits] 成功取得習慣列表', { productId, count: rows.length });
       return {
         date: today.toISOString().slice(0, 10),
         timezone: tz,
         habits: rows,
       };
-    } catch (error) {
-      this.logError('Failed to get habits', error);
-      throw error;
+    } catch (error: unknown) {
+      console.error('[GET /api/me/habits] 錯誤:', error);
+      this.logError('[GET /api/me/habits] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to fetch habits' };
     }
   }
 
@@ -50,17 +55,27 @@ export class MeController extends BaseController {
    * POST /api/me/habits/:missionKey/log
    * 記錄習慣日誌
    */
-  async logHabit(missionKey: string, body: any) {
-    const userId = (this.request as any).userId;
-    const productId = body?.product_id;
-
-    // 驗證輸入
-    const validationError = this.meService.validateHabitLogInput(body, productId);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
-
+  async logHabit() {
     try {
+      this.logDebug('[POST /api/me/habits/:missionKey/log] 開始記錄習慣');
+      const userId = this.getUserId();
+      const missionKey = (this.request.params as any)?.missionKey;
+
+      let body: any;
+      try {
+        body = await this.request.body;
+      } catch {
+        this.logDebug('[POST /api/me/habits/:missionKey/log] 無效的 JSON');
+        this.reply.code(400);
+        return { error: 'invalid JSON' };
+      }
+
+      if (!body?.product_id) {
+        this.logDebug('[POST /api/me/habits/:missionKey/log] product_id 缺少');
+        this.reply.code(400);
+        return { error: 'product_id required' };
+      }
+
       // 解析 action
       const action = this.meService.parseHabitAction(body);
 
@@ -72,7 +87,7 @@ export class MeController extends BaseController {
 
       // 記錄習慣
       const result = await this.meService.logHabitDay({
-        productId,
+        productId: body.product_id,
         userId,
         missionKey,
         date,
@@ -82,130 +97,255 @@ export class MeController extends BaseController {
       });
 
       if (!result.ok) {
-        return this.reply.code(400).send({ error: result.reason });
+        this.logDebug('[POST /api/me/habits/:missionKey/log] 記錄失敗', { reason: result.reason });
+        this.reply.code(400);
+        return { error: result.reason };
       }
 
+      this.logDebug('[POST /api/me/habits/:missionKey/log] 成功記錄習慣', { missionKey });
       return result;
-    } catch (error) {
-      this.logError('Failed to log habit', error);
-      throw error;
+    } catch (error: unknown) {
+      console.error('[POST /api/me/habits/:missionKey/log] 錯誤:', error);
+      this.logError('[POST /api/me/habits/:missionKey/log] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to log habit' };
     }
   }
 
   /**
-   * GET /api/me/habits/:missionKey/history
-   * 獲取習慣日誌歷史
+   * PATCH /api/me/habits/:missionKey/note
+   * 更新習慣的筆記
    */
-  async getHabitHistory(missionKey: string, productId: string, days: string) {
-    const userId = (this.request as any).userId;
-
-    // 驗證 product_id
-    const validationError = this.meService.validateProductId(productId);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
-
+  async patchHabitNote() {
     try {
-      // 檢查任務是否存在
-      const template = await this.meService.getMissionTemplateByKey(productId, missionKey);
-      if (!template) {
-        return this.reply.code(404).send({ error: 'mission not found' });
+      this.logDebug('[PATCH /api/me/habits/:missionKey/note] 開始更新習慣筆記');
+      const userId = this.getUserId();
+      const missionKey = (this.request.params as any)?.missionKey;
+
+      let body: any = {};
+      try {
+        body = await this.request.body;
+      } catch {
+        body = {};
       }
 
-      // 計算日期範圍
+      if (!body?.product_id) {
+        this.logDebug('[PATCH /api/me/habits/:missionKey/note] product_id 缺少');
+        this.reply.code(400);
+        return { error: 'product_id required' };
+      }
+
+      if (body.note === undefined) {
+        this.logDebug('[PATCH /api/me/habits/:missionKey/note] note 欄位缺少');
+        this.reply.code(400);
+        return { error: 'note required (use null to clear)' };
+      }
+
+      const template = await this.meService.getMissionTemplateByKey(body.product_id, missionKey);
+      if (!template) {
+        this.logDebug('[PATCH /api/me/habits/:missionKey/note] 任務不存在', { missionKey });
+        this.reply.code(404);
+        return { error: 'mission not found' };
+      }
+
+      const { tz } = this.meService.parseDateAndTimezone(userId);
+      const date = body.date
+        ? new Date(body.date + 'T00:00:00Z')
+        : this.meService.localDateInTz(new Date(), tz);
+      if (isNaN(date.getTime())) {
+        this.logDebug('[PATCH /api/me/habits/:missionKey/note] 無效的日期格式');
+        this.reply.code(400);
+        return { error: 'invalid date' };
+      }
+
+      const note = body.note === null ? null : String(body.note).slice(0, 500);
+      const result = await this.meService.upsertMissionDailyLog(userId, template.id, date, { note });
+
+      this.logDebug('[PATCH /api/me/habits/:missionKey/note] 成功更新筆記', { missionKey });
+      return { ok: true, log: result };
+    } catch (error: unknown) {
+      console.error('[PATCH /api/me/habits/:missionKey/note] 錯誤:', error);
+      this.logError('[PATCH /api/me/habits/:missionKey/note] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to update note' };
+    }
+  }
+
+  /**
+   * DELETE /api/me/habits/:missionKey/log?product_id=xxx&date=YYYY-MM-DD
+   * 刪除習慣日誌
+   */
+  async deleteHabitLog() {
+    try {
+      this.logDebug('[DELETE /api/me/habits/:missionKey/log] 開始刪除習慣日誌');
+      const userId = this.getUserId();
+      const missionKey = (this.request.params as any)?.missionKey;
+      const productId = (this.request.query as any)?.product_id;
+      const dateStr = (this.request.query as any)?.date;
+
+      if (!productId) {
+        this.logDebug('[DELETE /api/me/habits/:missionKey/log] product_id 查詢參數缺少');
+        this.reply.code(400);
+        return { error: 'product_id query required' };
+      }
+
+      const template = await this.meService.getMissionTemplateByKey(productId, missionKey);
+      if (!template) {
+        this.logDebug('[DELETE /api/me/habits/:missionKey/log] 任務不存在', { missionKey });
+        this.reply.code(404);
+        return { error: 'mission not found' };
+      }
+
+      const { tz } = this.meService.parseDateAndTimezone(userId);
+      const date = dateStr
+        ? new Date(dateStr + 'T00:00:00Z')
+        : this.meService.localDateInTz(new Date(), tz);
+      if (isNaN(date.getTime())) {
+        this.logDebug('[DELETE /api/me/habits/:missionKey/log] 無效的日期格式');
+        this.reply.code(400);
+        return { error: 'invalid date' };
+      }
+
+      await this.meService.deleteMissionDailyLog(userId, template.id, date);
+
+      this.logDebug('[DELETE /api/me/habits/:missionKey/log] 成功刪除日誌', { missionKey });
+      return { success: true };
+    } catch (error: unknown) {
+      console.error('[DELETE /api/me/habits/:missionKey/log] 錯誤:', error);
+      this.logError('[DELETE /api/me/habits/:missionKey/log] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to delete log' };
+    }
+  }
+
+  /**
+   * GET /api/me/habits/:missionKey/history?product_id=xxx&days=30
+   * 獲取習慣日誌歷史
+   */
+  async getHabitHistory() {
+    try {
+      this.logDebug('[GET /api/me/habits/:missionKey/history] 開始獲取習慣歷史');
+      const userId = this.getUserId();
+      const missionKey = (this.request.params as any)?.missionKey;
+      const productId = (this.request.query as any)?.product_id;
+      const days = (this.request.query as any)?.days || '30';
+
+      if (!productId) {
+        this.logDebug('[GET /api/me/habits/:missionKey/history] product_id 查詢參數缺少');
+        this.reply.code(400);
+        return { error: 'product_id query required' };
+      }
+
+      const template = await this.meService.getMissionTemplateByKey(productId, missionKey);
+      if (!template) {
+        this.logDebug('[GET /api/me/habits/:missionKey/history] 任務不存在', { missionKey });
+        this.reply.code(404);
+        return { error: 'mission not found' };
+      }
+
       const { tz } = this.meService.parseDateAndTimezone(userId);
       const { since, today } = this.meService.calculateHistoryDateRange(tz, days);
 
-      // 獲取歷史記錄
       const logs = await this.meService.getMissionDailyHistory(userId, template.id, since);
 
+      this.logDebug('[GET /api/me/habits/:missionKey/history] 成功取得習慣歷史', { missionKey, days });
       return {
         mission_key: missionKey,
         from: since.toISOString().slice(0, 10),
         to: today.toISOString().slice(0, 10),
         logs,
       };
-    } catch (error) {
-      this.logError('Failed to get habit history', error);
-      throw error;
+    } catch (error: unknown) {
+      console.error('[GET /api/me/habits/:missionKey/history] 錯誤:', error);
+      this.logError('[GET /api/me/habits/:missionKey/history] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to fetch history' };
     }
   }
 
   /**
-   * POST /api/me/habits/:missionKey/reminder
-   * 發送習慣提醒
+   * POST /api/me/habits/:missionKey/test-reminder
+   * 發送測試提醒
    */
-  async sendHabitReminder(missionKey: string, body: any) {
-    const userId = (this.request as any).userId;
-    const productId = body?.product_id;
-
-    // 驗證 product_id
-    const validationError = this.meService.validateProductId(productId);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
-
+  async testHabitReminder() {
     try {
-      // 檢查任務是否存在
-      const template = await this.meService.getMissionTemplateByKey(productId, missionKey);
+      this.logDebug('[POST /api/me/habits/:missionKey/test-reminder] 開始發送測試提醒');
+      const userId = this.getUserId();
+      const missionKey = (this.request.params as any)?.missionKey;
+
+      let body: any = {};
+      try {
+        body = await this.request.body;
+      } catch {
+        body = {};
+      }
+
+      if (!body?.product_id) {
+        this.logDebug('[POST /api/me/habits/:missionKey/test-reminder] product_id 缺少');
+        this.reply.code(400);
+        return { error: 'product_id required' };
+      }
+
+      const template = await this.meService.getMissionTemplateByKey(body.product_id, missionKey);
       if (!template) {
-        return this.reply.code(404).send({ error: 'mission not found' });
+        this.logDebug('[POST /api/me/habits/:missionKey/test-reminder] 任務不存在', { missionKey });
+        this.reply.code(404);
+        return { error: 'mission not found' };
       }
 
-      // 發送提醒
-      const result = await this.meService.sendHabitReminder(userId, template.id);
-      return { ok: true, reminder_sent: result };
-    } catch (error) {
-      this.logError('Failed to send habit reminder', error);
-      return this.reply.code(500).send({ ok: false, error: (error as Error).message });
-    }
-  }
+      const setting = await this.meService.getUserMissionSetting(userId, template.id);
+      const sourceRef = `${template.key}:test:${Date.now()}`;
 
-  /**
-   * DELETE /api/me/habits/:missionKey/logs/:logId
-   * 刪除任務日誌
-   */
-  async deleteHabitLog(logId: string) {
-    const userId = (this.request as any).userId;
-
-    try {
-      await this.meService.deleteMissionDailyLog(logId, userId);
-      return { ok: true, message: '日誌已刪除' };
-    } catch (error: any) {
-      if (error?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此日誌' });
+      const r = await this.meService.sendHabitReminder({ userId, template, setting, sourceRef });
+      if (r.sent) {
+        this.logDebug('[POST /api/me/habits/:missionKey/test-reminder] 成功發送提醒', { missionKey });
+        return { ok: true };
       }
-      this.logError('Failed to delete habit log', error);
-      return this.reply.code(500).send({ error: (error as Error).message });
+      this.logDebug('[POST /api/me/habits/:missionKey/test-reminder] 提醒發送失敗', { reason: r.reason });
+      this.reply.code(400);
+      return { ok: false, reason: r.reason ?? 'unknown' };
+    } catch (error: unknown) {
+      console.error('[POST /api/me/habits/:missionKey/test-reminder] 錯誤:', error);
+      this.logError('[POST /api/me/habits/:missionKey/test-reminder] 錯誤', error);
+      this.reply.code(500);
+      return { ok: false, error: (error as Error).message };
     }
   }
 
   // ─── Mission Routes ─────────────────────────────────────────
 
   /**
-   * GET /api/me/missions?product_id=xxx
-   * 獲取用戶訂閱的所有任務
+   * GET /api/me/products/:productId/available-missions
+   * 獲取所有可用任務（包含訂閱狀態）
    */
-  async getSubscribedMissions(productId: string) {
-    const userId = (this.request as any).userId;
-
-    // 驗證 product_id
-    const validationError = this.meService.validateProductId(productId);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
-
+  async getAvailableMissions() {
     try {
-      // 獲取產品的所有任務樣板
-      const templates = await this.meService.getMissionTemplatesForProduct(productId);
-      const templateIds = templates.map((t) => t.id);
+      this.logDebug('[GET /api/me/products/:productId/available-missions] 開始獲取可用任務');
+      const userId = this.getUserId();
+      const productId = (this.request.params as any)?.productId;
 
-      // 獲取用戶訂閱的任務
-      const missions = await this.meService.getUserSubscribedMissions(userId, templateIds);
+      const [templates, assignments] = await Promise.all([
+        this.meService.getMissionTemplatesForProduct(productId),
+        this.meService.getUserMissionAssignments(userId),
+      ]);
+
+      const subscribed = new Set(assignments.map((a) => a.template_id));
+
+      const missions = templates
+        .filter((t) => t.is_active)
+        .map((t) => ({ ...t, is_subscribed: subscribed.has(t.id) }));
+
+      this.logDebug('[GET /api/me/products/:productId/available-missions] 成功取得任務列表', {
+        productId,
+        count: missions.length,
+      });
+
       return { missions };
-    } catch (error) {
-      this.logError('Failed to get subscribed missions', error);
-      return this.reply.code(500).send({ error: (error as Error).message });
+    } catch (error: unknown) {
+      console.error('[GET /api/me/products/:productId/available-missions] 錯誤:', error);
+      this.logError('[GET /api/me/products/:productId/available-missions] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to fetch available missions' };
     }
   }
 
@@ -213,129 +353,182 @@ export class MeController extends BaseController {
    * POST /api/me/missions/:missionKey/subscribe
    * 訂閱任務
    */
-  async subscribeMission(missionKey: string, body: any) {
-    const userId = (this.request as any).userId;
-    const productId = body?.product_id;
-
-    // 驗證 product_id
-    const validationError = this.meService.validateProductId(productId);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
-
+  async subscribeMission() {
     try {
-      // 檢查任務是否存在且啟用
-      const template = await this.meService.getMissionTemplateByKey(productId, missionKey);
+      this.logDebug('[POST /api/me/missions/:missionKey/subscribe] 開始訂閱任務');
+      const userId = this.getUserId();
+      const missionKey = (this.request.params as any)?.missionKey;
+
+      let body: any = {};
+      try {
+        body = await this.request.body;
+      } catch {
+        body = {};
+      }
+
+      if (!body?.product_id) {
+        this.logDebug('[POST /api/me/missions/:missionKey/subscribe] product_id 缺少');
+        this.reply.code(400);
+        return { error: 'product_id required' };
+      }
+
+      const template = await this.meService.getMissionTemplateByKey(body.product_id, missionKey);
       if (!template || !template.is_active) {
-        return this.reply.code(404).send({ error: 'mission not found' });
+        this.logDebug('[POST /api/me/missions/:missionKey/subscribe] 任務不存在或未啟用', { missionKey });
+        this.reply.code(404);
+        return { error: 'mission not found' };
       }
 
-      // 訂閱任務
       const assignment = await this.meService.assignMission(userId, template.id);
+
+      this.logDebug('[POST /api/me/missions/:missionKey/subscribe] 成功訂閱任務', { missionKey });
       return { assignment };
-    } catch (error) {
-      this.logError('Failed to subscribe mission', error);
-      throw error;
+    } catch (error: unknown) {
+      console.error('[POST /api/me/missions/:missionKey/subscribe] 錯誤:', error);
+      this.logError('[POST /api/me/missions/:missionKey/subscribe] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to subscribe mission' };
     }
   }
 
   /**
-   * POST /api/me/missions/:missionKey/abandon
-   * 放棄訂閱任務
+   * POST /api/me/missions/:missionKey/unsubscribe
+   * 取消訂閱任務
    */
-  async abandonMission(missionKey: string, body: any) {
-    const userId = (this.request as any).userId;
-    const productId = body?.product_id;
-
-    // 驗證 product_id
-    const validationError = this.meService.validateProductId(productId);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
-
+  async unsubscribeMission() {
     try {
-      // 檢查任務是否存在
-      const template = await this.meService.getMissionTemplateByKey(productId, missionKey);
-      if (!template) {
-        return this.reply.code(404).send({ error: 'mission not found' });
+      this.logDebug('[POST /api/me/missions/:missionKey/unsubscribe] 開始取消訂閱任務');
+      const userId = this.getUserId();
+      const missionKey = (this.request.params as any)?.missionKey;
+
+      let body: any = {};
+      try {
+        body = await this.request.body;
+      } catch {
+        body = {};
       }
 
-      // 放棄任務
-      const result = await this.meService.abandonMissionAssignment(userId, template.id);
-      return { ok: true, abandoned: result };
-    } catch (error) {
-      this.logError('Failed to abandon mission', error);
-      return this.reply.code(500).send({ ok: false, error: (error as Error).message });
+      if (!body?.product_id) {
+        this.logDebug('[POST /api/me/missions/:missionKey/unsubscribe] product_id 缺少');
+        this.reply.code(400);
+        return { error: 'product_id required' };
+      }
+
+      const template = await this.meService.getMissionTemplateByKey(body.product_id, missionKey);
+      if (!template) {
+        this.logDebug('[POST /api/me/missions/:missionKey/unsubscribe] 任務不存在', { missionKey });
+        this.reply.code(404);
+        return { error: 'mission not found' };
+      }
+
+      const pending = await this.meService.getPendingMissionAssignment(userId, template.id);
+      if (!pending) {
+        this.logDebug('[POST /api/me/missions/:missionKey/unsubscribe] 任務未訂閱', { missionKey });
+        return { success: true, already_unsubscribed: true };
+      }
+
+      const updated = await this.meService.abandonMissionAssignment(userId, pending.id);
+
+      this.logDebug('[POST /api/me/missions/:missionKey/unsubscribe] 成功取消訂閱任務', { missionKey });
+      return { assignment: updated };
+    } catch (error: unknown) {
+      console.error('[POST /api/me/missions/:missionKey/unsubscribe] 錯誤:', error);
+      this.logError('[POST /api/me/missions/:missionKey/unsubscribe] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to unsubscribe mission' };
     }
   }
 
   /**
-   * GET /api/me/missions/:missionKey/settings
+   * GET /api/me/habits/:missionKey/setting?product_id=xxx
    * 獲取任務設定
    */
-  async getMissionSettings(missionKey: string, productId: string) {
-    const userId = (this.request as any).userId;
-
-    // 驗證 product_id
-    const validationError = this.meService.validateProductId(productId);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
-
+  async getMissionSetting() {
     try {
-      // 檢查任務是否存在
-      const template = await this.meService.getMissionTemplateByKey(productId, missionKey);
-      if (!template) {
-        return this.reply.code(404).send({ error: 'mission not found' });
+      this.logDebug('[GET /api/me/habits/:missionKey/setting] 開始獲取任務設定');
+      const userId = this.getUserId();
+      const missionKey = (this.request.params as any)?.missionKey;
+      const productId = (this.request.query as any)?.product_id;
+
+      if (!productId) {
+        this.logDebug('[GET /api/me/habits/:missionKey/setting] product_id 查詢參數缺少');
+        this.reply.code(400);
+        return { error: 'product_id query required' };
       }
 
-      // 獲取設定
-      const settings = await this.meService.getUserMissionSetting(userId, template.id);
-      return { settings };
-    } catch (error) {
-      this.logError('Failed to get mission settings', error);
-      throw error;
+      const template = await this.meService.getMissionTemplateByKey(productId, missionKey);
+      if (!template) {
+        this.logDebug('[GET /api/me/habits/:missionKey/setting] 任務不存在', { missionKey });
+        this.reply.code(404);
+        return { error: 'mission not found' };
+      }
+
+      const setting = await this.meService.getUserMissionSetting(userId, template.id);
+
+      this.logDebug('[GET /api/me/habits/:missionKey/setting] 成功取得任務設定', { missionKey });
+      return {
+        setting: setting ?? {
+          daily_target: null,
+          reminder_enabled: null,
+          reminder_time: null,
+        },
+        template_defaults: {
+          daily_target: template.daily_target,
+          unit: template.unit,
+          reminder: template.reminder,
+        },
+      };
+    } catch (error: unknown) {
+      console.error('[GET /api/me/habits/:missionKey/setting] 錯誤:', error);
+      this.logError('[GET /api/me/habits/:missionKey/setting] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to fetch setting' };
     }
   }
 
   /**
-   * PATCH /api/me/missions/:missionKey/settings
+   * PATCH /api/me/habits/:missionKey/setting
    * 更新任務設定
    */
-  async updateMissionSettings(missionKey: string, body: any) {
-    const userId = (this.request as any).userId;
-    const productId = body?.product_id;
-
-    // 驗證 product_id
-    const validationError = this.meService.validateProductId(productId);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
-
-    // 驗證設定輸入
-    const settingsError = this.meService.validateMissionSettingsInput(body);
-    if (settingsError) {
-      return this.reply.code(400).send({ error: settingsError });
-    }
-
+  async updateMissionSetting() {
     try {
-      // 檢查任務是否存在
-      const template = await this.meService.getMissionTemplateByKey(productId, missionKey);
-      if (!template) {
-        return this.reply.code(404).send({ error: 'mission not found' });
+      this.logDebug('[PATCH /api/me/habits/:missionKey/setting] 開始更新任務設定');
+      const userId = this.getUserId();
+      const missionKey = (this.request.params as any)?.missionKey;
+
+      let body: any = {};
+      try {
+        body = await this.request.body;
+      } catch {
+        body = {};
       }
 
-      // 更新設定
-      const settings = await this.meService.upsertUserMissionSetting(userId, template.id, {
+      if (!body?.product_id) {
+        this.logDebug('[PATCH /api/me/habits/:missionKey/setting] product_id 缺少');
+        this.reply.code(400);
+        return { error: 'product_id required' };
+      }
+
+      const template = await this.meService.getMissionTemplateByKey(body.product_id, missionKey);
+      if (!template) {
+        this.logDebug('[PATCH /api/me/habits/:missionKey/setting] 任務不存在', { missionKey });
+        this.reply.code(404);
+        return { error: 'mission not found' };
+      }
+
+      const setting = await this.meService.upsertUserMissionSetting(userId, template.id, {
+        daily_target: body.daily_target,
         reminder_enabled: body.reminder_enabled,
         reminder_time: body.reminder_time,
-        notes: body.notes,
       });
 
-      return { settings };
-    } catch (error) {
-      this.logError('Failed to update mission settings', error);
-      return this.reply.code(500).send({ error: (error as Error).message });
+      this.logDebug('[PATCH /api/me/habits/:missionKey/setting] 成功更新任務設定', { missionKey });
+      return { setting };
+    } catch (error: unknown) {
+      console.error('[PATCH /api/me/habits/:missionKey/setting] 錯誤:', error);
+      this.logError('[PATCH /api/me/habits/:missionKey/setting] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to update setting' };
     }
   }
 }
