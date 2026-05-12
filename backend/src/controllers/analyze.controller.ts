@@ -2,6 +2,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { AnalyzeService } from '../services/analyze.service.js';
+import { BadRequestError, ServiceUnavailableError, ValidationError } from '../middleware/errorHandler.js';
 import type { AnalyzeRequestBody } from '../types.js';
 
 export class AnalyzeController extends BaseController {
@@ -32,26 +33,19 @@ export class AnalyzeController extends BaseController {
       // Service 已經返回 { success: true, ... } 格式，直接返回
       return result;
     } catch (error) {
-      const message = (error as Error).message;
-
-      if (message === 'No image provided') {
+      if (error instanceof BadRequestError) {
         this.reply.code(400);
-        return { error: message };
+        return { error: error.message };
       }
 
-      if (message === 'GEMINI_API_KEY not configured') {
-        this.reply.code(500);
-        return { error: message };
+      if (error instanceof ServiceUnavailableError) {
+        this.reply.code(503);
+        return { error: error.message };
       }
 
-      if (message.includes('Could not parse AI response')) {
+      if (error instanceof ValidationError) {
         this.reply.code(422);
-        return { error: message };
-      }
-
-      if (message === 'No supplements to match against') {
-        this.reply.code(400);
-        return { error: message };
+        return { error: error.message, validation: error.validation };
       }
 
       console.error('[POST /api/analyze] 錯誤:', error);

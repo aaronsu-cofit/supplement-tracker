@@ -1,6 +1,7 @@
 // /Users/chingchingyeh/cofit/dtx-space/Vitera/backend/src/services/analyze.service.ts
 import { callGemini, parseGeminiJson } from '../lib/ai.js';
 import { getSupplements } from '../lib/db.js';
+import { BadRequestError, ServiceUnavailableError, ValidationError } from '../middleware/errorHandler.js';
 import type { AnalyzeRequestBody } from '../types.js';
 
 export class AnalyzeService {
@@ -10,12 +11,12 @@ export class AnalyzeService {
     const { image, mode = 'wound', prompt: customPrompt } = data;
 
     if (!image) {
-      throw new Error('No image provided');
+      throw new BadRequestError('No image provided');
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error('GEMINI_API_KEY not configured');
+      throw new ServiceUnavailableError('GEMINI_API_KEY not configured');
     }
 
     const mimeMatch = image.match(/^data:(image\/\w+);base64,/);
@@ -46,7 +47,7 @@ export class AnalyzeService {
       return this.analyzeShoeWear(apiKey, base64Data, mimeType);
     }
 
-    throw new Error('Invalid mode. Use "label", "checkin", "wound", "hallux_valgus", "shoe_wear", or "sexual_health"');
+    throw new BadRequestError('Invalid mode. Use "label", "checkin", "wound", "hallux_valgus", "shoe_wear", or "sexual_health"');
   }
 
   private async analyzeLabel(apiKey: string, base64Data: string, mimeType: string) {
@@ -69,14 +70,16 @@ Guidelines:
       const parsed = parseGeminiJson(text);
       return { success: true, supplement: parsed };
     } catch {
-      throw new Error('Could not parse AI response');
+      throw new ValidationError('Could not parse AI response', [
+        { field: 'response', message: 'AI response format is invalid' },
+      ]);
     }
   }
 
   private async analyzeCheckin(apiKey: string, base64Data: string, mimeType: string, userId: string) {
     const supplements = await getSupplements(userId);
     if (supplements.length === 0) {
-      throw new Error('No supplements to match against');
+      throw new BadRequestError('No supplements to match against');
     }
 
     const supplementList = supplements.map(s => `ID:${s.id} | Name:${s.name} | Dosage:${s.dosage || 'N/A'}`).join('\n');
@@ -99,7 +102,9 @@ Return valid JSON only (no markdown, no code fences):
       const parsed = parseGeminiJson(text);
       return { success: true, result: parsed };
     } catch {
-      throw new Error('Could not parse AI response');
+      throw new ValidationError('Could not parse AI response', [
+        { field: 'response', message: 'AI response format is invalid' },
+      ]);
     }
   }
 
@@ -123,7 +128,9 @@ Return valid JSON only (no markdown, no code fences):
       const parsed = parseGeminiJson<Record<string, unknown>>(text);
       return { success: true, ...parsed };
     } catch {
-      throw new Error('Could not parse AI response');
+      throw new ValidationError('Could not parse AI response', [
+        { field: 'response', message: 'AI response format is invalid' },
+      ]);
     }
   }
 
@@ -145,7 +152,9 @@ Return valid JSON only (no markdown, no code fences):
       const parsed = parseGeminiJson<Record<string, unknown>>(text);
       return { success: true, ...parsed };
     } catch {
-      throw new Error('Could not parse AI response');
+      throw new ValidationError('Could not parse AI response', [
+        { field: 'response', message: 'AI response format is invalid' },
+      ]);
     }
   }
 
@@ -170,7 +179,9 @@ Return valid JSON only (no markdown, no code fences):
       const parsed = parseGeminiJson<Record<string, unknown>>(text);
       return { success: true, ...parsed };
     } catch {
-      throw new Error('Could not parse AI response');
+      throw new ValidationError('Could not parse AI response', [
+        { field: 'response', message: 'AI response format is invalid' },
+      ]);
     }
   }
 
@@ -193,7 +204,9 @@ Return valid JSON only (no markdown, no code fences):
       const parsed = parseGeminiJson<Record<string, unknown>>(text);
       return { success: true, ...parsed };
     } catch {
-      throw new Error('Could not parse AI response');
+      throw new ValidationError('Could not parse AI response', [
+        { field: 'response', message: 'AI response format is invalid' },
+      ]);
     }
   }
 }
