@@ -19,7 +19,8 @@ export class AnalyzeController extends BaseController {
 
     try {
       const result = await this.analyzeService.analyzeImage(userId, body);
-      return this.sendSuccess(result);
+      // Service 已經返回 { success: true, ... } 格式，直接返回
+      return result;
     } catch (error) {
       const message = (error as Error).message;
 
@@ -43,7 +44,8 @@ export class AnalyzeController extends BaseController {
         return { error: message };
       }
 
-      throw error;
+      this.logError('[Analyze]', error);
+      return this.reply.code(500).send({ error: 'Failed to analyze image' });
     }
   }
 }

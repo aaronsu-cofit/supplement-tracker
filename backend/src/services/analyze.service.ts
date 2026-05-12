@@ -1,11 +1,10 @@
 // /Users/chingchingyeh/cofit/dtx-space/Vitera/backend/src/services/analyze.service.ts
-import { PrismaClient } from '@prisma/client';
 import { callGemini, parseGeminiJson } from '../lib/ai.js';
 import { getSupplements } from '../lib/db.js';
 import type { AnalyzeRequestBody } from '../types.js';
 
 export class AnalyzeService {
-  constructor(private prisma: PrismaClient) {}
+  constructor() {}
 
   async analyzeImage(userId: string, data: AnalyzeRequestBody) {
     const { image, mode = 'wound', prompt: customPrompt } = data;
@@ -65,9 +64,13 @@ Guidelines:
 - For time_of_day: vitamins/energy supplements → morning, calcium/magnesium → evening, general → morning
 - Return ONLY the JSON object, nothing else`;
 
-    const text = await callGemini(apiKey, base64Data, mimeType, prompt);
-    const parsed = parseGeminiJson(text);
-    return { success: true, supplement: parsed };
+    try {
+      const text = await callGemini(apiKey, base64Data, mimeType, prompt);
+      const parsed = parseGeminiJson(text);
+      return { success: true, supplement: parsed };
+    } catch {
+      throw new Error('Could not parse AI response');
+    }
   }
 
   private async analyzeCheckin(apiKey: string, base64Data: string, mimeType: string, userId: string) {
@@ -91,9 +94,13 @@ Return valid JSON only (no markdown, no code fences):
 }
 - Return ONLY the JSON object`;
 
-    const text = await callGemini(apiKey, base64Data, mimeType, prompt);
-    const parsed = parseGeminiJson(text);
-    return { success: true, result: parsed };
+    try {
+      const text = await callGemini(apiKey, base64Data, mimeType, prompt);
+      const parsed = parseGeminiJson(text);
+      return { success: true, result: parsed };
+    } catch {
+      throw new Error('Could not parse AI response');
+    }
   }
 
   private async analyzeWound(apiKey: string, base64Data: string, mimeType: string, customPrompt?: string) {
@@ -111,9 +118,13 @@ Return valid JSON only (no markdown, no code fences):
   "ai_status_label": "復原進度符合預期 | 需多加留意觀察 | 建議諮詢專業醫護人員"
 }`;
 
-    const text = await callGemini(apiKey, base64Data, mimeType, prompt);
-    const parsed = parseGeminiJson<Record<string, unknown>>(text);
-    return { success: true, ...parsed };
+    try {
+      const text = await callGemini(apiKey, base64Data, mimeType, prompt);
+      const parsed = parseGeminiJson<Record<string, unknown>>(text);
+      return { success: true, ...parsed };
+    } catch {
+      throw new Error('Could not parse AI response');
+    }
   }
 
   private async analyzeHalluxValgus(apiKey: string, base64Data: string, mimeType: string) {
@@ -129,9 +140,13 @@ Return valid JSON only (no markdown, no code fences):
 }
 - Return ONLY the JSON object.`;
 
-    const text = await callGemini(apiKey, base64Data, mimeType, prompt);
-    const parsed = parseGeminiJson<Record<string, unknown>>(text);
-    return { success: true, ...parsed };
+    try {
+      const text = await callGemini(apiKey, base64Data, mimeType, prompt);
+      const parsed = parseGeminiJson<Record<string, unknown>>(text);
+      return { success: true, ...parsed };
+    } catch {
+      throw new Error('Could not parse AI response');
+    }
   }
 
   private async analyzeSexualHealth(apiKey: string, base64Data: string, mimeType: string, customPrompt?: string) {
@@ -150,9 +165,13 @@ Return valid JSON only (no markdown, no code fences):
   "recommended_action": "kegel_training" | "consult_doctor" | "use_lubricant" | "stress_reduction"
 }`;
 
-    const text = await callGemini(apiKey, base64Data, mimeType, prompt);
-    const parsed = parseGeminiJson<Record<string, unknown>>(text);
-    return { success: true, ...parsed };
+    try {
+      const text = await callGemini(apiKey, base64Data, mimeType, prompt);
+      const parsed = parseGeminiJson<Record<string, unknown>>(text);
+      return { success: true, ...parsed };
+    } catch {
+      throw new Error('Could not parse AI response');
+    }
   }
 
   private async analyzeShoeWear(apiKey: string, base64Data: string, mimeType: string) {
@@ -169,8 +188,12 @@ Return valid JSON only (no markdown, no code fences):
 }
 - Return ONLY the JSON object.`;
 
-    const text = await callGemini(apiKey, base64Data, mimeType, prompt);
-    const parsed = parseGeminiJson<Record<string, unknown>>(text);
-    return { success: true, ...parsed };
+    try {
+      const text = await callGemini(apiKey, base64Data, mimeType, prompt);
+      const parsed = parseGeminiJson<Record<string, unknown>>(text);
+      return { success: true, ...parsed };
+    } catch {
+      throw new Error('Could not parse AI response');
+    }
   }
 }
