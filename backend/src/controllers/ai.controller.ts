@@ -2,6 +2,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { AIService } from '../services/ai.service.js';
+import { BadRequestError, ServiceUnavailableError } from '../middleware/errorHandler.js';
 
 interface AIRequestBody {
   agent_id?: string;
@@ -51,7 +52,17 @@ export class AIController extends BaseController {
       this.logDebug('[POST /api/ai/run] AI 執行完成');
 
       return result;
-    } catch (error: unknown) {
+    } catch (error) {
+      if (error instanceof BadRequestError) {
+        this.reply.code(400);
+        return { error: error.message };
+      }
+
+      if (error instanceof ServiceUnavailableError) {
+        this.reply.code(503);
+        return { error: error.message };
+      }
+
       console.error('[POST /api/ai/run] 錯誤:', error);
       this.logError('[POST /api/ai/run] 錯誤', error);
       this.reply.code(500);
@@ -96,7 +107,17 @@ export class AIController extends BaseController {
         .header('Cache-Control', 'no-cache')
         .header('Connection', 'keep-alive')
         .send(upstream.body);
-    } catch (error: unknown) {
+    } catch (error) {
+      if (error instanceof BadRequestError) {
+        this.reply.code(400);
+        return { error: error.message };
+      }
+
+      if (error instanceof ServiceUnavailableError) {
+        this.reply.code(503);
+        return { error: error.message };
+      }
+
       console.error('[POST /api/ai/stream] 錯誤:', error);
       this.logError('[POST /api/ai/stream] 錯誤', error);
       this.reply.code(500);
