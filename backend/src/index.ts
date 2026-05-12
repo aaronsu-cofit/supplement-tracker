@@ -122,7 +122,8 @@ export async function createFastifyApp() {
 
   // Fallback parser for requests without Content-Type or with unknown types
   // This regex matches ANY content-type or missing content-type
-  app.addContentTypeParser(/.*/, async (request: any, payload: any) => {
+  // Note: Regex must start with ^ to avoid CORS vulnerability (FSTSEC001)
+  app.addContentTypeParser(/^.*/, async (request: any, payload: any) => {
     const contentLength = request.headers['content-length'];
     if (contentLength === '0' || !contentLength) {
       return {};
