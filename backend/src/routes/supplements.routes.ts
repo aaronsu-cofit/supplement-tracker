@@ -28,7 +28,7 @@ export async function supplementsRoutes(app: FastifyInstance) {
   const supplementsService = container.get<SupplementsService>('supplementsService');
 
   // 為所有路由應用軟認證中間件（兼容匿名模式，與原 Hono softAuthMiddleware 一致）
-  app.addHook('onRequest', softAuthenticateUser);
+  app.addHook('preHandler', softAuthenticateUser);
 
   // GET /api/supplements - 獲取用戶的所有補充品
   app.get(

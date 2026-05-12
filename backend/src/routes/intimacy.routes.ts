@@ -22,7 +22,7 @@ import {
 export async function intimacyRoutes(app: FastifyInstance) {
   const intimacyService = container.get<IntimacyService>('intimacyService');
 
-  app.addHook('onRequest', authenticateUser);
+  app.addHook('preHandler', authenticateUser);
 
   // GET /api/intimacy/assessments
   app.get(

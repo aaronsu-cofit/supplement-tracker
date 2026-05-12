@@ -9,7 +9,7 @@ export function registerLoggerMiddleware(app: FastifyInstance) {
   // 這個函數保留用於將來自定義日誌邏輯
 
   // 可選：添加自定義日誌攔截器
-  app.addHook('onRequest', async (request, reply) => {
+  app.addHook('preHandler', async (request, reply) => {
     request.log.debug(
       {
         method: request.method,

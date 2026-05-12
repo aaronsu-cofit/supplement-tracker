@@ -19,7 +19,7 @@ import { runAISchema, streamAISchema } from '../schemas/ai.schema.js';
 export async function aiRoutes(app: FastifyInstance) {
   const aiService = container.get<AIService>('aiService');
 
-  app.addHook('onRequest', authenticateUser);
+  app.addHook('preHandler', authenticateUser);
 
   // POST /api/ai/run - 同步執行 AI Skill
   app.post(

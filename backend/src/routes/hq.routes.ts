@@ -41,8 +41,8 @@ export async function hqRoutes(app: FastifyInstance) {
   const hqService = container.get<HQService>('hqService');
 
   // 為所有路由應用認證和管理員角色驗證中間件
-  app.addHook('onRequest', authenticateUser);
-  app.addHook('onRequest', requireAdmin());
+  app.addHook('preHandler', authenticateUser);
+  app.addHook('preHandler', requireAdmin());
 
   // ============================================
   // 模組管理 (Module Management)

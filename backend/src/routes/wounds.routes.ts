@@ -38,7 +38,7 @@ export async function woundsRoutes(app: FastifyInstance) {
   const woundsService = container.get<WoundsService>('woundsService');
 
   // 為所有路由應用軟認證中間件（兼容匿名模式，與原 Hono softAuthMiddleware 一致）
-  app.addHook('onRequest', softAuthenticateUser);
+  app.addHook('preHandler', softAuthenticateUser);
 
   // GET /api/wounds/admin - 管理員獲取所有傷口（需要放在 /:woundId 之前避免路由衝突）
   app.get(

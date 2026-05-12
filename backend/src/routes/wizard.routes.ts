@@ -34,7 +34,7 @@ import {
 export async function wizardRoutes(app: FastifyInstance) {
   const wizardService = container.get<WizardService>('wizardService');
 
-  app.addHook('onRequest', authenticateUser);
+  app.addHook('preHandler', authenticateUser);
 
   // GET /api/wizard/oa/:oaId/scenarios
   app.get(

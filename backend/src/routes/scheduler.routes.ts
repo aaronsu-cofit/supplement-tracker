@@ -24,7 +24,7 @@ import {
 export async function schedulerRoutes(app: FastifyInstance) {
   const schedulerService = container.get<SchedulerService>('schedulerService');
 
-  app.addHook('onRequest', authPreHandler);
+  app.addHook('preHandler', authPreHandler);
 
   // POST /api/scheduler/run
   app.post(

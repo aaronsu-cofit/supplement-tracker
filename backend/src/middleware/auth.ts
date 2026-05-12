@@ -11,7 +11,7 @@ import type { AuthenticatedRequest } from '../types/http.js';
  * 將用戶信息附加到 request.user
  *
  * 使用方式：
- * app.addHook('onRequest', authenticateUser);
+ * app.addHook('preHandler', authenticateUser);
  */
 export async function authenticateUser(
   request: FastifyRequest,

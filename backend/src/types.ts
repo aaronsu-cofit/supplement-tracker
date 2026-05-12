@@ -446,13 +446,3 @@ export interface TokenPayload {
   userId: string;
   [key: string]: unknown;
 }
-
-// ─── Hono Environment ─────────────────────────────────────────────────────────
-
-export type HonoVariables = {
-  userId: string;
-};
-
-export type HonoEnv = {
-  Variables: HonoVariables;
-};
