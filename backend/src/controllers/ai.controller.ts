@@ -28,35 +28,52 @@ export class AIController extends BaseController {
    * POST /api/ai/run - 同步執行 AI Skill
    */
   async runAI() {
-    const userId = this.getAuthenticatedUserId();
-    const body = (await this.request.body) as AIRequestBody;
+    try {
+      const userId = this.getAuthenticatedUserId();
+      const body = (await this.request.body) as AIRequestBody;
 
-    this.logDebug('Running AI skill', { userId, agentId: body.agent_id });
-    const result = await this.aiService.runAI(body.agent_id || '', userId);
+      if (!body.agent_id || typeof body.agent_id !== 'string') {
+        return this.reply.code(400).send({ error: 'agent_id is required' });
+      }
 
-    return result;
+      this.logDebug('Running AI skill', { userId, agentId: body.agent_id });
+      const result = await this.aiService.runAI(body.agent_id, userId);
+
+      return result;
+    } catch (err) {
+      this.logError('[AI /run]', err);
+      return this.reply.code(500).send({ error: 'AI execution failed' });
+    }
   }
 
   /**
    * POST /api/ai/stream - SSE 串流執行 AI Skill
    */
   async streamAI() {
-    const userId = this.getAuthenticatedUserId();
-    const body = (await this.request.body) as AIRequestBody;
+    try {
+      const userId = this.getAuthenticatedUserId();
+      const body = (await this.request.body) as AIRequestBody;
 
-    this.logDebug('Streaming AI skill', { userId, agentId: body.agent_id });
-    const upstream = await this.aiService.streamAI(body.agent_id || '', userId);
+      if (!body.agent_id || typeof body.agent_id !== 'string') {
+        return this.reply.code(400).send({ error: 'agent_id is required' });
+      }
 
-    if (!upstream.body) {
-      this.reply.code(502);
-      return { error: 'ADK stream has no body' };
+      this.logDebug('Streaming AI skill', { userId, agentId: body.agent_id });
+      const upstream = await this.aiService.streamAI(body.agent_id, userId);
+
+      if (!upstream.body) {
+        return this.reply.code(502).send({ error: 'ADK stream has no body' });
+      }
+
+      // 返回 SSE 串流響應
+      return this.reply
+        .header('Content-Type', 'text/event-stream')
+        .header('Cache-Control', 'no-cache')
+        .header('Connection', 'keep-alive')
+        .send(upstream.body);
+    } catch (err) {
+      this.logError('[AI /stream]', err);
+      return this.reply.code(500).send({ error: 'AI stream failed' });
     }
-
-    // 返回 SSE 串流響應
-    return this.reply
-      .header('Content-Type', 'text/event-stream')
-      .header('Cache-Control', 'no-cache')
-      .header('Connection', 'keep-alive')
-      .send(upstream.body);
   }
 }

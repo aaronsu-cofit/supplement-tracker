@@ -1,13 +1,11 @@
 // /Users/chingchingyeh/cofit/dtx-space/Vitera/backend/src/services/ai.service.ts
 import { PrismaClient } from '@prisma/client';
-import { ValidationError } from '../middleware/errorHandler.js';
 import { adkRun, adkStream } from '../lib/adk.js';
 
 /**
  * AIService - 業務邏輯層
  * 責任：
  * - AI Skill 執行（run, stream）
- * - 數據驗證和業務規則
  * - 與 ADK 交互
  */
 export class AIService {
@@ -20,13 +18,6 @@ export class AIService {
    * @returns AI 執行結果
    */
   async runAI(agentId: string, userId: string) {
-    // 驗證 agent_id
-    if (!agentId || typeof agentId !== 'string') {
-      throw new ValidationError('agent_id is required', [
-        { field: 'agent_id', message: 'agent_id must be a non-empty string' },
-      ]);
-    }
-
     return adkRun(agentId, userId);
   }
 
@@ -37,13 +28,6 @@ export class AIService {
    * @returns SSE 串流響應
    */
   async streamAI(agentId: string, userId: string) {
-    // 驗證 agent_id
-    if (!agentId || typeof agentId !== 'string') {
-      throw new ValidationError('agent_id is required', [
-        { field: 'agent_id', message: 'agent_id must be a non-empty string' },
-      ]);
-    }
-
     return adkStream(agentId, userId);
   }
 }
