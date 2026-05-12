@@ -2,6 +2,8 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { ProductsService } from '../services/products.service.js';
 
+const KEY_REGEX = /^[a-z0-9][a-z0-9_.-]{0,99}$/i;
+
 /**
  * Products Controller - HTTP Request Handlers
  * Handles all product-related API endpoints
@@ -18,16 +20,26 @@ export class ProductsController extends BaseController {
   // ─── Product CRUD ───────────────────────────────────────────
 
   async getAllProducts() {
-    const rows = await this.productsService.getAllProducts();
-    return { products: rows };
+    try {
+      const rows = await this.productsService.getAllProducts();
+      return { products: rows };
+    } catch (error) {
+      this.logError('[Products /getAllProducts]', error);
+      return this.reply.code(500).send({ error: 'Failed to fetch products' });
+    }
   }
 
   async getProductById(id: string) {
-    const product = await this.productsService.getProductById(id);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
+    try {
+      const product = await this.productsService.getProductById(id);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      return { product };
+    } catch (error) {
+      this.logError('[Products /getProductById]', error);
+      return this.reply.code(500).send({ error: 'Failed to fetch product' });
     }
-    return { product };
   }
 
   async createProduct(body: any) {
@@ -35,8 +47,13 @@ export class ProductsController extends BaseController {
     if (!name || typeof name !== 'string') {
       return this.reply.code(400).send({ error: '請提供 name' });
     }
-    const product = await this.productsService.createProduct({ name, description });
-    return this.reply.code(201).send({ product });
+    try {
+      const product = await this.productsService.createProduct({ name, description });
+      return this.reply.code(201).send({ product });
+    } catch (error) {
+      this.logError('[Products /createProduct]', error);
+      return this.reply.code(500).send({ error: 'Failed to create product' });
+    }
   }
 
   async updateProduct(id: string, body: any) {
@@ -44,10 +61,11 @@ export class ProductsController extends BaseController {
       const product = await this.productsService.updateProduct(id, body);
       return { product };
     } catch (e: any) {
+      this.logError('[Products /updateProduct]', e);
       if (e?.code === 'P2025') {
         return this.reply.code(404).send({ error: '找不到此 Product' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to update product' });
     }
   }
 
@@ -56,10 +74,11 @@ export class ProductsController extends BaseController {
       await this.productsService.deleteProduct(id);
       return { success: true };
     } catch (e: any) {
+      this.logError('[Products /deleteProduct]', e);
       if (e?.code === 'P2025') {
         return this.reply.code(404).send({ error: '找不到此 Product' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to delete product' });
     }
   }
 
@@ -71,40 +90,55 @@ export class ProductsController extends BaseController {
       const result = await this.productsService.seedProduct(productId, templateKey);
       return result;
     } catch (e: any) {
-      if (e.message.includes('找不到')) {
-        return this.reply.code(404).send({ error: '找不到此 Product' });
+      const message = (e as Error).message;
+      this.logError('[Products /seedProduct]', e);
+      if (message === '找不到此 Product') {
+        return this.reply.code(404).send({ error: message });
       }
-      if (e.message.includes('未知的範本')) {
-        return this.reply.code(400).send({ error: e.message });
+      if (message.startsWith('未知的範本')) {
+        return this.reply.code(400).send({ error: message });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to seed product' });
     }
   }
 
   async getSeedTemplates() {
-    return this.productsService.getSeedTemplateList();
+    try {
+      return this.productsService.getSeedTemplateList();
+    } catch (error) {
+      this.logError('[Products /getSeedTemplates]', error);
+      return this.reply.code(500).send({ error: 'Failed to fetch seed templates' });
+    }
   }
 
   // ─── Content Items ──────────────────────────────────────────
 
   async getContentItems(productId: string) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
+    try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      const items = await this.productsService.getContentItemsForProduct(productId);
+      return { items };
+    } catch (error) {
+      this.logError('[Products /getContentItems]', error);
+      return this.reply.code(500).send({ error: 'Failed to fetch content items' });
     }
-    const items = await this.productsService.getContentItemsForProduct(productId);
-    return { items };
   }
 
   async createContentItem(productId: string, body: any) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
-    }
-    if (!body.key || typeof body.key !== 'string') {
-      return this.reply.code(400).send({ error: '請提供 key' });
-    }
     try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      if (!body.key || typeof body.key !== 'string') {
+        return this.reply.code(400).send({ error: '請提供 key' });
+      }
+      if (!KEY_REGEX.test(body.key)) {
+        return this.reply.code(400).send({ error: 'key 只能包含英數、點、底線、連字號，開頭需為英數' });
+      }
       const item = await this.productsService.createContentItem(productId, {
         key: body.key,
         type: body.type,
@@ -114,77 +148,88 @@ export class ProductsController extends BaseController {
       });
       return this.reply.code(201).send({ item });
     } catch (e: any) {
+      this.logError('[Products /createContentItem]', e);
       if (e?.code === 'P2002') {
         return this.reply.code(409).send({ error: '此 key 已存在' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to create content item' });
     }
   }
 
   async updateContentItem(productId: string, contentId: string, body: any) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
-    }
-    const belongsToProduct = await this.productsService.verifyContentItemBelongsToProduct(contentId, productId);
-    if (!belongsToProduct) {
-      return this.reply.code(404).send({ error: '找不到此內容' });
-    }
     try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      const belongsToProduct = await this.productsService.verifyContentItemBelongsToProduct(contentId, productId);
+      if (!belongsToProduct) {
+        return this.reply.code(404).send({ error: '找不到此內容' });
+      }
+      if (body.key && !KEY_REGEX.test(body.key)) {
+        return this.reply.code(400).send({ error: 'key 格式不合法' });
+      }
       const item = await this.productsService.updateContentItem(contentId, body);
       return { item };
     } catch (e: any) {
+      this.logError('[Products /updateContentItem]', e);
       if (e?.code === 'P2025') {
         return this.reply.code(404).send({ error: '找不到此內容' });
       }
       if (e?.code === 'P2002') {
         return this.reply.code(409).send({ error: '此 key 已存在' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to update content item' });
     }
   }
 
   async deleteContentItem(productId: string, contentId: string) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
-    }
-    const belongsToProduct = await this.productsService.verifyContentItemBelongsToProduct(contentId, productId);
-    if (!belongsToProduct) {
-      return this.reply.code(404).send({ error: '找不到此內容' });
-    }
     try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      const belongsToProduct = await this.productsService.verifyContentItemBelongsToProduct(contentId, productId);
+      if (!belongsToProduct) {
+        return this.reply.code(404).send({ error: '找不到此內容' });
+      }
       await this.productsService.deleteContentItem(contentId);
       return { success: true };
     } catch (e: any) {
+      this.logError('[Products /deleteContentItem]', e);
       if (e?.code === 'P2025') {
         return this.reply.code(404).send({ error: '找不到此內容' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to delete content item' });
     }
   }
 
   // ─── Missions ───────────────────────────────────────────────
 
   async getMissions(productId: string) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
+    try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      const missions = await this.productsService.getMissionTemplatesForProduct(productId);
+      return { missions };
+    } catch (error) {
+      this.logError('[Products /getMissions]', error);
+      return this.reply.code(500).send({ error: 'Failed to fetch missions' });
     }
-    const missions = await this.productsService.getMissionTemplatesForProduct(productId);
-    return { missions };
   }
 
   async createMission(productId: string, body: any) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
-    }
-    const validationError = this.productsService.validateMissionPayload(body, true);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
     try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      const validationError = this.productsService.validateMissionPayload(body, true);
+      if (validationError) {
+        return this.reply.code(400).send({ error: validationError });
+      }
       const mission = await this.productsService.createMissionTemplate(productId, {
         key: body.key,
         name: body.name,
@@ -205,73 +250,81 @@ export class ProductsController extends BaseController {
       });
       return this.reply.code(201).send({ mission });
     } catch (e: any) {
+      this.logError('[Products /createMission]', e);
       if (e?.code === 'P2002') {
         return this.reply.code(409).send({ error: '此 mission key 已存在' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to create mission' });
     }
   }
 
   async updateMission(productId: string, missionId: string, body: any) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
-    }
-    const validationError = this.productsService.validateMissionPayload(body, false);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
     try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      const validationError = this.productsService.validateMissionPayload(body, false);
+      if (validationError) {
+        return this.reply.code(400).send({ error: validationError });
+      }
       const mission = await this.productsService.updateMissionTemplate(missionId, body);
       return { mission };
     } catch (e: any) {
+      this.logError('[Products /updateMission]', e);
       if (e?.code === 'P2025') {
         return this.reply.code(404).send({ error: '找不到此 Mission' });
       }
       if (e?.code === 'P2002') {
         return this.reply.code(409).send({ error: '此 mission key 已存在' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to update mission' });
     }
   }
 
   async deleteMission(productId: string, missionId: string) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
-    }
     try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
       await this.productsService.deleteMissionTemplate(missionId);
       return { success: true };
     } catch (e: any) {
+      this.logError('[Products /deleteMission]', e);
       if (e?.code === 'P2025') {
         return this.reply.code(404).send({ error: '找不到此 Mission' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to delete mission' });
     }
   }
 
   // ─── Badges ─────────────────────────────────────────────────
 
   async getBadges(productId: string) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
+    try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      const badges = await this.productsService.getBadgeTemplatesForProduct(productId);
+      return { badges };
+    } catch (error) {
+      this.logError('[Products /getBadges]', error);
+      return this.reply.code(500).send({ error: 'Failed to fetch badges' });
     }
-    const badges = await this.productsService.getBadgeTemplatesForProduct(productId);
-    return { badges };
   }
 
   async createBadge(productId: string, body: any) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
-    }
-    const validationError = this.productsService.validateBadgePayload(body, true);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
     try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      const validationError = this.productsService.validateBadgePayload(body, true);
+      if (validationError) {
+        return this.reply.code(400).send({ error: validationError });
+      }
       const badge = await this.productsService.createBadgeTemplate(productId, {
         key: body.key,
         name: body.name,
@@ -281,73 +334,81 @@ export class ProductsController extends BaseController {
       });
       return this.reply.code(201).send({ badge });
     } catch (e: any) {
+      this.logError('[Products /createBadge]', e);
       if (e?.code === 'P2002') {
         return this.reply.code(409).send({ error: '此 badge key 已存在' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to create badge' });
     }
   }
 
   async updateBadge(productId: string, badgeId: string, body: any) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
-    }
-    const validationError = this.productsService.validateBadgePayload(body, false);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
     try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      const validationError = this.productsService.validateBadgePayload(body, false);
+      if (validationError) {
+        return this.reply.code(400).send({ error: validationError });
+      }
       const badge = await this.productsService.updateBadgeTemplate(badgeId, body);
       return { badge };
     } catch (e: any) {
+      this.logError('[Products /updateBadge]', e);
       if (e?.code === 'P2025') {
         return this.reply.code(404).send({ error: '找不到此 Badge' });
       }
       if (e?.code === 'P2002') {
         return this.reply.code(409).send({ error: '此 badge key 已存在' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to update badge' });
     }
   }
 
   async deleteBadge(productId: string, badgeId: string) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
-    }
     try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
       await this.productsService.deleteBadgeTemplate(badgeId);
       return { success: true };
     } catch (e: any) {
+      this.logError('[Products /deleteBadge]', e);
       if (e?.code === 'P2025') {
         return this.reply.code(404).send({ error: '找不到此 Badge' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to delete badge' });
     }
   }
 
   // ─── Journeys ───────────────────────────────────────────────
 
   async getJourneys(productId: string) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
+    try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      const journeys = await this.productsService.getJourneyTemplatesForProduct(productId);
+      return { journeys };
+    } catch (error) {
+      this.logError('[Products /getJourneys]', error);
+      return this.reply.code(500).send({ error: 'Failed to fetch journeys' });
     }
-    const journeys = await this.productsService.getJourneyTemplatesForProduct(productId);
-    return { journeys };
   }
 
   async createJourney(productId: string, body: any) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
-    }
-    const validationError = this.productsService.validateJourneyPayload(body, true);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
     try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      const validationError = this.productsService.validateJourneyPayload(body, true);
+      if (validationError) {
+        return this.reply.code(400).send({ error: validationError });
+      }
       const journey = await this.productsService.createJourneyTemplate(productId, {
         key: body.key,
         name: body.name,
@@ -356,119 +417,130 @@ export class ProductsController extends BaseController {
       });
       return this.reply.code(201).send({ journey });
     } catch (e: any) {
+      this.logError('[Products /createJourney]', e);
       if (e?.code === 'P2002') {
         return this.reply.code(409).send({ error: '此 journey key 已存在' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to create journey' });
     }
   }
 
   async updateJourney(productId: string, journeyId: string, body: any) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
-    }
-    const validationError = this.productsService.validateJourneyPayload(body, false);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
     try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      const validationError = this.productsService.validateJourneyPayload(body, false);
+      if (validationError) {
+        return this.reply.code(400).send({ error: validationError });
+      }
       const journey = await this.productsService.updateJourneyTemplate(journeyId, body);
       return { journey };
     } catch (e: any) {
+      this.logError('[Products /updateJourney]', e);
       if (e?.code === 'P2025') {
         return this.reply.code(404).send({ error: '找不到此 Journey' });
       }
       if (e?.code === 'P2002') {
         return this.reply.code(409).send({ error: '此 journey key 已存在' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to update journey' });
     }
   }
 
   async deleteJourney(productId: string, journeyId: string) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
-    }
     try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
       await this.productsService.deleteJourneyTemplate(journeyId);
       return { success: true };
     } catch (e: any) {
+      this.logError('[Products /deleteJourney]', e);
       if (e?.code === 'P2025') {
         return this.reply.code(404).send({ error: '找不到此 Journey' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to delete journey' });
     }
   }
 
   // ─── Intent Rules ───────────────────────────────────────────
 
   async getIntentRules(productId: string) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
+    try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      const rules = await this.productsService.getIntentRulesForProduct(productId);
+      return { rules };
+    } catch (error) {
+      this.logError('[Products /getIntentRules]', error);
+      return this.reply.code(500).send({ error: 'Failed to fetch intent rules' });
     }
-    const rules = await this.productsService.getIntentRulesForProduct(productId);
-    return { rules };
   }
 
   async createIntentRule(productId: string, body: any) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
-    }
-    const validationError = this.productsService.validateIntentRuleInput(body, true);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
     try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      const validationError = this.productsService.validateIntentRuleInput(body, true);
+      if (validationError) {
+        return this.reply.code(400).send({ error: validationError });
+      }
       const rule = await this.productsService.createIntentRule(productId, body);
       return this.reply.code(201).send({ rule });
     } catch (e: any) {
+      this.logError('[Products /createIntentRule]', e);
       if (e?.code === 'P2002') {
         return this.reply.code(409).send({ error: '此 intent rule key 已存在' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to create intent rule' });
     }
   }
 
   async updateIntentRule(productId: string, ruleId: string, body: any) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
-    }
-    const validationError = this.productsService.validateIntentRuleInput(body, false);
-    if (validationError) {
-      return this.reply.code(400).send({ error: validationError });
-    }
     try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
+      const validationError = this.productsService.validateIntentRuleInput(body, false);
+      if (validationError) {
+        return this.reply.code(400).send({ error: validationError });
+      }
       const rule = await this.productsService.updateIntentRule(ruleId, body);
       return { rule };
     } catch (e: any) {
+      this.logError('[Products /updateIntentRule]', e);
       if (e?.code === 'P2025') {
         return this.reply.code(404).send({ error: '找不到此 Intent Rule' });
       }
       if (e?.code === 'P2002') {
         return this.reply.code(409).send({ error: '此 intent rule key 已存在' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to update intent rule' });
     }
   }
 
   async deleteIntentRule(productId: string, ruleId: string) {
-    const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      return this.reply.code(404).send({ error: '找不到此 Product' });
-    }
     try {
+      const product = await this.productsService.getProductById(productId);
+      if (!product) {
+        return this.reply.code(404).send({ error: '找不到此 Product' });
+      }
       await this.productsService.deleteIntentRule(ruleId);
       return { success: true };
     } catch (e: any) {
+      this.logError('[Products /deleteIntentRule]', e);
       if (e?.code === 'P2025') {
         return this.reply.code(404).send({ error: '找不到此 Intent Rule' });
       }
-      throw e;
+      return this.reply.code(500).send({ error: 'Failed to delete intent rule' });
     }
   }
 }
