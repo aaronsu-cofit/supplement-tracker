@@ -1,3 +1,5 @@
+import { ServiceUnavailableError, BadRequestError } from '../middleware/errorHandler.js';
+
 export class RichmenuService {
   async getLineClient() {
     const { Client } = await import('@line/bot-sdk');
@@ -9,7 +11,7 @@ export class RichmenuService {
   async deployMainMenu(imageFile: File) {
     const client = await this.getLineClient();
     if (!client) {
-      throw new Error('LINE_CHANNEL_ACCESS_TOKEN 未設定');
+      throw new ServiceUnavailableError('LINE_CHANNEL_ACCESS_TOKEN 未設定');
     }
 
     const liffUrls: Record<string, string> = {
@@ -21,7 +23,7 @@ export class RichmenuService {
 
     const missing = Object.entries(liffUrls).filter(([, v]) => !v).map(([k]) => k);
     if (missing.length > 0) {
-      throw new Error(`缺少以下 LIFF URL 環境變數：${missing.map(k => `LIFF_URL_${k.toUpperCase()}`).join(', ')}`);
+      throw new BadRequestError(`缺少以下 LIFF URL 環境變數：${missing.map(k => `LIFF_URL_${k.toUpperCase()}`).join(', ')}`);
     }
 
     const richMenuBody = {
@@ -63,7 +65,7 @@ export class RichmenuService {
   async deployWoundsMenu(imageFile: File) {
     const client = await this.getLineClient();
     if (!client) {
-      throw new Error('LINE_CHANNEL_ACCESS_TOKEN 未設定');
+      throw new ServiceUnavailableError('LINE_CHANNEL_ACCESS_TOKEN 未設定');
     }
 
     const liffUrls: Record<string, string> = {
@@ -75,7 +77,7 @@ export class RichmenuService {
 
     const missing = Object.entries(liffUrls).filter(([, v]) => !v).map(([k]) => k);
     if (missing.length > 0) {
-      throw new Error(`缺少以下 LIFF URL 環境變數：${missing.map(k => `LIFF_URL_WOUNDS_${k.toUpperCase()}`).join(', ')}`);
+      throw new BadRequestError(`缺少以下 LIFF URL 環境變數：${missing.map(k => `LIFF_URL_WOUNDS_${k.toUpperCase()}`).join(', ')}`);
     }
 
     const richMenuBody = {

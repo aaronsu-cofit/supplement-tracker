@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { WomenHealingService } from '../services/womenHealing.service.js';
+import { ServiceUnavailableError } from '../middleware/errorHandler.js';
 
 /**
  * Women Healing Controller - HTTP Request Handlers
@@ -164,9 +165,15 @@ export class WomenHealingController extends BaseController {
       }).catch(console.error);
 
       return analysis;
-    } catch (error) {
+    } catch (error: any) {
       console.error('[women/assessment/analyze] error:', error);
       this.logError('[WomenHealing /analyzeAssessment]', error);
+
+      if (error instanceof ServiceUnavailableError) {
+        this.reply.code(503);
+        return { error: error.message };
+      }
+
       this.reply.code(500);
       return { error: (error as Error).message };
     }

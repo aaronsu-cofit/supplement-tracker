@@ -5,6 +5,7 @@ import { validatePhases, validateTransitions } from '../lib/journey.js';
 import { VALID_MATCH_TYPES, VALID_ACTION_TYPES } from '../lib/intent.js';
 import type { BadgeCriteria, JourneyPhase, JourneyTransition } from '../types.js';
 import type { IntentMatchType, IntentActionType } from '../types.js';
+import { NotFoundError, ConflictError, BadRequestError } from '../middleware/errorHandler.js';
 import {
   getAllProducts, getProductById, createProduct, updateProduct, deleteProduct,
   getContentItemsForProduct, getContentItemByKey, createContentItem, updateContentItem, deleteContentItem, verifyContentItemBelongsToProduct,
@@ -220,10 +221,10 @@ export class ProductsService {
 
   async seedProduct(productId: string, templateKey: string = 'wellness_21d') {
     const product = await getProductById(productId);
-    if (!product) throw new Error('找不到此 Product');
+    if (!product) throw new NotFoundError('找不到此 Product');
 
     const tpl = SEED_TEMPLATES[templateKey as keyof typeof SEED_TEMPLATES];
-    if (!tpl) throw new Error(`未知的範本 "${templateKey}"`);
+    if (!tpl) throw new BadRequestError(`未知的範本 "${templateKey}"`);
 
     const summary = {
       content: { created: 0, skipped: 0 },
@@ -294,12 +295,26 @@ export class ProductsService {
     return createProduct(data);
   }
 
-  updateProduct(id: string, data: Record<string, unknown>) {
-    return updateProduct(id, data);
+  async updateProduct(id: string, data: Record<string, unknown>) {
+    try {
+      return await updateProduct(id, data);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此 Product');
+      }
+      throw error;
+    }
   }
 
-  deleteProduct(id: string) {
-    return deleteProduct(id);
+  async deleteProduct(id: string) {
+    try {
+      return await deleteProduct(id);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此 Product');
+      }
+      throw error;
+    }
   }
 
   // Content Items
@@ -311,16 +326,40 @@ export class ProductsService {
     return getContentItemByKey(productId, key);
   }
 
-  createContentItem(productId: string, data: Record<string, unknown>) {
-    return createContentItem(productId, data as any);
+  async createContentItem(productId: string, data: Record<string, unknown>) {
+    try {
+      return await createContentItem(productId, data as any);
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        throw new ConflictError('此 key 已存在');
+      }
+      throw error;
+    }
   }
 
-  updateContentItem(contentId: string, data: Record<string, unknown>) {
-    return updateContentItem(contentId, data as any);
+  async updateContentItem(contentId: string, data: Record<string, unknown>) {
+    try {
+      return await updateContentItem(contentId, data as any);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此內容');
+      }
+      if (error?.code === 'P2002') {
+        throw new ConflictError('此 key 已存在');
+      }
+      throw error;
+    }
   }
 
-  deleteContentItem(contentId: string) {
-    return deleteContentItem(contentId);
+  async deleteContentItem(contentId: string) {
+    try {
+      return await deleteContentItem(contentId);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此內容');
+      }
+      throw error;
+    }
   }
 
   verifyContentItemBelongsToProduct(contentId: string, productId: string) {
@@ -332,16 +371,40 @@ export class ProductsService {
     return getMissionTemplatesForProduct(productId);
   }
 
-  createMissionTemplate(productId: string, data: Record<string, unknown>) {
-    return createMissionTemplate(productId, data as any);
+  async createMissionTemplate(productId: string, data: Record<string, unknown>) {
+    try {
+      return await createMissionTemplate(productId, data as any);
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        throw new ConflictError('此 mission key 已存在');
+      }
+      throw error;
+    }
   }
 
-  updateMissionTemplate(missionId: string, data: Record<string, unknown>) {
-    return updateMissionTemplate(missionId, data as any);
+  async updateMissionTemplate(missionId: string, data: Record<string, unknown>) {
+    try {
+      return await updateMissionTemplate(missionId, data as any);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此 Mission');
+      }
+      if (error?.code === 'P2002') {
+        throw new ConflictError('此 mission key 已存在');
+      }
+      throw error;
+    }
   }
 
-  deleteMissionTemplate(missionId: string) {
-    return deleteMissionTemplate(missionId);
+  async deleteMissionTemplate(missionId: string) {
+    try {
+      return await deleteMissionTemplate(missionId);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此 Mission');
+      }
+      throw error;
+    }
   }
 
   // Badges
@@ -349,16 +412,40 @@ export class ProductsService {
     return getBadgeTemplatesForProduct(productId);
   }
 
-  createBadgeTemplate(productId: string, data: Record<string, unknown>) {
-    return createBadgeTemplate(productId, data as any);
+  async createBadgeTemplate(productId: string, data: Record<string, unknown>) {
+    try {
+      return await createBadgeTemplate(productId, data as any);
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        throw new ConflictError('此 badge key 已存在');
+      }
+      throw error;
+    }
   }
 
-  updateBadgeTemplate(badgeId: string, data: Record<string, unknown>) {
-    return updateBadgeTemplate(badgeId, data as any);
+  async updateBadgeTemplate(badgeId: string, data: Record<string, unknown>) {
+    try {
+      return await updateBadgeTemplate(badgeId, data as any);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此 Badge');
+      }
+      if (error?.code === 'P2002') {
+        throw new ConflictError('此 badge key 已存在');
+      }
+      throw error;
+    }
   }
 
-  deleteBadgeTemplate(badgeId: string) {
-    return deleteBadgeTemplate(badgeId);
+  async deleteBadgeTemplate(badgeId: string) {
+    try {
+      return await deleteBadgeTemplate(badgeId);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此 Badge');
+      }
+      throw error;
+    }
   }
 
   // Journeys
@@ -366,20 +453,44 @@ export class ProductsService {
     return getJourneyTemplatesForProduct(productId);
   }
 
-  createJourneyTemplate(productId: string, data: Record<string, unknown>) {
-    return createJourneyTemplate(productId, data as any);
+  async createJourneyTemplate(productId: string, data: Record<string, unknown>) {
+    try {
+      return await createJourneyTemplate(productId, data as any);
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        throw new ConflictError('此 journey key 已存在');
+      }
+      throw error;
+    }
   }
 
-  upsertJourneyTemplate(productId: string, data: Record<string, unknown>) {
+  async upsertJourneyTemplate(productId: string, data: Record<string, unknown>) {
     return upsertJourneyTemplate(productId, data as any);
   }
 
-  updateJourneyTemplate(journeyId: string, data: Record<string, unknown>) {
-    return updateJourneyTemplate(journeyId, data as any);
+  async updateJourneyTemplate(journeyId: string, data: Record<string, unknown>) {
+    try {
+      return await updateJourneyTemplate(journeyId, data as any);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此 Journey');
+      }
+      if (error?.code === 'P2002') {
+        throw new ConflictError('此 journey key 已存在');
+      }
+      throw error;
+    }
   }
 
-  deleteJourneyTemplate(journeyId: string) {
-    return deleteJourneyTemplate(journeyId);
+  async deleteJourneyTemplate(journeyId: string) {
+    try {
+      return await deleteJourneyTemplate(journeyId);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此 Journey');
+      }
+      throw error;
+    }
   }
 
   // Intent Rules
@@ -387,15 +498,39 @@ export class ProductsService {
     return getIntentRulesForProduct(productId);
   }
 
-  createIntentRule(productId: string, data: Record<string, unknown>) {
-    return createIntentRule(productId, data as any);
+  async createIntentRule(productId: string, data: Record<string, unknown>) {
+    try {
+      return await createIntentRule(productId, data as any);
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        throw new ConflictError('此 intent rule 已存在');
+      }
+      throw error;
+    }
   }
 
-  updateIntentRule(ruleId: string, data: Record<string, unknown>) {
-    return updateIntentRule(ruleId, data as any);
+  async updateIntentRule(ruleId: string, data: Record<string, unknown>) {
+    try {
+      return await updateIntentRule(ruleId, data as any);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此 Intent Rule');
+      }
+      if (error?.code === 'P2002') {
+        throw new ConflictError('此 intent rule 已存在');
+      }
+      throw error;
+    }
   }
 
-  deleteIntentRule(ruleId: string) {
-    return deleteIntentRule(ruleId);
+  async deleteIntentRule(ruleId: string) {
+    try {
+      return await deleteIntentRule(ruleId);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此 Intent Rule');
+      }
+      throw error;
+    }
   }
 }

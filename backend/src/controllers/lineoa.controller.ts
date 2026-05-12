@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { LineoaService } from '../services/lineoa.service.js';
+import { NotFoundError, ServiceUnavailableError, BadRequestError } from '../middleware/errorHandler.js';
 
 /**
  * Lineoa Controller - LINE Official Account Management
@@ -77,10 +78,13 @@ export class LineoaController extends BaseController {
       const oa = await this.lineoaService.updateLineOA(id, body);
       return { oa };
     } catch (error: any) {
-      if (error?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此 LINE OA' });
-      }
       this.logError('Failed to update LINE OA', error);
+
+      if (error instanceof NotFoundError) {
+        this.reply.code(404);
+        return { error: error.message };
+      }
+
       throw error;
     }
   }
@@ -95,7 +99,19 @@ export class LineoaController extends BaseController {
       return result;
     } catch (error: any) {
       this.logError('Failed to refresh bot info', error);
-      return this.reply.code(error.message?.includes('找不到') ? 404 : 400).send({ error: error.message });
+
+      if (error instanceof NotFoundError) {
+        this.reply.code(404);
+        return { error: error.message };
+      }
+
+      if (error instanceof ServiceUnavailableError) {
+        this.reply.code(503);
+        return { error: error.message };
+      }
+
+      this.reply.code(500);
+      return { error: 'Failed to refresh bot info' };
     }
   }
 
@@ -108,10 +124,13 @@ export class LineoaController extends BaseController {
       await this.lineoaService.deleteLineOA(id);
       return { success: true };
     } catch (error: any) {
-      if (error?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此 LINE OA' });
-      }
       this.logError('Failed to delete LINE OA', error);
+
+      if (error instanceof NotFoundError) {
+        this.reply.code(404);
+        return { error: error.message };
+      }
+
       throw error;
     }
   }
@@ -176,10 +195,13 @@ export class LineoaController extends BaseController {
       const template = await this.lineoaService.updateTemplate(templateId, body);
       return { template };
     } catch (error: any) {
-      if (error?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此模板' });
-      }
       this.logError('Failed to update template', error);
+
+      if (error instanceof NotFoundError) {
+        this.reply.code(404);
+        return { error: error.message };
+      }
+
       throw error;
     }
   }
@@ -199,10 +221,13 @@ export class LineoaController extends BaseController {
       await this.lineoaService.deleteTemplate(templateId);
       return { success: true };
     } catch (error: any) {
-      if (error?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此模板' });
-      }
       this.logError('Failed to delete template', error);
+
+      if (error instanceof NotFoundError) {
+        this.reply.code(404);
+        return { error: error.message };
+      }
+
       throw error;
     }
   }

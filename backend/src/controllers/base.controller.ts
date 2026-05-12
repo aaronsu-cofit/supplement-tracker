@@ -1,7 +1,7 @@
 // /Users/chingchingyeh/cofit/dtx-space/Vitera/backend/src/controllers/base.controller.ts
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { AuthenticatedRequest, ApiResponse } from '../types/http.js';
-import { ValidationError, NotFoundError } from '../middleware/errorHandler.js';
+import { ValidationError, NotFoundError, UnauthorizedError } from '../middleware/errorHandler.js';
 
 /**
  * MVC 控制層的基礎類
@@ -38,7 +38,7 @@ export abstract class BaseController {
   protected getAuthenticatedUserId(): string {
     const userId = this.getUserId();
     if (!userId) {
-      throw new Error('Unauthorized: User not authenticated');
+      throw new UnauthorizedError('User not authenticated');
     }
     return userId;
   }

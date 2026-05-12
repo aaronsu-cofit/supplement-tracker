@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { ProductsService } from '../services/products.service.js';
+import { NotFoundError, ConflictError, BadRequestError } from '../middleware/errorHandler.js';
 
 const KEY_REGEX = /^[a-z0-9][a-z0-9_.-]{0,99}$/i;
 
@@ -60,10 +61,11 @@ export class ProductsController extends BaseController {
     try {
       const product = await this.productsService.updateProduct(id, body);
       return { product };
-    } catch (e: any) {
-      this.logError('[Products /updateProduct]', e);
-      if (e?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此 Product' });
+    } catch (error: any) {
+      this.logError('[Products /updateProduct]', error);
+      if (error instanceof NotFoundError) {
+        this.reply.code(404);
+        return { error: error.message };
       }
       return this.reply.code(500).send({ error: 'Failed to update product' });
     }
@@ -73,10 +75,10 @@ export class ProductsController extends BaseController {
     try {
       await this.productsService.deleteProduct(id);
       return { success: true };
-    } catch (e: any) {
-      this.logError('[Products /deleteProduct]', e);
-      if (e?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此 Product' });
+    } catch (error: any) {
+      this.logError('[Products /deleteProduct]', error);
+      if (error instanceof NotFoundError) {
+        return this.reply.code(404).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to delete product' });
     }
@@ -89,14 +91,13 @@ export class ProductsController extends BaseController {
       const templateKey = body?.template ?? 'wellness_21d';
       const result = await this.productsService.seedProduct(productId, templateKey);
       return result;
-    } catch (e: any) {
-      const message = (e as Error).message;
-      this.logError('[Products /seedProduct]', e);
-      if (message === '找不到此 Product') {
-        return this.reply.code(404).send({ error: message });
+    } catch (error: any) {
+      this.logError('[Products /seedProduct]', error);
+      if (error instanceof NotFoundError) {
+        return this.reply.code(404).send({ error: error.message });
       }
-      if (message.startsWith('未知的範本')) {
-        return this.reply.code(400).send({ error: message });
+      if (error instanceof BadRequestError) {
+        return this.reply.code(400).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to seed product' });
     }
@@ -147,10 +148,10 @@ export class ProductsController extends BaseController {
         metadata: body.metadata,
       });
       return this.reply.code(201).send({ item });
-    } catch (e: any) {
-      this.logError('[Products /createContentItem]', e);
-      if (e?.code === 'P2002') {
-        return this.reply.code(409).send({ error: '此 key 已存在' });
+    } catch (error: any) {
+      this.logError('[Products /createContentItem]', error);
+      if (error instanceof ConflictError) {
+        return this.reply.code(409).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to create content item' });
     }
@@ -171,13 +172,13 @@ export class ProductsController extends BaseController {
       }
       const item = await this.productsService.updateContentItem(contentId, body);
       return { item };
-    } catch (e: any) {
-      this.logError('[Products /updateContentItem]', e);
-      if (e?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此內容' });
+    } catch (error: any) {
+      this.logError('[Products /updateContentItem]', error);
+      if (error instanceof NotFoundError) {
+        return this.reply.code(404).send({ error: error.message });
       }
-      if (e?.code === 'P2002') {
-        return this.reply.code(409).send({ error: '此 key 已存在' });
+      if (error instanceof ConflictError) {
+        return this.reply.code(409).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to update content item' });
     }
@@ -195,10 +196,10 @@ export class ProductsController extends BaseController {
       }
       await this.productsService.deleteContentItem(contentId);
       return { success: true };
-    } catch (e: any) {
-      this.logError('[Products /deleteContentItem]', e);
-      if (e?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此內容' });
+    } catch (error: any) {
+      this.logError('[Products /deleteContentItem]', error);
+      if (error instanceof NotFoundError) {
+        return this.reply.code(404).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to delete content item' });
     }
@@ -249,10 +250,10 @@ export class ProductsController extends BaseController {
         reminder: body.reminder,
       });
       return this.reply.code(201).send({ mission });
-    } catch (e: any) {
-      this.logError('[Products /createMission]', e);
-      if (e?.code === 'P2002') {
-        return this.reply.code(409).send({ error: '此 mission key 已存在' });
+    } catch (error: any) {
+      this.logError('[Products /createMission]', error);
+      if (error instanceof ConflictError) {
+        return this.reply.code(409).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to create mission' });
     }
@@ -270,13 +271,13 @@ export class ProductsController extends BaseController {
       }
       const mission = await this.productsService.updateMissionTemplate(missionId, body);
       return { mission };
-    } catch (e: any) {
-      this.logError('[Products /updateMission]', e);
-      if (e?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此 Mission' });
+    } catch (error: any) {
+      this.logError('[Products /updateMission]', error);
+      if (error instanceof NotFoundError) {
+        return this.reply.code(404).send({ error: error.message });
       }
-      if (e?.code === 'P2002') {
-        return this.reply.code(409).send({ error: '此 mission key 已存在' });
+      if (error instanceof ConflictError) {
+        return this.reply.code(409).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to update mission' });
     }
@@ -290,10 +291,10 @@ export class ProductsController extends BaseController {
       }
       await this.productsService.deleteMissionTemplate(missionId);
       return { success: true };
-    } catch (e: any) {
-      this.logError('[Products /deleteMission]', e);
-      if (e?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此 Mission' });
+    } catch (error: any) {
+      this.logError('[Products /deleteMission]', error);
+      if (error instanceof NotFoundError) {
+        return this.reply.code(404).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to delete mission' });
     }
@@ -333,10 +334,10 @@ export class ProductsController extends BaseController {
         notify_content_key: body.notify_content_key,
       });
       return this.reply.code(201).send({ badge });
-    } catch (e: any) {
-      this.logError('[Products /createBadge]', e);
-      if (e?.code === 'P2002') {
-        return this.reply.code(409).send({ error: '此 badge key 已存在' });
+    } catch (error: any) {
+      this.logError('[Products /createBadge]', error);
+      if (error instanceof ConflictError) {
+        return this.reply.code(409).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to create badge' });
     }
@@ -354,13 +355,13 @@ export class ProductsController extends BaseController {
       }
       const badge = await this.productsService.updateBadgeTemplate(badgeId, body);
       return { badge };
-    } catch (e: any) {
-      this.logError('[Products /updateBadge]', e);
-      if (e?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此 Badge' });
+    } catch (error: any) {
+      this.logError('[Products /updateBadge]', error);
+      if (error instanceof NotFoundError) {
+        return this.reply.code(404).send({ error: error.message });
       }
-      if (e?.code === 'P2002') {
-        return this.reply.code(409).send({ error: '此 badge key 已存在' });
+      if (error instanceof ConflictError) {
+        return this.reply.code(409).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to update badge' });
     }
@@ -374,10 +375,10 @@ export class ProductsController extends BaseController {
       }
       await this.productsService.deleteBadgeTemplate(badgeId);
       return { success: true };
-    } catch (e: any) {
-      this.logError('[Products /deleteBadge]', e);
-      if (e?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此 Badge' });
+    } catch (error: any) {
+      this.logError('[Products /deleteBadge]', error);
+      if (error instanceof NotFoundError) {
+        return this.reply.code(404).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to delete badge' });
     }
@@ -416,10 +417,10 @@ export class ProductsController extends BaseController {
         transitions: body.transitions,
       });
       return this.reply.code(201).send({ journey });
-    } catch (e: any) {
-      this.logError('[Products /createJourney]', e);
-      if (e?.code === 'P2002') {
-        return this.reply.code(409).send({ error: '此 journey key 已存在' });
+    } catch (error: any) {
+      this.logError('[Products /createJourney]', error);
+      if (error instanceof ConflictError) {
+        return this.reply.code(409).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to create journey' });
     }
@@ -437,13 +438,13 @@ export class ProductsController extends BaseController {
       }
       const journey = await this.productsService.updateJourneyTemplate(journeyId, body);
       return { journey };
-    } catch (e: any) {
-      this.logError('[Products /updateJourney]', e);
-      if (e?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此 Journey' });
+    } catch (error: any) {
+      this.logError('[Products /updateJourney]', error);
+      if (error instanceof NotFoundError) {
+        return this.reply.code(404).send({ error: error.message });
       }
-      if (e?.code === 'P2002') {
-        return this.reply.code(409).send({ error: '此 journey key 已存在' });
+      if (error instanceof ConflictError) {
+        return this.reply.code(409).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to update journey' });
     }
@@ -457,10 +458,10 @@ export class ProductsController extends BaseController {
       }
       await this.productsService.deleteJourneyTemplate(journeyId);
       return { success: true };
-    } catch (e: any) {
-      this.logError('[Products /deleteJourney]', e);
-      if (e?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此 Journey' });
+    } catch (error: any) {
+      this.logError('[Products /deleteJourney]', error);
+      if (error instanceof NotFoundError) {
+        return this.reply.code(404).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to delete journey' });
     }
@@ -494,10 +495,10 @@ export class ProductsController extends BaseController {
       }
       const rule = await this.productsService.createIntentRule(productId, body);
       return this.reply.code(201).send({ rule });
-    } catch (e: any) {
-      this.logError('[Products /createIntentRule]', e);
-      if (e?.code === 'P2002') {
-        return this.reply.code(409).send({ error: '此 intent rule key 已存在' });
+    } catch (error: any) {
+      this.logError('[Products /createIntentRule]', error);
+      if (error instanceof ConflictError) {
+        return this.reply.code(409).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to create intent rule' });
     }
@@ -515,13 +516,13 @@ export class ProductsController extends BaseController {
       }
       const rule = await this.productsService.updateIntentRule(ruleId, body);
       return { rule };
-    } catch (e: any) {
-      this.logError('[Products /updateIntentRule]', e);
-      if (e?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此 Intent Rule' });
+    } catch (error: any) {
+      this.logError('[Products /updateIntentRule]', error);
+      if (error instanceof NotFoundError) {
+        return this.reply.code(404).send({ error: error.message });
       }
-      if (e?.code === 'P2002') {
-        return this.reply.code(409).send({ error: '此 intent rule key 已存在' });
+      if (error instanceof ConflictError) {
+        return this.reply.code(409).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to update intent rule' });
     }
@@ -535,10 +536,10 @@ export class ProductsController extends BaseController {
       }
       await this.productsService.deleteIntentRule(ruleId);
       return { success: true };
-    } catch (e: any) {
-      this.logError('[Products /deleteIntentRule]', e);
-      if (e?.code === 'P2025') {
-        return this.reply.code(404).send({ error: '找不到此 Intent Rule' });
+    } catch (error: any) {
+      this.logError('[Products /deleteIntentRule]', error);
+      if (error instanceof NotFoundError) {
+        return this.reply.code(404).send({ error: error.message });
       }
       return this.reply.code(500).send({ error: 'Failed to delete intent rule' });
     }

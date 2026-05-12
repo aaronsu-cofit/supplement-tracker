@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { BadRequestError } from '../middleware/errorHandler.js';
 
 export class NotifyService {
   constructor(private prisma: PrismaClient) {}
@@ -25,6 +26,6 @@ export class NotifyService {
       return { success: true };
     }
 
-    throw new Error('Invalid notification type');
+    throw new BadRequestError('Invalid notification type');
   }
 }

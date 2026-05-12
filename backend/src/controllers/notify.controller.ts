@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { NotifyService } from '../services/notify.service.js';
+import { BadRequestError } from '../middleware/errorHandler.js';
 
 export class NotifyController extends BaseController {
   constructor(
@@ -30,13 +31,13 @@ export class NotifyController extends BaseController {
       this.logDebug('Sending notification', { userId, type: body.type });
       const result = await this.notifyService.sendNotification(userId, body.type);
       return result;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Push message error:', error);
       this.logError('[Notify /sendNotification]', error);
 
-      if ((error as Error).message === 'Invalid notification type') {
+      if (error instanceof BadRequestError) {
         this.reply.code(400);
-        return { error: 'Invalid notification type' };
+        return { error: error.message };
       }
 
       this.reply.code(500);

@@ -2,7 +2,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { HQService } from '../services/hq.service.js';
-import { BadRequestError, ValidationError } from '../middleware/errorHandler.js';
+import { BadRequestError, ValidationError, NotFoundError, ForbiddenError } from '../middleware/errorHandler.js';
 
 /**
  * HQController - HQ 管理系統 HTTP 層
@@ -67,10 +67,9 @@ export class HQController extends BaseController {
       console.error('[PATCH /api/hq/modules/:id] Error:', error);
       this.logError('[HQ /updateModule]', error);
 
-      const message = (error as Error).message;
-      if (message === 'Module not found') {
+      if (error instanceof NotFoundError) {
         this.reply.code(404);
-        return { error: message };
+        return { error: error.message };
       }
 
       return this.reply.code(500).send({ error: 'Failed to update module' });
@@ -177,10 +176,9 @@ export class HQController extends BaseController {
       console.error('[PATCH /api/hq/admins/:adminId] Error:', error);
       this.logError('[HQ /updateAdminRole]', error);
 
-      const message = (error as Error).message;
-      if (message === 'Admin not found') {
+      if (error instanceof NotFoundError) {
         this.reply.code(404);
-        return { error: message };
+        return { error: error.message };
       }
 
       return this.reply.code(500).send({ error: 'Failed to update admin role' });
@@ -220,19 +218,18 @@ export class HQController extends BaseController {
       this.logError('[HQ /updateMyPassword]', error);
 
       if (error instanceof ValidationError) {
-        this.reply.code(400);
+        this.reply.code(422);
+        return { error: error.message, validation: error.validation };
+      }
+
+      if (error instanceof NotFoundError) {
+        this.reply.code(404);
         return { error: error.message };
       }
 
-      const message = (error as Error).message;
-      if (message === 'Admin not found or password not set') {
-        this.reply.code(404);
-        return { error: message };
-      }
-
-      if (message === 'Current password is incorrect') {
+      if (error instanceof ForbiddenError) {
         this.reply.code(403);
-        return { error: message };
+        return { error: error.message };
       }
 
       return this.reply.code(500).send({ error: 'Failed to update password' });
@@ -275,10 +272,9 @@ export class HQController extends BaseController {
       console.error('[GET /api/hq/users/:userId] Error:', error);
       this.logError('[HQ /getUserById]', error);
 
-      const message = (error as Error).message;
-      if (message === 'User not found') {
+      if (error instanceof NotFoundError) {
         this.reply.code(404);
-        return { error: message };
+        return { error: error.message };
       }
 
       return this.reply.code(500).send({ error: 'Failed to fetch user' });
@@ -444,15 +440,19 @@ export class HQController extends BaseController {
       console.error('[POST /api/hq/users/:userId/missions] Error:', error);
       this.logError('[HQ /assignMission]', error);
 
+      if (error instanceof ValidationError) {
+        this.reply.code(422);
+        return { error: error.message, validation: error.validation };
+      }
+
       if (error instanceof BadRequestError) {
         this.reply.code(400);
         return { error: error.message };
       }
 
-      const message = (error as Error).message;
-      if (message === 'Mission not found or inactive') {
+      if (error instanceof NotFoundError) {
         this.reply.code(404);
-        return { error: message };
+        return { error: error.message };
       }
 
       return this.reply.code(500).send({ error: 'Failed to assign mission' });
@@ -477,10 +477,9 @@ export class HQController extends BaseController {
       console.error('[DELETE /api/hq/users/:userId/missions/:assignmentId] Error:', error);
       this.logError('[HQ /abandonMission]', error);
 
-      const message = (error as Error).message;
-      if (message === 'Assignment not found or access denied') {
+      if (error instanceof NotFoundError) {
         this.reply.code(404);
-        return { error: message };
+        return { error: error.message };
       }
 
       return this.reply.code(500).send({ error: 'Failed to abandon mission' });

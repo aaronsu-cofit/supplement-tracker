@@ -4,6 +4,7 @@ import {
   getTodayDiary, upsertDiaryEntry, getDiaryEntries,
   saveAssessmentResult, saveReliefSession, type SaveReliefInput,
 } from '../lib/womenHealingDb.js';
+import { ServiceUnavailableError } from '../middleware/errorHandler.js';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
 
@@ -208,7 +209,7 @@ ${scanInsight || '（本次未進行臉部掃描）'}
       return parseGeminiJson(text);
     } catch (error) {
       console.error('Assessment analysis error:', error);
-      throw error;
+      throw new ServiceUnavailableError('Failed to generate assessment analysis');
     }
   }
 

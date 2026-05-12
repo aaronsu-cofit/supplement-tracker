@@ -19,6 +19,7 @@ import {
 import { fetchLineBotInfo } from '../lib/line.js';
 import { adkRun } from '../lib/adk.js';
 import { pushContentToUser } from '../lib/notify.js';
+import { NotFoundError, BadRequestError, ServiceUnavailableError } from '../middleware/errorHandler.js';
 
 /**
  * Lineoa Service - LINE Official Account Management
@@ -144,13 +145,20 @@ export class LineoaService {
    * 更新 LINE OA 設定
    */
   async updateLineOA(id: string, data: any) {
-    if (data.channel_access_token) {
-      const botInfo = await fetchLineBotInfo(data.channel_access_token);
-      if (botInfo?.userId) {
-        data.line_destination_id = botInfo.userId;
+    try {
+      if (data.channel_access_token) {
+        const botInfo = await fetchLineBotInfo(data.channel_access_token);
+        if (botInfo?.userId) {
+          data.line_destination_id = botInfo.userId;
+        }
       }
+      return (updateLineOADb as any)(id, data);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此 LINE OA');
+      }
+      throw error;
     }
-    return (updateLineOADb as any)(id, data);
   }
 
   /**
@@ -159,12 +167,12 @@ export class LineoaService {
   async refreshBotInfo(id: string) {
     const oa = await this.getLineOAById(id);
     if (!oa) {
-      throw new Error('找不到此 LINE OA');
+      throw new NotFoundError('找不到此 LINE OA');
     }
 
     const botInfo = await fetchLineBotInfo(oa.channel_access_token);
     if (!botInfo?.userId) {
-      throw new Error('無法取得 bot info — 請確認 Channel Access Token 正確');
+      throw new ServiceUnavailableError('無法取得 bot info — 請確認 Channel Access Token 正確');
     }
 
     const updated = await (updateLineOADb as any)(id, {
@@ -177,7 +185,14 @@ export class LineoaService {
    * 刪除 LINE OA
    */
   async deleteLineOA(id: string) {
-    return deleteLineOADb(id);
+    try {
+      return deleteLineOADb(id);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此 LINE OA');
+      }
+      throw error;
+    }
   }
 
   // ─── Template Management Methods ───────────────────────────────────
@@ -220,14 +235,28 @@ export class LineoaService {
    * 更新模板
    */
   async updateTemplate(templateId: string, data: any) {
-    return (updateTemplateDb as any)(templateId, data);
+    try {
+      return (updateTemplateDb as any)(templateId, data);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此模板');
+      }
+      throw error;
+    }
   }
 
   /**
    * 刪除模板
    */
   async deleteTemplate(templateId: string) {
-    return deleteTemplateDb(templateId);
+    try {
+      return deleteTemplateDb(templateId);
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundError('找不到此模板');
+      }
+      throw error;
+    }
   }
 
   /**
@@ -240,17 +269,17 @@ export class LineoaService {
     mimeType: string,
   ) {
     if (!oa.channel_access_token) {
-      throw new Error('此 OA 尚未設定 Channel Access Token');
+      throw new ServiceUnavailableError('此 OA 尚未設定 Channel Access Token');
     }
 
     // 驗證 zones 格式
     const zones = (template.zones as any[]) || [];
     if (!Array.isArray(zones) || zones.length !== 4) {
-      throw new Error('zones 格式錯誤 - 必須恰好 4 個區塊');
+      throw new BadRequestError('zones 格式錯誤 - 必須恰好 4 個區塊');
     }
     for (const z of zones) {
       if (!z.uri) {
-        throw new Error('請先填入所有區塊的 LIFF URI 再部署');
+        throw new BadRequestError('請先填入所有區塊的 LIFF URI 再部署');
       }
     }
 
@@ -315,11 +344,11 @@ export class LineoaService {
    */
   async activateTemplate(oa: any, template: any) {
     if (!oa.channel_access_token) {
-      throw new Error('此 OA 尚未設定 Channel Access Token');
+      throw new ServiceUnavailableError('此 OA 尚未設定 Channel Access Token');
     }
 
     if (!template.line_rich_menu_id) {
-      throw new Error('此模板尚未部署，請先上傳圖片並部署');
+      throw new BadRequestError('此模板尚未部署，請先上傳圖片並部署');
     }
 
     const { Client } = await import('@line/bot-sdk');
@@ -330,7 +359,7 @@ export class LineoaService {
       const updated = await setActiveTemplate(oa.id.toString(), template.id.toString());
       return { template: updated, richMenuId: template.line_rich_menu_id };
     } catch (error: any) {
-      throw new Error(`切換失敗: ${error.message}`);
+      throw new ServiceUnavailableError(`切換失敗: ${error.message}`);
     }
   }
 
@@ -346,16 +375,16 @@ export class LineoaService {
    */
   async deployRichMenu(oa: any, zones: any[], imageBuffer: Buffer, mimeType: string) {
     if (!oa.channel_access_token) {
-      throw new Error('此 OA 尚未設定 Channel Access Token');
+      throw new ServiceUnavailableError('此 OA 尚未設定 Channel Access Token');
     }
 
     // 驗證 zones 格式
     if (!Array.isArray(zones) || zones.length !== 4) {
-      throw new Error('zones 必須包含 4 個區塊設定');
+      throw new BadRequestError('zones 必須包含 4 個區塊設定');
     }
     for (const z of zones) {
       if (!z.uri) {
-        throw new Error('每個區塊都必須填入 LIFF URI');
+        throw new BadRequestError('每個區塊都必須填入 LIFF URI');
       }
     }
 
@@ -410,7 +439,7 @@ export class LineoaService {
    */
   async deleteDefaultRichMenu(oa: any) {
     if (!oa.channel_access_token) {
-      throw new Error('此 OA 尚未設定 Channel Access Token');
+      throw new ServiceUnavailableError('此 OA 尚未設定 Channel Access Token');
     }
 
     const { Client } = await import('@line/bot-sdk');
@@ -485,7 +514,7 @@ export class LineoaService {
     error?: string;
   }> {
     if (!oa.ai_skill_platform_url) {
-      throw new Error('AI Skill Platform URL 未設定');
+      throw new ServiceUnavailableError('AI Skill Platform URL 未設定');
     }
 
     const finalAgentId = agentId || oa.default_agent_id || 'ai-expert';

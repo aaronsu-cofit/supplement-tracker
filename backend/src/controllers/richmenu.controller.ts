@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { RichmenuService } from '../services/richmenu.service.js';
+import { BadRequestError, ServiceUnavailableError } from '../middleware/errorHandler.js';
 
 export class RichmenuController extends BaseController {
   constructor(
@@ -26,7 +27,7 @@ export class RichmenuController extends BaseController {
 
       return imageFile as File;
     } catch (error) {
-      throw new Error('無法解析表單資料，請確認圖片已正確上傳');
+      throw new BadRequestError('無法解析表單資料，請確認圖片已正確上傳');
     }
   }
 
@@ -40,18 +41,22 @@ export class RichmenuController extends BaseController {
 
       const result = await this.richmenuService.deployMainMenu(imageFile);
       return result;
-    } catch (error) {
-      const message = (error as Error).message;
+    } catch (error: any) {
       this.logError('[Richmenu /deployMainMenu]', error);
       console.error('Rich menu deploy error:', error);
 
-      if (message === '無法解析表單資料，請確認圖片已正確上傳') {
+      if (error instanceof BadRequestError) {
         this.reply.code(400);
-        return { success: false, error: message };
+        return { success: false, error: error.message };
+      }
+
+      if (error instanceof ServiceUnavailableError) {
+        this.reply.code(503);
+        return { success: false, error: error.message };
       }
 
       this.reply.code(500);
-      return { success: false, error: '部署失敗', details: message };
+      return { success: false, error: '部署失敗', details: (error as Error).message };
     }
   }
 
@@ -65,18 +70,22 @@ export class RichmenuController extends BaseController {
 
       const result = await this.richmenuService.deployWoundsMenu(imageFile);
       return result;
-    } catch (error) {
-      const message = (error as Error).message;
+    } catch (error: any) {
       this.logError('[Richmenu /deployWoundsMenu]', error);
       console.error('Rich menu deploy error:', error);
 
-      if (message === '無法解析表單資料，請確認圖片已正確上傳') {
+      if (error instanceof BadRequestError) {
         this.reply.code(400);
-        return { success: false, error: message };
+        return { success: false, error: error.message };
+      }
+
+      if (error instanceof ServiceUnavailableError) {
+        this.reply.code(503);
+        return { success: false, error: error.message };
       }
 
       this.reply.code(500);
-      return { success: false, error: '部署失敗', details: message };
+      return { success: false, error: '部署失敗', details: (error as Error).message };
     }
   }
 }
