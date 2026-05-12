@@ -218,18 +218,73 @@ export class LineoaController extends BaseController {
       return this.reply.code(404).send({ error: '找不到此 LINE OA 設定' });
     }
 
+    // 驗證 OA 是否已啟用
+    if (!oa.is_active) {
+      return this.reply.code(400).send({ error: '此 LINE OA 已停用' });
+    }
+
     // 驗證模板存在
     const template = await this.lineoaService.getTemplateById(templateId);
     if (!template) {
       return this.reply.code(404).send({ error: '找不到此模板' });
     }
 
+    // 驗證模板所有權
+    if (template.oa_id !== parseInt(id, 10)) {
+      return this.reply.code(404).send({ error: '找不到此模板' });
+    }
+
+    // Parse image upload
+    const fileData = await this.request.file();
+    if (!fileData) {
+      return this.reply.code(400).send({ error: '請提供選單圖片' });
+    }
+
     try {
-      const deployed = await this.lineoaService.deployTemplate(id, templateId);
-      return { ok: true, template: deployed, message: '模板已部署' };
+      const imageBuffer = await fileData.toBuffer();
+      const mimeType = fileData.mimetype || 'image/jpeg';
+      const result = await this.lineoaService.deployTemplateWithImage(oa, template, imageBuffer, mimeType);
+      
+      return { success: true, template: result.template, richMenuId: result.richMenuId, message: '模板已部署' };
     } catch (error: any) {
       this.logError('Failed to deploy template', error);
-      return this.reply.code(500).send({ ok: false, error: error.message });
+      return this.reply.code(500).send({ success: false, error: error.message });
+    }
+  }
+
+  /**
+   * POST /api/line/oa/:id/templates/:templateId/activate
+   * 激活已部署的模板（無需重新上傳圖片）
+   */
+  async activateTemplate(id: string, templateId: string) {
+    // 驗證 OA 存在
+    const oa = await this.lineoaService.getLineOAById(id);
+    if (!oa) {
+      return this.reply.code(404).send({ error: '找不到此 LINE OA 設定' });
+    }
+
+    // 驗證 OA 是否已啟用
+    if (!oa.is_active) {
+      return this.reply.code(400).send({ error: '此 LINE OA 已停用' });
+    }
+
+    // 驗證模板存在
+    const template = await this.lineoaService.getTemplateById(templateId);
+    if (!template) {
+      return this.reply.code(404).send({ error: '找不到此模板' });
+    }
+
+    // 驗證模板所有權
+    if (template.oa_id !== parseInt(id, 10)) {
+      return this.reply.code(404).send({ error: '找不到此模板' });
+    }
+
+    try {
+      const result = await this.lineoaService.activateTemplate(oa, template);
+      return { success: true, template: result.template, richMenuId: result.richMenuId };
+    } catch (error: any) {
+      this.logError('Failed to activate template', error);
+      return this.reply.code(400).send({ success: false, error: error.message });
     }
   }
 
@@ -256,6 +311,78 @@ export class LineoaController extends BaseController {
     } catch (error: any) {
       this.logError('Failed to deactivate templates', error);
       return this.reply.code(500).send({ ok: false, error: error.message });
+    }
+  }
+
+  // ─── Rich Menu Handlers ────────────────────────────────────────────
+
+  /**
+   * POST /api/line/oa/:id/richmenu
+   * 部署通用選單
+   */
+  async deployRichMenu(id: string) {
+    // 驗證 OA 存在
+    const oa = await this.lineoaService.getLineOAById(id);
+    if (!oa) {
+      return this.reply.code(404).send({ error: '找不到此 LINE OA 設定' });
+    }
+
+    // 驗證 OA 是否已啟用
+    if (!oa.is_active) {
+      return this.reply.code(400).send({ error: '此 LINE OA 已停用' });
+    }
+
+    let imageBuffer: Buffer | null = null;
+    let mimeType = 'image/jpeg';
+    let zones: any[] = [];
+
+    // 解析 multipart form data
+    try {
+      const parts = this.request.files();
+      for await (const part of parts) {
+        if (part.fieldname === 'image') {
+          const buffer = await part.toBuffer();
+          imageBuffer = buffer;
+          mimeType = part.mimetype || 'image/jpeg';
+        } else if (part.fieldname === 'zones') {
+          const buffer = await part.toBuffer();
+          zones = JSON.parse(buffer.toString('utf-8'));
+        }
+      }
+    } catch (error) {
+      return this.reply.code(400).send({ error: '無法解析表單資料' });
+    }
+
+    if (!imageBuffer) {
+      return this.reply.code(400).send({ error: '未提供圖片檔案' });
+    }
+
+    try {
+      const result = await this.lineoaService.deployRichMenu(oa, zones, imageBuffer, mimeType);
+      return { success: true, richMenuId: result.richMenuId };
+    } catch (error: any) {
+      this.logError('Failed to deploy rich menu', error);
+      return this.reply.code(400).send({ success: false, error: error.message });
+    }
+  }
+
+  /**
+   * DELETE /api/line/oa/:id/richmenu
+   * 移除預設選單
+   */
+  async deleteRichMenu(id: string) {
+    // 驗證 OA 存在
+    const oa = await this.lineoaService.getLineOAById(id);
+    if (!oa) {
+      return this.reply.code(404).send({ error: '找不到此 LINE OA 設定' });
+    }
+
+    try {
+      await this.lineoaService.deleteDefaultRichMenu(oa);
+      return { success: true };
+    } catch (error: any) {
+      this.logError('Failed to delete rich menu', error);
+      return this.reply.code(500).send({ success: false, error: error.message });
     }
   }
 

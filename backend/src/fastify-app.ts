@@ -2,6 +2,7 @@
 import Fastify from 'fastify';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import { authRoutes } from './routes/auth.routes.js';
 import { supplementsRoutes } from './routes/supplements.routes.js';
 import { woundsRoutes } from './routes/wounds.routes.js';
@@ -93,26 +94,50 @@ export async function createFastifyApp() {
     secret: process.env.COOKIE_SECRET || 'dev-secret-change-in-production',
   });
 
+  // ─── Multipart Plugin ────────────────────────────────────────────────
+  await app.register(multipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB
+    },
+  });
+
   // ─── DI 容器裝飾器 ──────────────────────────────────────────────────
   // 將容器掛載到 Fastify 實例（用於中間件和路由訪問）
   app.decorate('container', container);
 
-  // ─── Custom Content-Type Parser ──────────────────────────────────────
-  // Allow application/json with empty body (e.g., POST with no body)
-  app.removeContentTypeParser('application/json');
-  app.addContentTypeParser('application/json', async (request, payload) => {
-    // Check if request has no body (content-length: 0)
+  // ─── Custom Content-Type Parsers ────────────────────────────────────
+  // Handle application/json with empty body (e.g., POST with no body)
+  app.addContentTypeParser('application/json', async (request: any, payload: any) => {
     const contentLength = request.headers['content-length'];
     if (contentLength === '0' || !contentLength) {
       return {};
     }
-    // Otherwise parse the body normally from payload stream
     const buffers = [];
     for await (const chunk of payload) {
       buffers.push(chunk);
     }
     const data = Buffer.concat(buffers).toString('utf-8');
     return data ? JSON.parse(data) : {};
+  });
+
+  // Fallback parser for requests without Content-Type or with unknown types
+  // This regex matches ANY content-type or missing content-type
+  app.addContentTypeParser(/.*/, async (request: any, payload: any) => {
+    const contentLength = request.headers['content-length'];
+    if (contentLength === '0' || !contentLength) {
+      return {};
+    }
+    try {
+      const buffers = [];
+      for await (const chunk of payload) {
+        buffers.push(chunk);
+      }
+      const data = Buffer.concat(buffers).toString('utf-8');
+      return data ? JSON.parse(data) : {};
+    } catch {
+      // If JSON parsing fails, return empty object
+      return {};
+    }
   });
 
   // ─── Error Handler ───────────────────────────────────────────────────

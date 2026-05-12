@@ -170,7 +170,7 @@ export class LineoaService {
     const updated = await (updateLineOADb as any)(id, {
       line_destination_id: botInfo.userId,
     });
-    return { oa: updated, botUserId: botInfo.userId, displayName: botInfo.displayName };
+    return { oa: updated, bot_user_id: botInfo.userId, display_name: botInfo.displayName };
   }
 
   /**
@@ -231,10 +231,107 @@ export class LineoaService {
   }
 
   /**
-   * 設定模板為活躍狀態
+   * 部署模板並上傳選單圖片
+   */
+  async deployTemplateWithImage(
+    oa: any,
+    template: any,
+    imageBuffer: Buffer,
+    mimeType: string,
+  ) {
+    if (!oa.channel_access_token) {
+      throw new Error('此 OA 尚未設定 Channel Access Token');
+    }
+
+    // 驗證 zones 格式
+    const zones = (template.zones as any[]) || [];
+    if (!Array.isArray(zones) || zones.length !== 4) {
+      throw new Error('zones 格式錯誤 - 必須恰好 4 個區塊');
+    }
+    for (const z of zones) {
+      if (!z.uri) {
+        throw new Error('請先填入所有區塊的 LIFF URI 再部署');
+      }
+    }
+
+    const { Client } = await import('@line/bot-sdk');
+    const client = new (Client as any)({ channelAccessToken: oa.channel_access_token });
+
+    // Parse zones to build areas
+    const areas = zones.map((zone: any) => {
+      let x = 0, y = 0, width = 1250, height = 843;
+      // Default positions for 2x2 grid (2500x1686)
+      if (zone.id === 'A' || zone.position === '左上') { x = 0; y = 0; }
+      else if (zone.id === 'B' || zone.position === '右上') { x = 1250; y = 0; }
+      else if (zone.id === 'C' || zone.position === '左下') { x = 0; y = 843; }
+      else if (zone.id === 'D' || zone.position === '右下') { x = 1250; y = 843; }
+
+      return {
+        bounds: { x, y, width, height },
+        action: {
+          type: 'uri',
+          uri: zone.uri,
+        },
+      };
+    });
+
+    const richMenuBody = {
+      size: { width: 2500, height: 1686 },
+      selected: true,
+      name: `${oa.name} - ${template.name}`.substring(0, 300),
+      chatBarText: '開啟選單',
+      areas,
+    };
+
+    // Create and upload
+    const richMenuId = await client.createRichMenu(richMenuBody);
+    await client.setRichMenuImage(richMenuId, imageBuffer, mimeType);
+    await client.setDefaultRichMenu(richMenuId);
+
+    // Delete the template's old rich menu from LINE (if any)
+    if (template.line_rich_menu_id) {
+      try {
+        await client.deleteRichMenu(template.line_rich_menu_id);
+      } catch (e: any) {
+        console.warn('舊模板選單刪除失敗（不影響部署）:', e.message);
+      }
+    }
+
+    // Save to DB
+    const updatedTemplate = await setActiveTemplate(oa.id.toString(), template.id.toString(), richMenuId);
+
+    return { template: updatedTemplate, richMenuId };
+  }
+
+  /**
+   * 設定模板為活躍狀態（無需重新上傳圖片）
    */
   async deployTemplate(oaId: string, templateId: string) {
     return setActiveTemplate(oaId, templateId);
+  }
+
+  /**
+   * 激活已部署的模板（重新設置為預設選單）
+   */
+  async activateTemplate(oa: any, template: any) {
+    if (!oa.channel_access_token) {
+      throw new Error('此 OA 尚未設定 Channel Access Token');
+    }
+
+    if (!template.line_rich_menu_id) {
+      throw new Error('此模板尚未部署，請先上傳圖片並部署');
+    }
+
+    const { Client } = await import('@line/bot-sdk');
+    const client = new (Client as any)({ channelAccessToken: oa.channel_access_token });
+
+    try {
+      await client.setDefaultRichMenu(template.line_rich_menu_id);
+      const updated = await setActiveTemplate(oa.id.toString(), template.id.toString());
+      return { template: updated, richMenuId: template.line_rich_menu_id };
+    } catch (error: any) {
+      throw new Error(`切換失敗: ${error.message}`);
+    }
   }
 
   /**
@@ -242,6 +339,91 @@ export class LineoaService {
    */
   async deactivateAllTemplates(oaId: string) {
     return deactivateAllTemplates(oaId);
+  }
+
+  /**
+   * 部署選單到 LINE（通用選單）
+   */
+  async deployRichMenu(oa: any, zones: any[], imageBuffer: Buffer, mimeType: string) {
+    if (!oa.channel_access_token) {
+      throw new Error('此 OA 尚未設定 Channel Access Token');
+    }
+
+    // 驗證 zones 格式
+    if (!Array.isArray(zones) || zones.length !== 4) {
+      throw new Error('zones 必須包含 4 個區塊設定');
+    }
+    for (const z of zones) {
+      if (!z.uri) {
+        throw new Error('每個區塊都必須填入 LIFF URI');
+      }
+    }
+
+    const { Client } = await import('@line/bot-sdk');
+    const client = new (Client as any)({ channelAccessToken: oa.channel_access_token });
+
+    const BOUNDS = [
+      { x: 0, y: 0, width: 1250, height: 843 },
+      { x: 1250, y: 0, width: 1250, height: 843 },
+      { x: 0, y: 843, width: 1250, height: 843 },
+      { x: 1250, y: 843, width: 1250, height: 843 },
+    ];
+
+    const richMenuBody = {
+      size: { width: 2500, height: 1686 },
+      selected: true,
+      name: `${oa.name} Rich Menu`,
+      chatBarText: '開啟選單',
+      areas: zones.map((z: any, i: number) => ({
+        bounds: BOUNDS[i],
+        action: {
+          type: 'uri',
+          uri: z.uri,
+        },
+      })),
+    };
+
+    let oldMenuId = null;
+    try {
+      oldMenuId = await client.getDefaultRichMenuId();
+    } catch {
+      // 沒有現有選單時會拋出異常，這是預期的
+    }
+
+    const richMenuId = await client.createRichMenu(richMenuBody);
+    await client.setRichMenuImage(richMenuId, imageBuffer, mimeType);
+    await client.setDefaultRichMenu(richMenuId);
+
+    if (oldMenuId) {
+      try {
+        await client.deleteRichMenu(oldMenuId);
+      } catch (e: any) {
+        console.warn('舊選單刪除失敗（不影響部署）:', e.message);
+      }
+    }
+
+    return { richMenuId };
+  }
+
+  /**
+   * 刪除預設選單並停用所有模板
+   */
+  async deleteDefaultRichMenu(oa: any) {
+    if (!oa.channel_access_token) {
+      throw new Error('此 OA 尚未設定 Channel Access Token');
+    }
+
+    const { Client } = await import('@line/bot-sdk');
+    const client = new (Client as any)({ channelAccessToken: oa.channel_access_token });
+
+    try {
+      await client.deleteDefaultRichMenu();
+    } catch (error: any) {
+      console.warn('移除預設選單失敗（可能已無選單）:', error?.message);
+    }
+
+    await deactivateAllTemplates(oa.id.toString());
+    return { success: true };
   }
 
   // ─── Message & Logging Methods ─────────────────────────────────────
@@ -352,6 +534,6 @@ export class LineoaService {
       'manual_push',
       `manual:${contentKey}:${Date.now()}`,
     );
-    return { ok: true, contentKey, userId };
+    return { ok: true, content_key: contentKey, user_id: userId };
   }
 }
