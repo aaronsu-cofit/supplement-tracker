@@ -2,6 +2,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { AuthService } from '../services/auth.service.js';
+import { UnauthorizedError, ForbiddenError, ConflictError } from '../middleware/errorHandler.js';
 import type { LoginRequestBody, RegisterRequestBody, LineLoginRequestBody } from '../types.js';
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -80,18 +81,16 @@ export class AuthController extends BaseController {
         user,
       };
     } catch (error) {
-      const message = (error as Error).message;
-
-      if (message === 'Email 或密碼不正確') {
-        this.logDebug('[POST /api/auth/login] 認證失敗', { reason: message });
+      if (error instanceof UnauthorizedError) {
+        this.logDebug('[POST /api/auth/login] 認證失敗', { reason: error.message });
         this.reply.code(401);
-        return { error: message };
+        return { error: error.message };
       }
 
-      if (message === '此帳號已被停用') {
+      if (error instanceof ForbiddenError) {
         this.logDebug('[POST /api/auth/login] 帳號已停用');
         this.reply.code(403);
-        return { error: message };
+        return { error: error.message };
       }
 
       console.error('[POST /api/auth/login] 錯誤:', error);
@@ -150,12 +149,10 @@ export class AuthController extends BaseController {
         user,
       };
     } catch (error) {
-      const message = (error as Error).message;
-
-      if (message === '此 Email 已被使用') {
+      if (error instanceof ConflictError) {
         this.logDebug('[POST /api/auth/register] Email 已被使用');
         this.reply.code(409);
-        return { error: message };
+        return { error: error.message };
       }
 
       console.error('[POST /api/auth/register] 錯誤:', error);
@@ -245,18 +242,16 @@ export class AuthController extends BaseController {
         user,
       };
     } catch (error) {
-      const message = (error as Error).message;
-
-      if (message === 'Email 或密碼不正確') {
-        this.logDebug('[POST /api/auth/admin/login] 認證失敗', { reason: message });
+      if (error instanceof UnauthorizedError) {
+        this.logDebug('[POST /api/auth/admin/login] 認證失敗', { reason: error.message });
         this.reply.code(401);
-        return { error: message };
+        return { error: error.message };
       }
 
-      if (message === '此帳號已被停用') {
+      if (error instanceof ForbiddenError) {
         this.logDebug('[POST /api/auth/admin/login] 帳號已停用');
         this.reply.code(403);
-        return { error: message };
+        return { error: error.message };
       }
 
       console.error('[POST /api/auth/admin/login] 錯誤:', error);
