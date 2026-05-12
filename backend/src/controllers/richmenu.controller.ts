@@ -11,63 +11,72 @@ export class RichmenuController extends BaseController {
     super(request, reply);
   }
 
-  async deployMainMenu() {
-    let formData;
+  /**
+   * Extract and validate image file from multipart form data
+   */
+  private async extractImageFile(): Promise<File | null> {
     try {
-      // Use type assertion to handle multipart plugin
-      const req = this.request as any;
-      if (req.file && typeof req.file === 'function') {
-        formData = await req.file();
-      } else {
-        // Fallback: try to get from body
-        formData = this.request.body;
+      const formData = await this.request.formData();
+      const imageFile = formData.get('image');
+
+      // Validate: must be a File object, not a string
+      if (!imageFile || typeof imageFile === 'string') {
+        return null;
       }
-    } catch {
-      this.reply.code(400);
-      return { success: false, error: '無法解析表單資料，請確認圖片已正確上傳' };
-    }
 
-    if (!formData) {
-      this.reply.code(400);
-      return { success: false, error: '未提供圖片檔案' };
-    }
-
-    try {
-      const result = await this.richmenuService.deployMainMenu(formData as any);
-      return this.sendSuccess(result);
+      return imageFile as File;
     } catch (error) {
+      throw new Error('無法解析表單資料，請確認圖片已正確上傳');
+    }
+  }
+
+  async deployMainMenu() {
+    try {
+      const imageFile = await this.extractImageFile();
+      if (!imageFile) {
+        this.reply.code(400);
+        return { success: false, error: '未提供圖片檔案' };
+      }
+
+      const result = await this.richmenuService.deployMainMenu(imageFile);
+      return result;
+    } catch (error) {
+      const message = (error as Error).message;
+      this.logError('[Richmenu /deployMainMenu]', error);
+      console.error('Rich menu deploy error:', error);
+
+      if (message === '無法解析表單資料，請確認圖片已正確上傳') {
+        this.reply.code(400);
+        return { success: false, error: message };
+      }
+
       this.reply.code(500);
-      return { success: false, error: (error as Error).message };
+      return { success: false, error: '部署失敗', details: message };
     }
   }
 
   async deployWoundsMenu() {
-    let formData;
     try {
-      // Use type assertion to handle multipart plugin
-      const req = this.request as any;
-      if (req.file && typeof req.file === 'function') {
-        formData = await req.file();
-      } else {
-        // Fallback: try to get from body
-        formData = this.request.body;
+      const imageFile = await this.extractImageFile();
+      if (!imageFile) {
+        this.reply.code(400);
+        return { success: false, error: '未提供圖片檔案' };
       }
-    } catch {
-      this.reply.code(400);
-      return { success: false, error: '無法解析表單資料，請確認圖片已正確上傳' };
-    }
 
-    if (!formData) {
-      this.reply.code(400);
-      return { success: false, error: '未提供圖片檔案' };
-    }
-
-    try {
-      const result = await this.richmenuService.deployWoundsMenu(formData as any);
-      return this.sendSuccess(result);
+      const result = await this.richmenuService.deployWoundsMenu(imageFile);
+      return result;
     } catch (error) {
+      const message = (error as Error).message;
+      this.logError('[Richmenu /deployWoundsMenu]', error);
+      console.error('Rich menu deploy error:', error);
+
+      if (message === '無法解析表單資料，請確認圖片已正確上傳') {
+        this.reply.code(400);
+        return { success: false, error: message };
+      }
+
       this.reply.code(500);
-      return { success: false, error: (error as Error).message };
+      return { success: false, error: '部署失敗', details: message };
     }
   }
 }
