@@ -143,3 +143,64 @@ jobs:
         echo "Kustomization: ${{ env.KUSTOMIZE_FILE }}"
         echo "Target cluster: staging-cluster"
         echo "Target namespace: vitera"
+
+    # ==================== 等待 ArgoCD 部署完成 ====================
+    - name: Wait for ArgoCD rollout
+      run: |
+        curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+        chmod +x /usr/local/bin/argocd
+
+        argocd app sync staging-vitera-wounds \
+          --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+          --server ${{ secrets.ARGOCD_SERVER }} \
+          --grpc-web
+
+        argocd app wait staging-vitera-wounds \
+          --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+          --server ${{ secrets.ARGOCD_SERVER }} \
+          --grpc-web \
+          --sync \
+          --health \
+          --timeout 600
+
+    # ==================== Slack 通知（成功）====================
+    - name: Notify Slack on success
+      if: success()
+      run: |
+        SHORT_SHA="${{ steps.vars.outputs.SHORT_SHA }}"
+        curl -s -X POST "https://slack.com/api/chat.postMessage" \
+          -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"channel\": \"#gke-staging-prd-cicd\",
+            \"text\": \"✅ *[Vitera] Staging Wounds* 部署成功\",
+            \"attachments\": [{
+              \"color\": \"good\",
+              \"fields\": [
+                { \"title\": \"Image Tag\", \"value\": \"\`${SHORT_SHA}\`\", \"short\": true },
+                { \"title\": \"Commit\", \"value\": \"${{ github.event.head_commit.message }}\", \"short\": false },
+                { \"title\": \"Action\", \"value\": \"<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|查看 Run>\", \"short\": true }
+              ]
+            }]
+          }"
+
+    # ==================== Slack 通知（失敗）====================
+    - name: Notify Slack on failure
+      if: failure()
+      run: |
+        SHORT_SHA="${{ steps.vars.outputs.SHORT_SHA }}"
+        curl -s -X POST "https://slack.com/api/chat.postMessage" \
+          -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"channel\": \"#gke-staging-prd-cicd\",
+            \"text\": \"❌ *[Vitera] Staging Wounds* 部署失敗\",
+            \"attachments\": [{
+              \"color\": \"danger\",
+              \"fields\": [
+                { \"title\": \"Image Tag\", \"value\": \"\`${SHORT_SHA}\`\", \"short\": true },
+                { \"title\": \"Commit\", \"value\": \"${{ github.event.head_commit.message }}\", \"short\": false },
+                { \"title\": \"Action\", \"value\": \"<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|查看 Run>\", \"short\": true }
+              ]
+            }]
+          }"
