@@ -232,7 +232,7 @@ export async function createFastifyApp() {
  * 用於測試和開發
  */
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const port = parseInt(process.env.FASTIFY_PORT || '8081', 10);
+  const port = parseInt(process.env.FASTIFY_PORT || '8080', 10);
   const host = process.env.HOST || '0.0.0.0';
 
   const app = await createFastifyApp();
