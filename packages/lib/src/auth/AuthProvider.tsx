@@ -29,7 +29,7 @@ export function useAuth() {
 }
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [isSessionChecked, setIsSessionChecked] = useState(false);
   const [isLineLoginFinished, setIsLineLoginFinished] = useState(false);
   const { profile, isInitialized: liffInitialized, isInLineClient } = useLiff();
