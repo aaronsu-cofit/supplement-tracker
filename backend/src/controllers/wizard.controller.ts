@@ -47,15 +47,12 @@ export class WizardController extends BaseController {
       this.logDebug(`[GET /api/wizard/oa/:oaId/scenarios] 成功取得 ${scenarios.length} 個場景`);
       return { scenarios };
     } catch (error: unknown) {
-      if (error instanceof ValidationError) {
-        this.logDebug('[GET /api/wizard/oa/:oaId/scenarios] 驗證錯誤', error);
-        this.reply.code(400);
-        return error.toJSON();
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error;
       }
       console.error('[GET /api/wizard/oa/:oaId/scenarios] 錯誤:', error);
       this.logError('[GET /api/wizard/oa/:oaId/scenarios] 錯誤', error);
-      this.reply.code(500);
-      return { error: 'Failed to fetch scenarios' };
+      throw error;
     }
   }
 
@@ -87,15 +84,12 @@ export class WizardController extends BaseController {
       this.reply.code(201);
       return { scenario };
     } catch (error: unknown) {
-      if (error instanceof ValidationError) {
-        this.logDebug('[POST /api/wizard/oa/:oaId/scenarios] 驗證錯誤', error);
-        this.reply.code(400);
-        return error.toJSON();
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error;
       }
       console.error('[POST /api/wizard/oa/:oaId/scenarios] 錯誤:', error);
       this.logError('[POST /api/wizard/oa/:oaId/scenarios] 錯誤', error);
-      this.reply.code(500);
-      return { error: 'Failed to create scenario' };
+      throw error;
     }
   }
 
@@ -112,13 +106,11 @@ export class WizardController extends BaseController {
     } catch (error: unknown) {
       if (error instanceof NotFoundError) {
         this.logDebug('[GET /api/wizard/scenarios/:id] 場景不存在');
-        this.reply.code(404);
-        return error.toJSON();
+        throw error;
       }
       console.error('[GET /api/wizard/scenarios/:id] 錯誤:', error);
       this.logError('[GET /api/wizard/scenarios/:id] 錯誤', error);
-      this.reply.code(500);
-      return { error: 'Failed to fetch scenario' };
+      throw error;
     }
   }
 
@@ -145,13 +137,11 @@ export class WizardController extends BaseController {
     } catch (error: unknown) {
       if (error instanceof NotFoundError) {
         this.logDebug('[PATCH /api/wizard/scenarios/:id] 場景不存在');
-        this.reply.code(404);
-        return error.toJSON();
+        throw error;
       }
       console.error('[PATCH /api/wizard/scenarios/:id] 錯誤:', error);
       this.logError('[PATCH /api/wizard/scenarios/:id] 錯誤', error);
-      this.reply.code(500);
-      return { error: 'Failed to update scenario' };
+      throw error;
     }
   }
 
@@ -168,13 +158,11 @@ export class WizardController extends BaseController {
     } catch (error: unknown) {
       if (error instanceof NotFoundError) {
         this.logDebug('[DELETE /api/wizard/scenarios/:id] 場景不存在');
-        this.reply.code(404);
-        return error.toJSON();
+        throw error;
       }
       console.error('[DELETE /api/wizard/scenarios/:id] 錯誤:', error);
       this.logError('[DELETE /api/wizard/scenarios/:id] 錯誤', error);
-      this.reply.code(500);
-      return { error: 'Failed to delete scenario' };
+      throw error;
     }
   }
 
@@ -191,13 +179,11 @@ export class WizardController extends BaseController {
     } catch (error: unknown) {
       if (error instanceof NotFoundError) {
         this.logDebug('[POST /api/wizard/scenarios/:id/enroll-all] 場景不存在');
-        this.reply.code(404);
-        return error.toJSON();
+        throw error;
       }
       console.error('[POST /api/wizard/scenarios/:id/enroll-all] 錯誤:', error);
       this.logError('[POST /api/wizard/scenarios/:id/enroll-all] 錯誤', error);
-      this.reply.code(500);
-      return { error: 'Failed to enroll users' };
+      throw error;
     }
   }
 
@@ -215,13 +201,11 @@ export class WizardController extends BaseController {
     } catch (error: unknown) {
       if (error instanceof ValidationError) {
         this.logDebug('[DELETE /api/wizard/enrollments/:id] 驗證錯誤', error);
-        this.reply.code(400);
-        return error.toJSON();
+        throw error;
       }
       console.error('[DELETE /api/wizard/enrollments/:id] 錯誤:', error);
       this.logError('[DELETE /api/wizard/enrollments/:id] 錯誤', error);
-      this.reply.code(500);
-      return { error: 'Failed to delete enrollment' };
+      throw error;
     }
   }
 

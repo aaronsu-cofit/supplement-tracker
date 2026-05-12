@@ -18,7 +18,7 @@ export async function analyzeRoutes(app: FastifyInstance) {
     { schema: analyzeSchema },
     asyncHandler(async (request, reply) => {
       const controller = new AnalyzeController(request, reply, analyzeService);
-      return controller.analyze();
+      return controller.analyzeImage();
     }),
   );
 }
