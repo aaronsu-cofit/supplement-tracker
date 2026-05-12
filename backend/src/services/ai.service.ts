@@ -1,6 +1,7 @@
 // /Users/chingchingyeh/cofit/dtx-space/Vitera/backend/src/services/ai.service.ts
 import { PrismaClient } from '@prisma/client';
 import { ValidationError } from '../middleware/errorHandler.js';
+import { adkRun, adkStream } from '../lib/adk.js';
 
 /**
  * AIService - 業務邏輯層
@@ -26,7 +27,6 @@ export class AIService {
       ]);
     }
 
-    const { adkRun } = await import('../lib/adk.js');
     return adkRun(agentId, userId);
   }
 
@@ -44,7 +44,6 @@ export class AIService {
       ]);
     }
 
-    const { adkStream } = await import('../lib/adk.js');
     return adkStream(agentId, userId);
   }
 }

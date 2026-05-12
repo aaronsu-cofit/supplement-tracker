@@ -1,6 +1,10 @@
 // /Users/chingchingyeh/cofit/dtx-space/Vitera/backend/src/services/intimacy.service.ts
 import { PrismaClient } from '@prisma/client';
 import { ValidationError } from '../middleware/errorHandler.js';
+import {
+  getIntimacyAssessments,
+  createIntimacyAssessment,
+} from '../lib/db.js';
 
 /**
  * IntimacyService - 業務邏輯層
@@ -18,8 +22,6 @@ export class IntimacyService {
    * @returns 評估列表
    */
   async getIntimacyAssessments(userId: string) {
-    // 從 db.ts 導入的函數
-    const { getIntimacyAssessments } = await import('../lib/db.js');
     return getIntimacyAssessments(userId);
   }
 
@@ -37,8 +39,6 @@ export class IntimacyService {
       ]);
     }
 
-    // 從 db.ts 導入的函數
-    const { createIntimacyAssessment } = await import('../lib/db.js');
     return createIntimacyAssessment(userId, data);
   }
 }

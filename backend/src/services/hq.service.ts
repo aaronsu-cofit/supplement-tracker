@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError, ForbiddenError } from '../middleware/errorHandler.js';
 import { hashPassword, comparePassword } from '../lib/auth.js';
 import { setUserAttributeWithHooks } from '../lib/missions.js';
+import { getHQStats } from '../lib/db.js';
 
 /**
  * HQService - HQ 管理系統業務邏輯層
@@ -535,7 +536,6 @@ export class HQService {
    * @returns 統計數據對象
    */
   async getHQStats() {
-    const { getHQStats } = await import('../lib/db.js');
     return getHQStats();
   }
 }

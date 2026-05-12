@@ -1,6 +1,16 @@
 // /Users/chingchingyeh/cofit/dtx-space/Vitera/backend/src/services/wizard.service.ts
 import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../middleware/errorHandler.js';
+import {
+  getScenariosForOA,
+  createScenario,
+  updateScenario,
+  getScenarioById,
+  deleteScenario,
+  enrollAllLineUsersInScenario,
+  deleteEnrollment,
+  deleteAllEnrollmentsForScenario,
+} from '../lib/db.js';
 
 interface CreateScenarioInput {
   name: string;
@@ -38,7 +48,6 @@ export class WizardService {
       ]);
     }
 
-    const { getScenariosForOA } = await import('../lib/db.js');
     return getScenariosForOA(oaId);
   }
 
@@ -61,7 +70,6 @@ export class WizardService {
       ]);
     }
 
-    const { createScenario, updateScenario } = await import('../lib/db.js');
     const scenario = await createScenario(oaId, input.name.trim());
 
     // 如果提供了 flow 數據，立即更新
@@ -81,7 +89,6 @@ export class WizardService {
    * @returns 場景數據
    */
   async getScenarioById(id: string) {
-    const { getScenarioById } = await import('../lib/db.js');
     const scenario = await getScenarioById(id);
 
     if (!scenario) {
@@ -99,7 +106,6 @@ export class WizardService {
    */
   async updateScenario(id: string, input: UpdateScenarioInput) {
     try {
-      const { updateScenario } = await import('../lib/db.js');
       return await updateScenario(id, input);
     } catch (e: unknown) {
       if ((e as { code?: string })?.code === 'P2025') {
@@ -116,7 +122,6 @@ export class WizardService {
    */
   async deleteScenario(id: string) {
     try {
-      const { deleteScenario } = await import('../lib/db.js');
       await deleteScenario(id);
       return { success: true };
     } catch (e: unknown) {
@@ -134,7 +139,6 @@ export class WizardService {
    */
   async enrollAllLineUsers(id: string) {
     try {
-      const { enrollAllLineUsersInScenario } = await import('../lib/db.js');
       return await enrollAllLineUsersInScenario(id);
     } catch (e: unknown) {
       if ((e as { code?: string })?.code === 'P2003') {
@@ -156,7 +160,6 @@ export class WizardService {
       ]);
     }
 
-    const { deleteEnrollment } = await import('../lib/db.js');
     await deleteEnrollment(id);
     return { success: true };
   }
@@ -167,7 +170,6 @@ export class WizardService {
    * @returns 刪除數量
    */
   async deleteAllEnrollments(scenarioId: string) {
-    const { deleteAllEnrollmentsForScenario } = await import('../lib/db.js');
     return await deleteAllEnrollmentsForScenario(scenarioId);
   }
 }

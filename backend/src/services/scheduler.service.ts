@@ -1,6 +1,12 @@
 // /Users/chingchingyeh/cofit/dtx-space/Vitera/backend/src/services/scheduler.service.ts
 import { PrismaClient } from '@prisma/client';
 import { ValidationError } from '../middleware/errorHandler.js';
+import { runDailyCycle, dryRunScheduler } from '../lib/scheduler.js';
+import {
+  getActiveEnrollmentsList,
+  getRecentDeliveries,
+  getRecentEngagementEvents,
+} from '../lib/db.js';
 
 interface DryRunInput {
   user_id: string;
@@ -24,7 +30,6 @@ export class SchedulerService {
    * @returns 調度執行結果
    */
   async runDailyCycle(skipMenu: boolean) {
-    const { runDailyCycle } = await import('../lib/scheduler.js');
     return runDailyCycle({ includeMenuReeval: !skipMenu });
   }
 
@@ -34,12 +39,6 @@ export class SchedulerService {
    * @returns 活動數據（enrollments, deliveries, engagement）
    */
   async getActivity(queryOa?: string) {
-    const {
-      getActiveEnrollmentsList,
-      getRecentDeliveries,
-      getRecentEngagementEvents,
-    } = await import('../lib/db.js');
-
     const envOa = parseInt(process.env.LINE_OA_ID || '0');
     const oaId = queryOa ? parseInt(queryOa) : envOa > 0 ? envOa : undefined;
 
@@ -77,7 +76,6 @@ export class SchedulerService {
       asOf = d;
     }
 
-    const { dryRunScheduler } = await import('../lib/scheduler.js');
     return dryRunScheduler({
       userId: input.user_id,
       scenarioId: input.scenario_id,

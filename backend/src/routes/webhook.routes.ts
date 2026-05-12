@@ -424,10 +424,7 @@ export async function webhookRoutes(app: FastifyInstance) {
     }
 
     // Get raw body for signature verification
-    let rawBody = body;
-    if (typeof body !== 'string') {
-      rawBody = JSON.stringify(body);
-    }
+    let rawBody: string = typeof body === 'string' ? body : JSON.stringify(body);
 
     if (!verifyLineSignature(rawBody, signature as string, oa.channel_secret)) {
       return reply.code(401).send({ error: 'Invalid signature' });

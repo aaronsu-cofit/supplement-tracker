@@ -1,13 +1,9 @@
-import { PrismaClient } from '@prisma/client';
-
 export class RichmenuService {
-  constructor(private prisma: PrismaClient) {}
-
   async getLineClient() {
     const { Client } = await import('@line/bot-sdk');
     const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
     if (!token) return null;
-    return new Client({ channelAccessToken: token });
+    return new (Client as any)({ channelAccessToken: token });
   }
 
   async deployMainMenu(imageFile: File) {
@@ -16,7 +12,7 @@ export class RichmenuService {
       throw new Error('LINE_CHANNEL_ACCESS_TOKEN 未設定');
     }
 
-    const liffUrls = {
+    const liffUrls: Record<string, string> = {
       wounds: process.env.LIFF_URL_WOUNDS || '',
       bones: process.env.LIFF_URL_BONES || '',
       supplements: process.env.LIFF_URL_SUPPLEMENTS || '',
@@ -70,7 +66,7 @@ export class RichmenuService {
       throw new Error('LINE_CHANNEL_ACCESS_TOKEN 未設定');
     }
 
-    const liffUrls = {
+    const liffUrls: Record<string, string> = {
       record: process.env.LIFF_URL_WOUNDS_RECORD || '',
       history: process.env.LIFF_URL_WOUNDS_HISTORY || '',
       reminder: process.env.LIFF_URL_WOUNDS_REMINDER || '',
