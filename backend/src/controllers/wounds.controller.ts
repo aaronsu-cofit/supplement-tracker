@@ -3,7 +3,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { WoundsService } from '../services/wounds.service.js';
 import type { CreateWoundInput, UpdateWoundInput, CreateWoundLogInput } from '../types.js';
-import { ValidationError } from '../middleware/errorHandler.js';
+import { ValidationError, NotFoundError } from '../middleware/errorHandler.js';
 
 /**
  * WoundsController - HTTP 層
@@ -26,118 +26,196 @@ export class WoundsController extends BaseController {
    * GET /api/wounds - 獲取用戶的所有活躍傷口
    */
   async getWounds() {
-    // 獲取已驗證的用戶 ID
-    const userId = this.getAuthenticatedUserId();
+    try {
+      this.logDebug('[GET /api/wounds] 開始獲取傷口列表');
+      const userId = this.getAuthenticatedUserId();
 
-    // 調用 Service 獲取數據
-    const wounds = await this.woundsService.getWounds(userId);
+      const wounds = await this.woundsService.getWounds(userId);
 
-    // 記錄日誌
-    this.logDebug('Fetched wounds', { userId, count: wounds.length });
-
-    // 返回成功響應（直接返回數組，保持與原 Hono 實現兼容）
-    return wounds;
+      this.logDebug('[GET /api/wounds] 成功取得傷口列表', { count: wounds.length });
+      return wounds;
+    } catch (error: unknown) {
+      console.error('[GET /api/wounds] 錯誤:', error);
+      this.logError('[GET /api/wounds] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to fetch wounds' };
+    }
   }
 
   /**
    * GET /api/wounds/:woundId - 獲取單個傷口詳情
    */
   async getWoundById() {
-    // 獲取已驗證的用戶 ID
-    const userId = this.getAuthenticatedUserId();
+    try {
+      this.logDebug('[GET /api/wounds/:woundId] 開始獲取傷口詳情');
+      const userId = this.getAuthenticatedUserId();
+      const params = this.request.params as { woundId: string };
 
-    // 獲取路由參數
-    const params = this.request.params as { woundId: string };
-    const woundId = this.parseWoundId(params.woundId);
+      let woundId: number;
+      try {
+        woundId = this.parseWoundId(params.woundId);
+      } catch (error: unknown) {
+        if (error instanceof ValidationError) {
+          this.logDebug('[GET /api/wounds/:woundId] 無效的 wound ID', error);
+          this.reply.code(400);
+          return (error as ValidationError).toJSON();
+        }
+        throw error;
+      }
 
-    // 調用 Service 獲取數據
-    const wound = await this.woundsService.getWoundById(userId, woundId);
+      const wound = await this.woundsService.getWoundById(userId, woundId);
 
-    // 記錄日誌
-    this.logDebug('Fetched wound details', { userId, woundId });
-
-    // 返回傷口記錄
-    return wound;
+      this.logDebug('[GET /api/wounds/:woundId] 成功取得傷口詳情', { woundId });
+      return wound;
+    } catch (error: unknown) {
+      if (error instanceof NotFoundError) {
+        this.logDebug('[GET /api/wounds/:woundId] 傷口不存在或無權限');
+        this.reply.code(404);
+        return error.toJSON();
+      }
+      console.error('[GET /api/wounds/:woundId] 錯誤:', error);
+      this.logError('[GET /api/wounds/:woundId] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to fetch wound' };
+    }
   }
 
   /**
    * POST /api/wounds - 創建新的傷口記錄
    */
   async createWound() {
-    // 獲取已驗證的用戶 ID
-    const userId = this.getAuthenticatedUserId();
+    try {
+      this.logDebug('[POST /api/wounds] 開始創建傷口');
+      const userId = this.getAuthenticatedUserId();
 
-    // 獲取請求體
-    const body = (await this.request.body) as CreateWoundInput;
+      let body: CreateWoundInput;
+      try {
+        body = (await this.request.body) as CreateWoundInput;
+      } catch {
+        this.logDebug('[POST /api/wounds] 無效的 JSON');
+        this.reply.code(400);
+        return { error: 'invalid JSON' };
+      }
 
-    // 調用 Service 創建記錄
-    const wound = await this.woundsService.createWound(userId, body);
+      const wound = await this.woundsService.createWound(userId, body);
 
-    // 記錄日誌
-    this.logDebug('Created wound', { userId, woundId: wound.id });
-
-    // 返回 201 Created 響應
-    this.reply.code(201);
-    return wound;
+      this.logDebug('[POST /api/wounds] 成功創建傷口', { woundId: wound.id });
+      this.reply.code(201);
+      return wound;
+    } catch (error: unknown) {
+      console.error('[POST /api/wounds] 錯誤:', error);
+      this.logError('[POST /api/wounds] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to create wound' };
+    }
   }
 
   /**
    * PATCH /api/wounds/:woundId - 更新傷口記錄
    */
   async updateWound() {
-    // 獲取已驗證的用戶 ID
-    const userId = this.getAuthenticatedUserId();
+    try {
+      this.logDebug('[PATCH /api/wounds/:woundId] 開始更新傷口');
+      const userId = this.getAuthenticatedUserId();
+      const params = this.request.params as { woundId: string };
 
-    // 獲取路由參數
-    const params = this.request.params as { woundId: string };
-    const woundId = this.parseWoundId(params.woundId);
+      let woundId: number;
+      try {
+        woundId = this.parseWoundId(params.woundId);
+      } catch (error: unknown) {
+        if (error instanceof ValidationError) {
+          this.logDebug('[PATCH /api/wounds/:woundId] 無效的 wound ID', error);
+          this.reply.code(400);
+          return (error as ValidationError).toJSON();
+        }
+        throw error;
+      }
 
-    // 獲取請求體
-    const body = (await this.request.body) as UpdateWoundInput;
+      let body: UpdateWoundInput;
+      try {
+        body = (await this.request.body) as UpdateWoundInput;
+      } catch {
+        this.logDebug('[PATCH /api/wounds/:woundId] 無效的 JSON');
+        this.reply.code(400);
+        return { error: 'invalid JSON' };
+      }
 
-    // 調用 Service 更新記錄
-    const wound = await this.woundsService.updateWound(userId, woundId, body);
+      const wound = await this.woundsService.updateWound(userId, woundId, body);
 
-    // 記錄日誌
-    this.logDebug('Updated wound', { userId, woundId });
-
-    // 返回更新後的記錄（包裹在 success 對象中，保持與原 Hono 實現兼容）
-    return { success: true, wound };
+      this.logDebug('[PATCH /api/wounds/:woundId] 成功更新傷口', { woundId });
+      return { success: true, wound };
+    } catch (error: unknown) {
+      if (error instanceof NotFoundError) {
+        this.logDebug('[PATCH /api/wounds/:woundId] 傷口不存在或無權限');
+        this.reply.code(404);
+        return error.toJSON();
+      }
+      if (error instanceof ValidationError) {
+        this.logDebug('[PATCH /api/wounds/:woundId] 驗證錯誤', error);
+        this.reply.code(400);
+        return (error as ValidationError).toJSON();
+      }
+      console.error('[PATCH /api/wounds/:woundId] 錯誤:', error);
+      this.logError('[PATCH /api/wounds/:woundId] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to update wound' };
+    }
   }
 
   /**
    * DELETE /api/wounds/:woundId - 歸檔（軟刪除）傷口記錄
    */
   async deleteWound() {
-    // 獲取已驗證的用戶 ID
-    const userId = this.getAuthenticatedUserId();
+    try {
+      this.logDebug('[DELETE /api/wounds/:woundId] 開始刪除傷口');
+      const userId = this.getAuthenticatedUserId();
+      const params = this.request.params as { woundId: string };
 
-    // 獲取路由參數
-    const params = this.request.params as { woundId: string };
-    const woundId = this.parseWoundId(params.woundId);
+      let woundId: number;
+      try {
+        woundId = this.parseWoundId(params.woundId);
+      } catch (error: unknown) {
+        if (error instanceof ValidationError) {
+          this.logDebug('[DELETE /api/wounds/:woundId] 無效的 wound ID', error);
+          this.reply.code(400);
+          return (error as ValidationError).toJSON();
+        }
+        throw error;
+      }
 
-    // 調用 Service 歸檔記錄
-    const result = await this.woundsService.archiveWound(userId, woundId);
+      const result = await this.woundsService.archiveWound(userId, woundId);
 
-    // 記錄日誌
-    this.logDebug('Archived wound', { userId, woundId });
-
-    // 返回成功響應
-    return result;
+      this.logDebug('[DELETE /api/wounds/:woundId] 成功刪除傷口', { woundId });
+      return result;
+    } catch (error: unknown) {
+      if (error instanceof NotFoundError) {
+        this.logDebug('[DELETE /api/wounds/:woundId] 傷口不存在或無權限');
+        this.reply.code(404);
+        return error.toJSON();
+      }
+      console.error('[DELETE /api/wounds/:woundId] 錯誤:', error);
+      this.logError('[DELETE /api/wounds/:woundId] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to delete wound' };
+    }
   }
 
   /**
    * GET /api/wounds/admin - 管理員獲取所有傷口
    */
   async getAllWoundsAdmin() {
-    // 調用 Service 獲取數據
-    const wounds = await this.woundsService.getAllWoundsAdmin();
+    try {
+      this.logDebug('[GET /api/wounds/admin] 開始獲取所有傷口（管理員）');
+      const wounds = await this.woundsService.getAllWoundsAdmin();
 
-    // 記錄日誌
-    this.logDebug('Admin fetched all wounds', { count: wounds.length });
-
-    // 返回傷口列表
-    return wounds;
+      this.logDebug('[GET /api/wounds/admin] 成功取得所有傷口', { count: wounds.length });
+      return wounds;
+    } catch (error: unknown) {
+      console.error('[GET /api/wounds/admin] 錯誤:', error);
+      this.logError('[GET /api/wounds/admin] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to fetch wounds' };
+    }
   }
 
   // ============================================
@@ -148,72 +226,130 @@ export class WoundsController extends BaseController {
    * GET /api/wounds/:woundId/logs - 獲取傷口的所有日誌記錄
    */
   async getWoundLogs() {
-    // 獲取已驗證的用戶 ID
-    const userId = this.getAuthenticatedUserId();
+    try {
+      this.logDebug('[GET /api/wounds/:woundId/logs] 開始獲取傷口日誌');
+      const userId = this.getAuthenticatedUserId();
+      const params = this.request.params as { woundId: string };
 
-    // 獲取路由參數
-    const params = this.request.params as { woundId: string };
-    const woundId = this.parseWoundId(params.woundId);
+      let woundId: number;
+      try {
+        woundId = this.parseWoundId(params.woundId);
+      } catch (error: unknown) {
+        if (error instanceof ValidationError) {
+          this.logDebug('[GET /api/wounds/:woundId/logs] 無效的 wound ID', error);
+          this.reply.code(400);
+          return (error as ValidationError).toJSON();
+        }
+        throw error;
+      }
 
-    // 調用 Service 獲取數據
-    const logs = await this.woundsService.getWoundLogs(userId, woundId);
+      const logs = await this.woundsService.getWoundLogs(userId, woundId);
 
-    // 記錄日誌
-    this.logDebug('Fetched wound logs', { userId, woundId, count: logs.length });
-
-    // 返回日誌列表
-    return logs;
+      this.logDebug('[GET /api/wounds/:woundId/logs] 成功取得傷口日誌', { woundId, count: logs.length });
+      return logs;
+    } catch (error: unknown) {
+      if (error instanceof NotFoundError) {
+        this.logDebug('[GET /api/wounds/:woundId/logs] 傷口不存在或無權限');
+        this.reply.code(404);
+        return error.toJSON();
+      }
+      console.error('[GET /api/wounds/:woundId/logs] 錯誤:', error);
+      this.logError('[GET /api/wounds/:woundId/logs] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to fetch logs' };
+    }
   }
 
   /**
    * POST /api/wounds/:woundId/logs - 創建傷口日誌記錄
    */
   async createWoundLog() {
-    // 獲取已驗證的用戶 ID
-    const userId = this.getAuthenticatedUserId();
+    try {
+      this.logDebug('[POST /api/wounds/:woundId/logs] 開始創建傷口日誌');
+      const userId = this.getAuthenticatedUserId();
+      const params = this.request.params as { woundId: string };
 
-    // 獲取路由參數
-    const params = this.request.params as { woundId: string };
-    const woundId = this.parseWoundId(params.woundId);
+      let woundId: number;
+      try {
+        woundId = this.parseWoundId(params.woundId);
+      } catch (error: unknown) {
+        if (error instanceof ValidationError) {
+          this.logDebug('[POST /api/wounds/:woundId/logs] 無效的 wound ID', error);
+          this.reply.code(400);
+          return (error as ValidationError).toJSON();
+        }
+        throw error;
+      }
 
-    // 獲取請求體
-    const body = (await this.request.body) as CreateWoundLogInput;
+      let body: CreateWoundLogInput;
+      try {
+        body = (await this.request.body) as CreateWoundLogInput;
+      } catch {
+        this.logDebug('[POST /api/wounds/:woundId/logs] 無效的 JSON');
+        this.reply.code(400);
+        return { error: 'invalid JSON' };
+      }
 
-    // 調用 Service 創建記錄
-    const log = await this.woundsService.createWoundLog(userId, woundId, body);
+      const log = await this.woundsService.createWoundLog(userId, woundId, body);
 
-    // 記錄日誌
-    this.logDebug('Created wound log', { userId, woundId, logId: log.id });
-
-    // 返回 201 Created 響應
-    this.reply.code(201);
-    return log;
+      this.logDebug('[POST /api/wounds/:woundId/logs] 成功創建傷口日誌', { woundId, logId: log.id });
+      this.reply.code(201);
+      return log;
+    } catch (error: unknown) {
+      if (error instanceof NotFoundError) {
+        this.logDebug('[POST /api/wounds/:woundId/logs] 傷口不存在或無權限');
+        this.reply.code(404);
+        return error.toJSON();
+      }
+      console.error('[POST /api/wounds/:woundId/logs] 錯誤:', error);
+      this.logError('[POST /api/wounds/:woundId/logs] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to create wound log' };
+    }
   }
 
   /**
    * POST /api/wounds/:woundId/soap - 生成 SOAP Note（護理紀錄）
    */
   async generateSoapNote() {
-    // 獲取路由參數
-    const params = this.request.params as { woundId: string };
-    const woundId = this.parseWoundId(params.woundId);
+    try {
+      this.logDebug('[POST /api/wounds/:woundId/soap] 開始生成 SOAP Note');
+      const params = this.request.params as { woundId: string };
 
-    // 獲取 Gemini API Key
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new ValidationError('GEMINI_API_KEY not configured', [
-        { field: 'apiKey', message: 'Server configuration error' },
-      ]);
+      let woundId: number;
+      try {
+        woundId = this.parseWoundId(params.woundId);
+      } catch (error: unknown) {
+        if (error instanceof ValidationError) {
+          this.logDebug('[POST /api/wounds/:woundId/soap] 無效的 wound ID', error);
+          this.reply.code(400);
+          return (error as ValidationError).toJSON();
+        }
+        throw error;
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        this.logDebug('[POST /api/wounds/:woundId/soap] GEMINI_API_KEY 未設置');
+        this.reply.code(500);
+        return { error: 'GEMINI_API_KEY not configured' };
+      }
+
+      const soapNote = await this.woundsService.generateSoapNote(woundId, apiKey);
+
+      this.logDebug('[POST /api/wounds/:woundId/soap] 成功生成 SOAP Note', { woundId });
+      return { success: true, soap_note: soapNote };
+    } catch (error: unknown) {
+      if (error instanceof ValidationError) {
+        this.logDebug('[POST /api/wounds/:woundId/soap] 驗證錯誤', error);
+        this.reply.code(400);
+        return (error as ValidationError).toJSON();
+      }
+      console.error('[POST /api/wounds/:woundId/soap] 錯誤:', error);
+      this.logError('[POST /api/wounds/:woundId/soap] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to generate SOAP Note' };
     }
-
-    // 調用 Service 生成 SOAP Note
-    const soapNote = await this.woundsService.generateSoapNote(woundId, apiKey);
-
-    // 記錄日誌
-    this.logDebug('Generated SOAP Note', { woundId });
-
-    // 返回 SOAP Note
-    return { success: true, soap_note: soapNote };
   }
 
   // ============================================
