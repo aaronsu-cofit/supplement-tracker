@@ -2,7 +2,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { HQService } from '../services/hq.service.js';
-import { BadRequestError, ConflictError, ValidationError } from '../middleware/errorHandler.js';
+import { BadRequestError, ValidationError } from '../middleware/errorHandler.js';
 
 /**
  * HQController - HQ 管理系統 HTTP 層
@@ -136,9 +136,9 @@ export class HQController extends BaseController {
         return { error: error.message };
       }
 
-      if (error instanceof ConflictError) {
-        this.reply.code(409);
-        return { error: error.message };
+      if (error instanceof ValidationError) {
+        this.reply.code(422);
+        return { error: error.message, validation: error.validation };
       }
 
       return this.reply.code(500).send({ error: 'Failed to create admin' });

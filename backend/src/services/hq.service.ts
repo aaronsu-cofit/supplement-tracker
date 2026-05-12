@@ -1,6 +1,6 @@
 // /Users/chingchingyeh/cofit/dtx-space/Vitera/backend/src/services/hq.service.ts
 import { PrismaClient } from '@prisma/client';
-import { ValidationError, NotFoundError, ForbiddenError, BadRequestError, ConflictError } from '../middleware/errorHandler.js';
+import { ValidationError, NotFoundError, ForbiddenError, BadRequestError } from '../middleware/errorHandler.js';
 import { hashPassword, comparePassword } from '../lib/auth.js';
 import { setUserAttributeWithHooks } from '../lib/missions.js';
 import { getHQStats } from '../lib/db.js';
@@ -132,7 +132,9 @@ export class HQService {
     // 檢查 Email 是否已存在
     const existing = await this.findAdminByEmail(email);
     if (existing) {
-      throw new ConflictError('This email is already registered as an admin');
+      throw new ValidationError('This email is already registered as an admin', [
+        { field: 'email', message: 'Email already exists' },
+      ]);
     }
 
     // 哈希密碼

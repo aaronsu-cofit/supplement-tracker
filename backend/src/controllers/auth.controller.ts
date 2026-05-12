@@ -2,7 +2,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { AuthService } from '../services/auth.service.js';
-import { UnauthorizedError, ForbiddenError, ConflictError } from '../middleware/errorHandler.js';
+import { ValidationError, UnauthorizedError, ForbiddenError } from '../middleware/errorHandler.js';
 import type { LoginRequestBody, RegisterRequestBody, LineLoginRequestBody } from '../types.js';
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -149,10 +149,10 @@ export class AuthController extends BaseController {
         user,
       };
     } catch (error) {
-      if (error instanceof ConflictError) {
+      if (error instanceof ValidationError) {
         this.logDebug('[POST /api/auth/register] Email 已被使用');
-        this.reply.code(409);
-        return { error: error.message };
+        this.reply.code(422);
+        return { error: error.message, validation: error.validation };
       }
 
       console.error('[POST /api/auth/register] 錯誤:', error);

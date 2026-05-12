@@ -1,7 +1,7 @@
 // /Users/chingchingyeh/cofit/dtx-space/Vitera/backend/src/services/auth.service.ts
 import { PrismaClient } from '@prisma/client';
 import { comparePassword, hashPassword, signToken, verifyToken } from '../lib/auth.js';
-import { UnauthorizedError, ForbiddenError, ConflictError } from '../middleware/errorHandler.js';
+import { ValidationError, UnauthorizedError, ForbiddenError } from '../middleware/errorHandler.js';
 import type { JwtPayload } from '../types/http.js';
 
 /**
@@ -74,7 +74,9 @@ export class AuthService {
     });
 
     if (existing) {
-      throw new ConflictError('此 Email 已被使用');
+      throw new ValidationError('此 Email 已被使用', [
+        { field: 'email', message: 'Email already exists' },
+      ]);
     }
 
     // 哈希密碼
