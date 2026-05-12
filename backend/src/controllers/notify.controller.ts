@@ -12,18 +12,35 @@ export class NotifyController extends BaseController {
   }
 
   async sendNotification() {
-    const userId = this.getUserId();
-    const body = (await this.request.body) as { type: string };
-
     try {
+      const userId = this.getUserId();
+      if (!userId) {
+        this.reply.code(401);
+        return { error: 'User not authenticated' };
+      }
+
+      let body: { type: string };
+      try {
+        body = (await this.request.body) as { type: string };
+      } catch {
+        this.reply.code(400);
+        return { error: 'invalid JSON' };
+      }
+
+      this.logDebug('Sending notification', { userId, type: body.type });
       const result = await this.notifyService.sendNotification(userId, body.type);
-      return this.sendSuccess(result);
+      return result;
     } catch (error) {
+      console.error('Push message error:', error);
+      this.logError('[Notify /sendNotification]', error);
+
       if ((error as Error).message === 'Invalid notification type') {
         this.reply.code(400);
         return { error: 'Invalid notification type' };
       }
-      throw error;
+
+      this.reply.code(500);
+      return { error: 'Failed to send push message' };
     }
   }
 }
