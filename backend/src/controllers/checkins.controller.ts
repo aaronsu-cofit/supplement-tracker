@@ -2,6 +2,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { CheckinsService } from '../services/checkins.service.js';
+import { BadRequestError } from '../middleware/errorHandler.js';
 
 export class CheckinsController extends BaseController {
   constructor(
@@ -69,6 +70,11 @@ export class CheckinsController extends BaseController {
       this.reply.code(201);
       return checkIn;
     } catch (error) {
+      if (error instanceof BadRequestError) {
+        this.reply.code(400);
+        return { error: error.message };
+      }
+
       console.error('[POST /api/checkins] 錯誤:', error);
       this.logError('[POST /api/checkins] 錯誤', error);
       this.reply.code(500);

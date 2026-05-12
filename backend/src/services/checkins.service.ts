@@ -1,5 +1,6 @@
 // /Users/chingchingyeh/cofit/dtx-space/Vitera/backend/src/services/checkins.service.ts
 import { PrismaClient } from '@prisma/client';
+import { BadRequestError } from '../middleware/errorHandler.js';
 import { getCheckIns, createCheckIn, removeCheckIn, getCheckInHistory, getStreak } from '../lib/db.js';
 
 export class CheckinsService {
@@ -20,7 +21,7 @@ export class CheckinsService {
 
   async createCheckIn(userId: string, supplementId: number) {
     if (!supplementId) {
-      throw new Error('supplementId is required');
+      throw new BadRequestError('supplementId is required');
     }
     return createCheckIn(userId, String(supplementId));
   }
