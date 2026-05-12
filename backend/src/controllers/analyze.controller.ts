@@ -13,12 +13,22 @@ export class AnalyzeController extends BaseController {
     super(request, reply);
   }
 
-  async analyze() {
-    const userId = this.getUserId();
-    const body = (await this.request.body) as AnalyzeRequestBody;
-
+  async analyzeImage() {
     try {
+      this.logDebug('[POST /api/analyze] 開始分析');
+      const userId = this.getUserId();
+
+      let body: AnalyzeRequestBody;
+      try {
+        body = (await this.request.body) as AnalyzeRequestBody;
+      } catch {
+        this.logDebug('[POST /api/analyze] 無效的 JSON');
+        this.reply.code(400);
+        return { error: 'invalid JSON' };
+      }
+
       const result = await this.analyzeService.analyzeImage(userId, body);
+      this.logDebug('[POST /api/analyze] 分析完成', { mode: body.mode });
       // Service 已經返回 { success: true, ... } 格式，直接返回
       return result;
     } catch (error) {
@@ -44,8 +54,10 @@ export class AnalyzeController extends BaseController {
         return { error: message };
       }
 
-      this.logError('[Analyze]', error);
-      return this.reply.code(500).send({ error: 'Failed to analyze image' });
+      console.error('[POST /api/analyze] 錯誤:', error);
+      this.logError('[POST /api/analyze] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'Failed to analyze image' };
     }
   }
 }
