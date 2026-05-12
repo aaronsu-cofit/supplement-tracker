@@ -29,20 +29,33 @@ export class AIController extends BaseController {
    */
   async runAI() {
     try {
+      this.logDebug('[POST /api/ai/run] 開始執行 AI Skill');
       const userId = this.getAuthenticatedUserId();
-      const body = (await this.request.body) as AIRequestBody;
 
-      if (!body.agent_id || typeof body.agent_id !== 'string') {
-        return this.reply.code(400).send({ error: 'agent_id is required' });
+      let body: AIRequestBody;
+      try {
+        body = (await this.request.body) as AIRequestBody;
+      } catch {
+        this.logDebug('[POST /api/ai/run] 無效的 JSON');
+        this.reply.code(400);
+        return { error: 'invalid JSON' };
       }
 
-      this.logDebug('Running AI skill', { userId, agentId: body.agent_id });
+      if (!body.agent_id || typeof body.agent_id !== 'string') {
+        this.reply.code(400);
+        return { error: 'agent_id is required' };
+      }
+
+      this.logDebug('[POST /api/ai/run] 執行 AI', { userId, agentId: body.agent_id });
       const result = await this.aiService.runAI(body.agent_id, userId);
+      this.logDebug('[POST /api/ai/run] AI 執行完成');
 
       return result;
-    } catch (err) {
-      this.logError('[AI /run]', err);
-      return this.reply.code(500).send({ error: 'AI execution failed' });
+    } catch (error: unknown) {
+      console.error('[POST /api/ai/run] 錯誤:', error);
+      this.logError('[POST /api/ai/run] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'AI execution failed' };
     }
   }
 
@@ -51,29 +64,43 @@ export class AIController extends BaseController {
    */
   async streamAI() {
     try {
+      this.logDebug('[POST /api/ai/stream] 開始執行 AI 串流');
       const userId = this.getAuthenticatedUserId();
-      const body = (await this.request.body) as AIRequestBody;
 
-      if (!body.agent_id || typeof body.agent_id !== 'string') {
-        return this.reply.code(400).send({ error: 'agent_id is required' });
+      let body: AIRequestBody;
+      try {
+        body = (await this.request.body) as AIRequestBody;
+      } catch {
+        this.logDebug('[POST /api/ai/stream] 無效的 JSON');
+        this.reply.code(400);
+        return { error: 'invalid JSON' };
       }
 
-      this.logDebug('Streaming AI skill', { userId, agentId: body.agent_id });
+      if (!body.agent_id || typeof body.agent_id !== 'string') {
+        this.reply.code(400);
+        return { error: 'agent_id is required' };
+      }
+
+      this.logDebug('[POST /api/ai/stream] 執行 AI 串流', { userId, agentId: body.agent_id });
       const upstream = await this.aiService.streamAI(body.agent_id, userId);
 
       if (!upstream.body) {
-        return this.reply.code(502).send({ error: 'ADK stream has no body' });
+        this.reply.code(502);
+        return { error: 'ADK stream has no body' };
       }
 
       // 返回 SSE 串流響應
+      this.logDebug('[POST /api/ai/stream] 串流開始');
       return this.reply
         .header('Content-Type', 'text/event-stream')
         .header('Cache-Control', 'no-cache')
         .header('Connection', 'keep-alive')
         .send(upstream.body);
-    } catch (err) {
-      this.logError('[AI /stream]', err);
-      return this.reply.code(500).send({ error: 'AI stream failed' });
+    } catch (error: unknown) {
+      console.error('[POST /api/ai/stream] 錯誤:', error);
+      this.logError('[POST /api/ai/stream] 錯誤', error);
+      this.reply.code(500);
+      return { error: 'AI stream failed' };
     }
   }
 }
