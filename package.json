@@ -10,7 +10,7 @@
     "dev:portal": "turbo dev --filter=@vitera/backend ",
     "dev:portal-only": "turbo dev --filter=@vitera/portal",
     "dev:women-healing-room": "turbo dev --filter=@vitera/women-healing-room",
-    "dev:period-tracker": "turbo dev --filter=@vitera/backend --filter=@vitera/period-tracker ",
+    "dev:period-tracker": "turbo dev --filter=@vitera/backend --filter=@vitera/period-tracker",
     "build": "turbo build",
     "lint": "turbo lint",
     "clean": "rm -rf apps/*/.next apps/period-tracker/dist",

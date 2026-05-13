@@ -30,8 +30,11 @@ export const syncPeriodChanges = async (
   // 同步日誌
   await Promise.all(keysToUpdate.map((k) => saveDailyLog(k, newDayData[k])))
 
-  // 如果有設定變更，同步到後端
-  if (options.updateLastStart || options.newCycleLen || options.clearEntireCycle) {
+  // 只有在確實有設定變更時，才同步使用者設定
+  // 注意：updateLastStart, newCycleLen, clearEntireCycle 這些選項表示設定確實有變更
+  const shouldUpdateSettings = Boolean(options.updateLastStart || options.newCycleLen || options.clearEntireCycle)
+
+  if (shouldUpdateSettings) {
     await updateSettings({
       periodDuration: newUserData.periodDuration,
       cycleLen: newUserData.cycleLen,

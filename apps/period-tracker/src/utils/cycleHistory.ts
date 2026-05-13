@@ -113,7 +113,7 @@ export function buildCycleHistoryFromActualDates(
     pbacDays.push({
       day: dayIdx + 1,
       score: dayScore,
-      colors: colors.length > 0 ? colors : ['pink'],
+      colors: colors.length > 0 ? colors : [],
       clot: mainClot,
     })
   }
@@ -121,12 +121,18 @@ export function buildCycleHistoryFromActualDates(
   const bloodScoreTotal = pbacDays.reduce((sum, d) => sum + d.score, 0)
   const endDate = new Date(startDate.getTime() + (actualPeriodDuration - 1) * MILLISECONDS_PER_DAY)
 
+  // 判斷是否是當前經期：如果結束日期在今天或未來，則表示還在進行中
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  endDate.setHours(0, 0, 0, 0)
+  const isCurrent = endDate.getTime() >= today.getTime()
+
   return {
     start: `${startDate.getMonth() + 1}月${startDate.getDate()}日`,
     end: `${endDate.getMonth() + 1}月${endDate.getDate()}日`,
     days: actualPeriodDuration,
     cycleLength: actualPeriodDuration, // 實際週期長度 = 實際經期天數（因為我們只追蹤經期）
-    cur: false, // 歷史週期都是過去的
+    cur: isCurrent,
     pbacTotal: bloodScoreTotal,
     pbacDays,
     symptoms: Array.from(symptomsSet),

@@ -24,6 +24,8 @@ const _initializeUserAfterAuth = async (
   setView: (view: 'login' | 'onboarding' | 'main') => void,
   setTutorialStep: (step: number) => void
 ) => {
+  // 如果後端返回的數據表示用戶有週期數據且有基準日期，就進入主頁面
+  // 否則進入入門頁面（例如首次使用或清除了所有經期記錄）
   if (data && data.hasData && data.lastPeriodStart) {
     setUserData(data)
     setView('main')
@@ -31,6 +33,10 @@ const _initializeUserAfterAuth = async (
       setTutorialStep(1)
     }
   } else {
+    // 若 lastPeriodStart 為 null/undefined，仍然設置用戶數據（為後續標記做準備）
+    if (data && data.dayData) {
+      setUserData(data)
+    }
     setView('onboarding')
   }
 }

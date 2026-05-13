@@ -41,6 +41,8 @@ export {
   PRODUCTS,
   getScore,
   hasPeriodRecords,
+  NoneClot,
+  BlankBloodColor
 } from './pbac'
 
 export type { CycleInfo, DayInfo } from './cycle'
