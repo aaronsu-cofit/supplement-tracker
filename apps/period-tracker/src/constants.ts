@@ -1,6 +1,6 @@
 /**
  * 應用程式內專用的常數定義
- * 核心週期常數與 PBAC 相關常數已移至 @repo/utils
+ * 核心週期常數與 PBAC 相關常數已移至 @vitera/utils
  */
 
 export const PHASE_HINTS: Record<string, any> = {

@@ -9,7 +9,7 @@ import {
 } from './periodLogic'
 import { createPbacEntry, getToggleFeedbackMessage } from './pbacOperations'
 import { syncPeriodChanges } from './sync'
-import { formatDate } from '@repo/utils'
+import { formatDate } from '@vitera/utils'
 import { MESSAGES } from './messages'
 
 /**

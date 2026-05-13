@@ -1,5 +1,5 @@
 import React from 'react'
-import { PRODUCTS } from '@repo/utils'
+import { PRODUCTS } from '@vitera/utils'
 
 interface ProductSelectorProps {
   selectedProduct: 'pad' | 'tampon' | 'cup'

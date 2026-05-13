@@ -1,7 +1,7 @@
 import React from 'react'
 import { generateCalendarGrid } from '../utils/utils'
 import { UserData } from '../types'
-import { dk, formatDate, getCalendarDateStatus } from '@repo/utils'
+import { dk, formatDate, getCalendarDateStatus } from '@vitera/utils'
 
 interface CalendarProps {
   currentMonth: Date

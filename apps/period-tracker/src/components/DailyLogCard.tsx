@@ -1,5 +1,5 @@
 import { FC, useState, useEffect } from 'react'
-import { SYMPTOMS, EMOTIONS, getScore } from '@repo/utils'
+import { SYMPTOMS, EMOTIONS, getScore } from '@vitera/utils'
 import { DayLog, PbacLog } from '../types'
 import { PbacLogItem } from './PbacLogItem'
 import { PbacAddSheet } from './PbacAddSheet'

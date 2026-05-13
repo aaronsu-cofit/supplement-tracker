@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { CLOT_TYPES } from '@repo/utils'
+import { CLOT_TYPES } from '@vitera/utils'
 import { CycleHistory } from '../types'
 import { TestTube } from './TestTube'
 import { PbacColorClotModal } from './PbacColorClotModal'

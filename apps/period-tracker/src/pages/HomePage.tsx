@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { useLiff } from '@repo/client-auth'
+import { useLiff } from '@vitera/client-auth'
 import { apiClient } from '../api/client'
 import { PHASE_HINTS } from '../constants'
 import { DayLog, PbacLog, UserData } from '../types'
-import { formatDate, calculateCycleInfo, calculateDayInfo, getScore } from '@repo/utils'
+import { formatDate, calculateCycleInfo, calculateDayInfo, getScore } from '@vitera/utils'
 import { initializeAppData, handleLineLoginSuccess } from '../utils/auth'
 import {
   handlePeriodToggle,

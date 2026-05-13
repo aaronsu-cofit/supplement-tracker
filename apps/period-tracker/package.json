@@ -12,9 +12,9 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
-    "@repo/client-auth": "workspace:*",
-    "@repo/types": "workspace:*",
-    "@repo/utils": "workspace:^",
+    "@vitera/client-auth": "workspace:*",
+    "@vitera/types": "workspace:*",
+    "@vitera/utils": "workspace:^",
     "axios": "^1.16.0",
     "eruda": "^3.4.3",
     "react": "^19.0.0",
@@ -22,8 +22,8 @@
     "react-router-dom": "^7.15.0"
   },
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
+    "@vitera/eslint-config": "workspace:*",
+    "@vitera/typescript-config": "workspace:*",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.0.0",

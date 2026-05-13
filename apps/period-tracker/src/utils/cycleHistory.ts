@@ -1,5 +1,5 @@
 import { CycleHistory, DayLog, PbacLog } from '../types'
-import { MILLISECONDS_PER_DAY, CLOT_TYPES } from '@repo/utils'
+import { MILLISECONDS_PER_DAY, CLOT_TYPES } from '@vitera/utils'
 
 /**
  * 從 dayData 中提取所有標記為 period=true 的日期

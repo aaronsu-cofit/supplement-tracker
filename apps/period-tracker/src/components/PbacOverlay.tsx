@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { CLOT_TYPES, BLOOD_COLORS } from '@repo/utils'
+import { CLOT_TYPES, BLOOD_COLORS } from '@vitera/utils'
 import { PbacLog } from '../types'
 import { ProductSVG } from './ProductSVG'
 

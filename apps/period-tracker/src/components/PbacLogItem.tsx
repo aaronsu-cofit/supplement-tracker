@@ -1,7 +1,7 @@
 import React from 'react'
 import { PbacLog } from '../types'
 import { ProductSVG } from './ProductSVG'
-import { BLOOD_COLORS, CLOT_TYPES, PBAC_LEVELS, getScore } from '@repo/utils'
+import { BLOOD_COLORS, CLOT_TYPES, PBAC_LEVELS, getScore } from '@vitera/utils'
 
 interface PbacLogItemProps {
   log: PbacLog

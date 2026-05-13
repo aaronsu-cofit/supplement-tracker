@@ -1,5 +1,5 @@
 import React from 'react'
-import { BLOOD_COLORS } from '@repo/utils'
+import { BLOOD_COLORS } from '@vitera/utils'
 
 export const TestTube: React.FC<{ colors: string[] }> = ({ colors }) => {
   const layerHeight = colors.length > 0 ? 100 / colors.length : 0

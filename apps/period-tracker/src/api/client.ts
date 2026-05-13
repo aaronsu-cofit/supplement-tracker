@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosError } from 'axios'
-import { CycleSetupPayload, UpdateCycleSettingsPayload } from '@repo/types'
+import { CycleSetupPayload, UpdateCycleSettingsPayload } from '@vitera/types'
 
 /**
  * 檢測當前執行環境

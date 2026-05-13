@@ -5,7 +5,7 @@ import {
   createDateFromYMD,
   MILLISECONDS_PER_DAY,
   hasPeriodRecords as hasRecords,
-} from '@repo/utils'
+} from '@vitera/utils'
 
 /**
  * 計算新週期長度（用於標記新經期時）
