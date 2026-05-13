@@ -1,5 +1,5 @@
 import { UserData, DayLog, PbacLog } from '../types'
-import { apiClient } from '../api/client'
+import { saveDailyLog } from '../api/client'
 import {
   getPeriodAction,
   calculatePeriodUpdate,
@@ -207,7 +207,7 @@ export const handleSaveDailyLog = async (
   onUpdateUserData(newUserData)
 
   await _executeWithErrorHandling(
-    () => apiClient.saveDailyLog(key, data),
+    () => saveDailyLog(key, data),
     MESSAGES.DAILY_LOG.SAVED,
     MESSAGES.DAILY_LOG.SAVE_FAILED,
     'Failed to save daily log:',
@@ -253,7 +253,7 @@ export const handleAddPbacLog = async (
 
   await _executeWithErrorHandling(
     () =>
-      apiClient.saveDailyLog(key, {
+      saveDailyLog(key, {
         period: createdLog.period,
         pbacProduct: createdLog.pbacProduct,
         pbacLogs: createdLog.pbacLogs,

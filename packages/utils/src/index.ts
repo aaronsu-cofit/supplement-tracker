@@ -2,6 +2,7 @@
  * Shared utility functions for the DTX monorepo, 避免 Barrel Export
  */
 
+export { apiFetch } from './api'
 export { validateEnv } from './env'
 export {
   MILLISECONDS_PER_DAY,

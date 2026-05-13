@@ -108,7 +108,7 @@ export interface CycleSetupPayload {
  * Payload for updating cycle settings
  */
 export interface UpdateCycleSettingsPayload {
-  periodDuration?: number
-  cycleLen?: number
+  periodDuration: number
+  cycleLen: number
   lastPeriodStart?: { y: number; m: number; d: number } | null
 }

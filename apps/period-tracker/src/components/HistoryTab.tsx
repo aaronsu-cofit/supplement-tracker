@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { UserData, CycleHistory } from '../types'
-import { apiClient } from '../api/client'
+import { getCycleData } from '../api/client'
 import { CycleHistoryCard } from './CycleHistoryCard'
 import { buildAllCycleHistory } from '../utils/cycleHistory'
 
@@ -27,7 +27,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({ userData, isActive }) =>
         setError(null)
 
         // 從後端 API 取得完整的用戶數據（包含所有 dayData）
-        const cycleData = await apiClient.getCycleData()
+        const cycleData = await getCycleData()
         const dayData = cycleData.dayData || userData.dayData
 
         // 使用 utils 函數構建所有週期歷史

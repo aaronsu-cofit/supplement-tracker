@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useLiff } from '@vitera/client-auth'
-import { apiClient } from '../api/client'
+import { setupCycle, updateSettings } from '../api/client'
 import { PHASE_HINTS } from '../constants'
 import { DayLog, PbacLog, UserData } from '../types'
 import { formatDate, calculateCycleInfo, calculateDayInfo, getScore } from '@vitera/utils'
@@ -112,17 +112,15 @@ export function HomePage() {
   // 取得使用者登入方式資訊
   useEffect(() => {
     const fetchUserInfo = async () => {
-      // 只在已登入且主畫面顯示時取得
-      if (view !== 'main' || !apiClient.isAuthenticated()) {
+      // 只在主畫面顯示時取得
+      if (view !== 'main') {
         setLoadingUserInfo(false)
         return
       }
 
       try {
         const response = await fetch('/api/auth/me', {
-          headers: {
-            Authorization: `Bearer ${apiClient.getAccessToken()}`,
-          },
+          credentials: 'include', // 自動發送 HttpOnly cookies
         })
 
         if (response.ok) {
@@ -195,7 +193,7 @@ export function HomePage() {
       ...data,
     }
     try {
-      await apiClient.setupCycle(initialData)
+      await setupCycle(initialData)
       setUserData({
         hasData: true,
         ...data,
@@ -378,7 +376,7 @@ export function HomePage() {
           onUpdateUserData={setUserData}
           onSave={async () => {
             try {
-              await apiClient.updateSettings({
+              await updateSettings({
                 periodDuration: userData.periodDuration,
                 cycleLen: userData.cycleLen,
               })

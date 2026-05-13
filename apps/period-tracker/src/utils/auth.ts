@@ -1,5 +1,5 @@
 import { UserData } from '../types'
-import { apiClient } from '../api/client'
+import { loginWithLine, getCycleData } from '../api/client'
 import { MESSAGES } from './messages'
 
 // Import LIFF SDK
@@ -48,12 +48,7 @@ export const initializeAppData = async (
   setTutorialStep: (step: number) => void
 ) => {
   try {
-    if (!apiClient.isAuthenticated()) {
-      setView('login')
-      return
-    }
-
-    const data = await apiClient.getCycleData()
+    const data = await getCycleData()
     await _initializeUserAfterAuth(data, setUserData, setView, setTutorialStep)
   } catch (error) {
     console.error('Init failed', error)
@@ -63,8 +58,8 @@ export const initializeAppData = async (
 
 /**
  * 處理 LINE 登入成功後的初始化
- * 從 LIFF 取得用戶信息，然後初始化應用狀態
- * @param _token - LINE 授權伺服器返回的授權令牌（現已不使用，保持參數相容性）
+ * 從 LIFF SDK 取得用戶信息，初始化應用狀態
+ * @param _token - LINE 授權伺服器返回的授權令牌（現已不使用）
  * @param setUserData - 更新用戶數據的回調函數
  * @param setView - 切換應用視圖的回調函數
  * @param setTutorialStep - 設置教學步驟的回調函數
@@ -78,20 +73,33 @@ export const handleLineLoginSuccess = async (
   onError: (msg: string) => void
 ) => {
   try {
-    // 從 LIFF 取得用戶信息
+    // 從 LIFF SDK 取得用戶信息
     const liff = window.liff
     if (!liff) {
       throw new Error('LIFF not available')
     }
 
-    const profile = liff.getProfile()
-    const { userId: lineUserId, displayName, pictureUrl } = profile
+    // 取得 profile - 此時應該已經可用，因為 onLoggedIn 是在 profile 取得後才被調用的
+    const profile = await liff.getProfile()
+    console.log('[DEBUG] LIFF profile:', profile)
+
+    const lineUserId = profile?.userId
+    const displayName = profile?.displayName
+    const pictureUrl = profile?.pictureUrl
+
+    if (!lineUserId) {
+      throw new Error(
+        `LIFF profile missing userId. Profile: ${JSON.stringify(profile)}`
+      )
+    }
+
+    console.log('[DEBUG] Extracted values:', { lineUserId, displayName, pictureUrl })
 
     // 使用 LIFF 用戶信息登入後端
-    await apiClient.loginWithLine(lineUserId, displayName, pictureUrl)
+    await loginWithLine(lineUserId, displayName, pictureUrl)
 
     // 獲取周期數據並初始化應用
-    const data = await apiClient.getCycleData()
+    const data = await getCycleData()
     await _initializeUserAfterAuth(data, setUserData, setView, setTutorialStep)
   } catch (error) {
     console.error('LINE Login failed:', error)

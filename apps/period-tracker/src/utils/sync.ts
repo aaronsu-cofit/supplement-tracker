@@ -1,5 +1,5 @@
 import { UserData, DayLog } from '../types'
-import { apiClient } from '../api/client'
+import { saveDailyLog, updateSettings } from '../api/client'
 
 /**
  * 同步選項
@@ -28,11 +28,12 @@ export const syncPeriodChanges = async (
   options: SyncOptions = {}
 ) => {
   // 同步日誌
-  await Promise.all(keysToUpdate.map((k) => apiClient.saveDailyLog(k, newDayData[k])))
+  await Promise.all(keysToUpdate.map((k) => saveDailyLog(k, newDayData[k])))
 
   // 如果有設定變更，同步到後端
   if (options.updateLastStart || options.newCycleLen || options.clearEntireCycle) {
-    await apiClient.updateSettings({
+    await updateSettings({
+      periodDuration: newUserData.periodDuration,
       cycleLen: newUserData.cycleLen,
       lastPeriodStart: newUserData.lastPeriodStart,
     })
