@@ -17,7 +17,7 @@ import { PbacOverlay } from '../components/PbacOverlay'
 import { TutorialOverlay } from '../components/TutorialOverlay'
 import { SettingsIcon } from '../components/SettingsIcon'
 import { OnboardingView } from '../components/OnboardingView'
-import { LoginView } from '../components/LoginView'
+import { InitView } from '../components/InitView'
 import { PhaseBanner } from '../components/PhaseBanner'
 import { PbacSummaryCard } from '../components/PbacSummaryCard'
 import { PbacInfoModal } from '../components/PbacInfoModal'
@@ -256,7 +256,7 @@ export function HomePage() {
     })
   }
 
-  if (view === 'login') return <LoginView onLogin={login} />
+  if (view === 'login') return <InitView />
 
   if (view === 'onboarding') return <OnboardingView onFinish={handleOnboardingFinish} />
 
@@ -270,16 +270,6 @@ export function HomePage() {
           </div>
         </div>
       </div>
-
-      {!loadingUserInfo && shouldShowLinkPrompt(isInitialized && !!liffId, loginMethods) && (
-        <LinkAccountPrompt
-          onLinked={() => {
-            // 重新載入頁面或重新取得用戶資訊
-            window.location.reload()
-          }}
-        />
-      )}
-
       {activeTab !== 'settings' && (
         <div className="tab-bar">
           <div
