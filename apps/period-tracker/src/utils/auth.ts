@@ -2,6 +2,13 @@ import { UserData } from '../types'
 import { apiClient } from '../api/client'
 import { MESSAGES } from './messages'
 
+// Import LIFF SDK
+declare global {
+  interface Window {
+    liff?: any
+  }
+}
+
 /**
  * 初始化應用後的共享邏輯
  * 根據用戶是否有週期數據來決定顯示主頁面或入門頁面
@@ -56,26 +63,38 @@ export const initializeAppData = async (
 
 /**
  * 處理 LINE 登入成功後的初始化
- * 使用 LINE 授權令牌交換應用令牌，然後初始化應用狀態
- * @param token - LINE 授權伺服器返回的授權令牌
+ * 從 LIFF 取得用戶信息，然後初始化應用狀態
+ * @param _token - LINE 授權伺服器返回的授權令牌（現已不使用，保持參數相容性）
  * @param setUserData - 更新用戶數據的回調函數
  * @param setView - 切換應用視圖的回調函數
  * @param setTutorialStep - 設置教學步驟的回調函數
  * @param onError - 錯誤處理的回調函數
  */
 export const handleLineLoginSuccess = async (
-  token: string,
+  _token: string,
   setUserData: (data: UserData) => void,
   setView: (view: 'login' | 'onboarding' | 'main') => void,
   setTutorialStep: (step: number) => void,
   onError: (msg: string) => void
 ) => {
   try {
-    await apiClient.loginWithLine(token)
+    // 從 LIFF 取得用戶信息
+    const liff = window.liff
+    if (!liff) {
+      throw new Error('LIFF not available')
+    }
+
+    const profile = liff.getProfile()
+    const { userId: lineUserId, displayName, pictureUrl } = profile
+
+    // 使用 LIFF 用戶信息登入後端
+    await apiClient.loginWithLine(lineUserId, displayName, pictureUrl)
+
+    // 獲取周期數據並初始化應用
     const data = await apiClient.getCycleData()
     await _initializeUserAfterAuth(data, setUserData, setView, setTutorialStep)
   } catch (error) {
-    console.error('LINE Login exchange failed:', error)
+    console.error('LINE Login failed:', error)
     onError(MESSAGES.AUTH.LOGIN_FAILED)
     setView('login')
   }

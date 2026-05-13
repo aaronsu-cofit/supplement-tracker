@@ -79,10 +79,15 @@ export interface GetPeriodsResponse {
  * 認證回應
  */
 export interface AuthResponse {
-  accessToken: string
-  refreshToken: string
-  expiresIn: number
-  tokenType: 'Bearer'
+  authenticated: boolean
+  user: {
+    id: string
+    displayName: string
+    pictureUrl?: string
+    authProvider: string
+    role: string
+    userType: string
+  }
 }
 
 /**
@@ -99,8 +104,6 @@ export interface APIError {
 export class APIClient {
   private client: AxiosInstance
   private token: string | null = null
-  private isRefreshing = false
-  private refreshSubscribers: ((token: string) => void)[] = []
   private environment: 'liff' | 'webview' | 'browser'
   private storageStrategy: 'memory' | 'localStorage' | 'bridge'
 
@@ -121,67 +124,25 @@ export class APIClient {
 
     // 請求攔截器：自動添加 Authorization header
     this.client.interceptors.request.use((config) => {
-      if (this.token && config.url !== '/api/auth/line' && config.url !== '/api/auth/refresh') {
+      if (this.token && config.url !== '/api/auth/me') {
         config.headers.Authorization = `Bearer ${this.token}`
       }
       return config
     })
 
-    // 回應攔截器：處理 401 錯誤並嘗試刷新 Token
+    // 回應攔截器：簡化版，後端暫未實現 token 刷新機制
     this.client.interceptors.response.use(
       (response) => response,
-      async (error: AxiosError<APIError>) => {
-        const originalRequest = error.config
-        if (
-          error.response?.status === 401 &&
-          originalRequest &&
-          originalRequest.url !== '/api/auth/line' &&
-          !(originalRequest as any)._retry
-        ) {
-          if (this.isRefreshing) {
-            // 如果正在刷新中，將請求加入佇列，等待刷新完成
-            return new Promise((resolve) => {
-              this.refreshSubscribers.push((token: string) => {
-                if (originalRequest.headers) {
-                  originalRequest.headers.Authorization = `Bearer ${token}`
-                }
-                resolve(this.client(originalRequest))
-              })
-            })
-          }
-
-          ;(originalRequest as any)._retry = true
-          this.isRefreshing = true
-
-          try {
-            const newAccessToken = await this.refreshToken()
-            this.isRefreshing = false
-            this.onRefreshed(newAccessToken)
-            this.refreshSubscribers = []
-
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
-            }
-            return this.client(originalRequest)
-          } catch (refreshError) {
-            this.isRefreshing = false
-            this.refreshSubscribers = []
-            // 刷新失敗，清除 Token 並引導重新登入
-            this.clearTokens()
-            return Promise.reject(refreshError)
-          }
+      (error: AxiosError<APIError>) => {
+        // 如果遇到 401，清除 token 並讓應用程式處理重新登入
+        if (error.response?.status === 401) {
+          this.clearTokens()
         }
         return Promise.reject(error)
       }
     )
   }
 
-  /**
-   * 當 Token 刷新完成時，通知所有等待中的請求
-   */
-  private onRefreshed(token: string) {
-    this.refreshSubscribers.forEach((callback) => callback(token))
-  }
 
   /**
    * 根據環境策略載入 tokens
@@ -314,27 +275,22 @@ export class APIClient {
 
   /**
    * LINE LIFF 登入
-   * 使用 LINE access token 換取 JWT token
+   * 使用 LINE User ID 登入（從 LIFF 上下文取得）
+   * 後端會自動設置 httpOnly cookie，無需前端管理 token
    */
-  async loginWithLine(lineAccessToken: string): Promise<AuthResponse> {
-    const response = await this.client.post<AuthResponse>('/api/auth/line', {
-      accessToken: lineAccessToken,
+  async loginWithLine(
+    lineUserId: string,
+    displayName?: string,
+    pictureUrl?: string
+  ): Promise<AuthResponse> {
+    const response = await this.client.post<AuthResponse>('/api/auth/me', {
+      lineUserId,
+      displayName,
+      pictureUrl,
     })
-    // 儲存 access token (refresh token 會由 HttpOnly Cookie 自動處理)
-    this.saveTokens(response.data.accessToken)
+    // 登入成功，設置內部認證標記（實際 token 由 httpOnly cookie 管理）
+    this.saveTokens('authenticated')
     return response.data
-  }
-
-  /**
-   * 刷新 Access Token
-   */
-  async refreshToken(): Promise<string> {
-    // 不需要發送 refreshToken，後端會從 Cookie 讀取
-    const response = await this.client.post<{ accessToken: string }>('/api/auth/refresh', {})
-
-    const { accessToken } = response.data
-    this.saveTokens(accessToken)
-    return accessToken
   }
 
   /**
