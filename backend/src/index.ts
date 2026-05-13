@@ -23,6 +23,8 @@ import { productsRoutes } from './routes/products.routes.js';
 import { womenHealingRoutes } from './routes/womenHealing.routes.js';
 import { menuRoutes } from './routes/menu.routes.js';
 import { webhookRoutes } from './routes/webhook.routes.js';
+import { periodRoutes } from './routes/period.routes.js';
+import { cycleRoutes } from './routes/cycle.routes.js';
 import { registerErrorHandler } from './middleware/errorHandler.js';
 import { container } from './lib/container.js';
 import { initializeContainer } from './lib/initializeContainer.js';
@@ -214,6 +216,12 @@ export async function createFastifyApp() {
 
   // 註冊 LINE 事件 Webhook 路由（MVC 架構）
   await app.register(webhookRoutes, { prefix: '/api/webhook' });
+
+  // 註冊月經週期追蹤路由（MVC 架構）
+  await app.register(periodRoutes, { prefix: '/api/periods' });
+
+  // 註冊月經週期設定路由（MVC 架構）
+  await app.register(cycleRoutes, { prefix: '/api/cycle' });
 
   // ─── 404 Handler ─────────────────────────────────────────────────────
   app.setNotFoundHandler((request, reply) => {

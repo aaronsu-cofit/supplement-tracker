@@ -1,0 +1,30 @@
+{
+  "name": "@vitera/client-auth",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Client-side authentication utilities including LINE LIFF and React hooks",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@line/liff": "^2.28.0"
+  },
+  "devDependencies": {
+    "@vitera/typescript-config": "workspace:*",
+    "@types/react": "^19.0.6",
+    "react": "^19.0.0",
+    "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  }
+}
