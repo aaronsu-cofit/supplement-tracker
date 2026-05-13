@@ -1,45 +1,59 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
+import { BaseController } from './base.controller.js'
+import { PeriodService } from '../services/period.service.js'
 import { ZodError } from 'zod'
-import { createPeriod, listPeriods } from '../services/period.service'
-import type { CreatePeriodRequest, PeriodQuery } from '../schemas/period.schema'
+import type { CreatePeriodRequest, PeriodQuery } from '../schemas/period.schema.js'
 
 /**
- * Period Controller
- * Handles HTTP requests for period management
+ * PeriodController - HTTP 層
+ * 責任：
+ * - 請求參數處理
+ * - 調用 Service 業務邏輯
+ * - 格式化響應
+ * - 錯誤處理
  */
-export class PeriodController {
+export class PeriodController extends BaseController {
+  constructor(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    private periodService: PeriodService,
+  ) {
+    super(request, reply)
+  }
+
   /**
    * Create a new period record
    * POST /api/periods
    */
-  static async create(request: FastifyRequest<{ Body: CreatePeriodRequest }>, reply: FastifyReply) {
+  async create() {
     try {
-      const { startDate, endDate, notes } = request.body
-      const userId = (request as any).user?.id
-      if (!userId) {
-        return reply.status(401).send({ error: 'Unauthorized' })
-      }
+      const userId = this.getAuthenticatedUserId()
+      const { startDate, endDate, notes } = this.request.body as CreatePeriodRequest
 
-      const period = await createPeriod(userId, {
+      const period = await this.periodService.createPeriod(userId, {
         startDate,
         endDate,
         notes,
       })
 
-      return reply.status(201).send(period)
+      this.logDebug('Created period', { userId, periodId: period.id })
+      this.reply.code(201)
+      return period
     } catch (error) {
       if (error instanceof ZodError) {
-        return reply.status(400).send({
+        this.reply.code(400)
+        return {
           error: 'Validation Error',
           message: error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
-        })
+        }
       }
 
-      request.log.error(error, 'Failed to create period')
-      return reply.status(400).send({
+      this.logError('[Period /create]', error)
+      this.reply.code(400)
+      return {
         error: 'Bad Request',
         message: error instanceof Error ? error.message : 'Unknown error',
-      })
+      }
     }
   }
 
@@ -47,22 +61,21 @@ export class PeriodController {
    * List period records
    * GET /api/periods
    */
-  static async list(request: FastifyRequest<{ Querystring: PeriodQuery }>, reply: FastifyReply) {
+  async list() {
     try {
-      const userId = (request as any).user?.id
-      if (!userId) {
-        return reply.status(401).send({ error: 'Unauthorized' })
-      }
+      const userId = this.getAuthenticatedUserId()
+      const periods = await this.periodService.listPeriods(userId, this.request.query as PeriodQuery)
 
-      const periods = await listPeriods(userId, request.query)
-
-      return reply.status(200).send(periods)
+      this.logDebug('Listed periods', { userId, count: periods.length })
+      this.reply.code(200)
+      return periods
     } catch (error) {
-      request.log.error(error, 'Failed to list periods')
-      return reply.status(500).send({
+      this.logError('[Period /list]', error)
+      this.reply.code(500)
+      return {
         error: 'Internal Server Error',
         message: error instanceof Error ? error.message : 'Unknown error',
-      })
+      }
     }
   }
 }

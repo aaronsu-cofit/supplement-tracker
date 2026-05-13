@@ -1,36 +1,44 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
+import { BaseController } from './base.controller.js'
+import { CycleService } from '../services/cycle.service.js'
 import { ZodError } from 'zod'
-import {
-  getUserCycleData,
-  setupCycle,
-  saveDailyLog,
-  updateCycleSettings,
-} from '../services/cycle.service.js'
 
 /**
- * Cycle Controller
- * Handles HTTP requests for menstrual cycle tracking and daily logs
+ * CycleController - HTTP 層
+ * 責任：
+ * - 請求參數處理
+ * - 調用 Service 業務邏輯
+ * - 格式化響應
+ * - 錯誤處理
  */
-export class CycleController {
+export class CycleController extends BaseController {
+  constructor(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    private cycleService: CycleService,
+  ) {
+    super(request, reply)
+  }
+
   /**
    * Get user cycle settings and all daily logs
    * GET /api/cycle/user
    */
-  static async getUserData(request: FastifyRequest, reply: FastifyReply) {
+  async getUserData() {
     try {
-      const userId = (request as any).user?.id
-      if (!userId) {
-        return reply.status(401).send({ error: 'Unauthorized' })
-      }
+      const userId = this.getAuthenticatedUserId()
+      const data = await this.cycleService.getUserCycleData(userId)
 
-      const data = await getUserCycleData(userId)
-      return reply.status(200).send(data)
+      this.logDebug('Retrieved cycle data', { userId })
+      this.reply.code(200)
+      return data
     } catch (error) {
-      request.log.error(error, 'Failed to get user cycle data')
-      return reply.status(500).send({
+      this.logError('[Cycle /getUserData]', error)
+      this.reply.code(500)
+      return {
         error: 'Internal Server Error',
         message: error instanceof Error ? error.message : 'Unknown error',
-      })
+      }
     }
   }
 
@@ -38,28 +46,29 @@ export class CycleController {
    * Initial onboarding setup for cycle tracking
    * POST /api/cycle/setup
    */
-  static async setup(request: FastifyRequest<{ Body: any }>, reply: FastifyReply) {
+  async setup() {
     try {
-      const userId = (request as any).user?.id
-      if (!userId) {
-        return reply.status(401).send({ error: 'Unauthorized' })
-      }
+      const userId = this.getAuthenticatedUserId()
+      const result = await this.cycleService.setupCycle(userId, this.request.body)
 
-      const result = await setupCycle(userId, request.body)
-      return reply.status(200).send(result)
+      this.logDebug('Setup cycle', { userId })
+      this.reply.code(200)
+      return result
     } catch (error) {
       if (error instanceof ZodError) {
-        return reply.status(400).send({
+        this.reply.code(400)
+        return {
           error: 'Validation Error',
           message: error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
-        })
+        }
       }
 
-      request.log.error(error, 'Failed to setup cycle')
-      return reply.status(400).send({
+      this.logError('[Cycle /setup]', error)
+      this.reply.code(400)
+      return {
         error: 'Bad Request',
         message: error instanceof Error ? error.message : 'Unknown error',
-      })
+      }
     }
   }
 
@@ -67,31 +76,29 @@ export class CycleController {
    * Save or update a daily log entry
    * POST /api/cycle/log
    */
-  static async saveLog(
-    request: FastifyRequest<{ Body: any }>,
-    reply: FastifyReply
-  ) {
+  async saveLog() {
     try {
-      const userId = (request as any).user?.id
-      if (!userId) {
-        return reply.status(401).send({ error: 'Unauthorized' })
-      }
+      const userId = this.getAuthenticatedUserId()
+      const result = await this.cycleService.saveDailyLog(userId, this.request.body)
 
-      const result = await saveDailyLog(userId, request.body)
-      return reply.status(200).send(result)
+      this.logDebug('Saved daily log', { userId, date: result.date })
+      this.reply.code(200)
+      return result
     } catch (error) {
       if (error instanceof ZodError) {
-        return reply.status(400).send({
+        this.reply.code(400)
+        return {
           error: 'Validation Error',
           message: error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
-        })
+        }
       }
 
-      request.log.error(error, 'Failed to save daily log')
-      return reply.status(400).send({
+      this.logError('[Cycle /saveLog]', error)
+      this.reply.code(400)
+      return {
         error: 'Bad Request',
         message: error instanceof Error ? error.message : 'Unknown error',
-      })
+      }
     }
   }
 
@@ -99,31 +106,29 @@ export class CycleController {
    * Update cycle settings
    * PATCH /api/cycle/settings
    */
-  static async updateSettings(
-    request: FastifyRequest<{ Body: any }>,
-    reply: FastifyReply
-  ) {
+  async updateSettings() {
     try {
-      const userId = (request as any).user?.id
-      if (!userId) {
-        return reply.status(401).send({ error: 'Unauthorized' })
-      }
+      const userId = this.getAuthenticatedUserId()
+      const result = await this.cycleService.updateCycleSettings(userId, this.request.body)
 
-      const result = await updateCycleSettings(userId, request.body)
-      return reply.status(200).send(result)
+      this.logDebug('Updated cycle settings', { userId })
+      this.reply.code(200)
+      return result
     } catch (error) {
       if (error instanceof ZodError) {
-        return reply.status(400).send({
+        this.reply.code(400)
+        return {
           error: 'Validation Error',
           message: error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
-        })
+        }
       }
 
-      request.log.error(error, 'Failed to update cycle settings')
-      return reply.status(400).send({
+      this.logError('[Cycle /updateSettings]', error)
+      this.reply.code(400)
+      return {
         error: 'Bad Request',
         message: error instanceof Error ? error.message : 'Unknown error',
-      })
+      }
     }
   }
 }

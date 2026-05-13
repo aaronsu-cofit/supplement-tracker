@@ -1,20 +1,26 @@
-import { FastifyPluginAsync } from 'fastify'
+import type { FastifyInstance } from 'fastify'
 import { CycleController } from '../controllers/cycle.controller.js'
+import { CycleService } from '../services/cycle.service.js'
+import { asyncHandler } from '../controllers/base.controller.js'
+import { db } from '../lib/db.js'
 import { authenticateUser } from '../middleware/auth.js'
 
 /**
  * Cycle routes plugin
  * Routes for menstrual cycle tracking and daily log management
  */
-export const cycleRoutes: FastifyPluginAsync = async (fastify) => {
+export async function cycleRoutes(app: FastifyInstance) {
+  // Create service instance
+  const cycleService = new CycleService(db())
+
   // Apply authentication middleware to all routes
-  fastify.addHook('preHandler', authenticateUser)
+  app.addHook('preHandler', authenticateUser)
 
   /**
    * GET /api/cycle/user
    * Get user cycle settings and logs
    */
-  fastify.get(
+  app.get(
     '/user',
     {
       schema: {
@@ -24,14 +30,17 @@ export const cycleRoutes: FastifyPluginAsync = async (fastify) => {
         security: [{ bearerAuth: [] }],
       },
     },
-    CycleController.getUserData
+    asyncHandler(async (request, reply) => {
+      const controller = new CycleController(request, reply, cycleService)
+      return controller.getUserData()
+    }),
   )
 
   /**
    * POST /api/cycle/setup
    * Onboarding setup
    */
-  fastify.post(
+  app.post(
     '/setup',
     {
       schema: {
@@ -41,14 +50,17 @@ export const cycleRoutes: FastifyPluginAsync = async (fastify) => {
         security: [{ bearerAuth: [] }],
       },
     },
-    CycleController.setup
+    asyncHandler(async (request, reply) => {
+      const controller = new CycleController(request, reply, cycleService)
+      return controller.setup()
+    }),
   )
 
   /**
    * POST /api/cycle/log
    * Save daily log
    */
-  fastify.post(
+  app.post(
     '/log',
     {
       schema: {
@@ -58,14 +70,17 @@ export const cycleRoutes: FastifyPluginAsync = async (fastify) => {
         security: [{ bearerAuth: [] }],
       },
     },
-    CycleController.saveLog
+    asyncHandler(async (request, reply) => {
+      const controller = new CycleController(request, reply, cycleService)
+      return controller.saveLog()
+    }),
   )
 
   /**
    * PATCH /api/cycle/settings
    * Update cycle settings
    */
-  fastify.patch(
+  app.patch(
     '/settings',
     {
       schema: {
@@ -75,6 +90,9 @@ export const cycleRoutes: FastifyPluginAsync = async (fastify) => {
         security: [{ bearerAuth: [] }],
       },
     },
-    CycleController.updateSettings
+    asyncHandler(async (request, reply) => {
+      const controller = new CycleController(request, reply, cycleService)
+      return controller.updateSettings()
+    }),
   )
 }

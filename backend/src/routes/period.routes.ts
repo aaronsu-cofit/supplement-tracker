@@ -1,6 +1,9 @@
 import type { FastifyInstance } from 'fastify'
-import type { FastifyPluginAsync } from 'fastify'
 import { PeriodController } from '../controllers/period.controller.js'
+import { PeriodService } from '../services/period.service.js'
+import { asyncHandler } from '../controllers/base.controller.js'
+import { container } from '../lib/container.js'
+import { db } from '../lib/db.js'
 import { authenticateUser } from '../middleware/auth.js'
 import {
   CreatePeriodSchema,
@@ -14,14 +17,17 @@ import {
  * Period routes plugin
  * Routes for period management endpoints
  */
-const periodRoutesImpl: FastifyPluginAsync = async (fastify: FastifyInstance) => {
+export async function periodRoutes(app: FastifyInstance) {
+  // Create service instance
+  const periodService = new PeriodService(db())
+
   // Apply authentication middleware to all routes
-  fastify.addHook('preHandler', authenticateUser)
+  app.addHook('preHandler', authenticateUser)
 
   /**
    * POST /api/periods - Create a new period
    */
-  fastify.post(
+  app.post(
     '/',
     {
       schema: {
@@ -37,13 +43,16 @@ const periodRoutesImpl: FastifyPluginAsync = async (fastify: FastifyInstance) =>
         },
       },
     },
-    PeriodController.create
+    asyncHandler(async (request, reply) => {
+      const controller = new PeriodController(request, reply, periodService)
+      return controller.create()
+    }),
   )
 
   /**
    * GET /api/periods - List periods
    */
-  fastify.get(
+  app.get(
     '/',
     {
       schema: {
@@ -60,11 +69,9 @@ const periodRoutesImpl: FastifyPluginAsync = async (fastify: FastifyInstance) =>
         },
       },
     },
-    PeriodController.list
+    asyncHandler(async (request, reply) => {
+      const controller = new PeriodController(request, reply, periodService)
+      return controller.list()
+    }),
   )
 }
-
-/**
- * Export as Fastify plugin
- */
-export const periodRoutes = periodRoutesImpl
