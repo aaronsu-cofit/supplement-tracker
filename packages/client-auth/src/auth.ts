@@ -3,7 +3,42 @@
  */
 
 import { apiFetch } from '@vitera/utils'
+import { liffManager } from './liff-utils'
 import type { AuthResponse } from './types'
+
+/**
+ * 從 LIFF SDK 取得用戶信息並進行後端登入
+ *
+ * 流程：
+ * 1. 從 LIFF SDK 的 getProfile() 取得用戶信息（userId, displayName, pictureUrl）
+ * 2. 驗證 userId 是否存在
+ * 3. 發送 POST /api/auth/me 請求到後端
+ * 4. 後端驗證 userId 並創建用戶（如需要）
+ * 5. 後端通過 Set-Cookie header 設置 httpOnly cookie（auth_token）
+ * 6. 瀏覽器自動存儲並在後續請求中攜帶此 cookie
+ *
+ * @returns AuthResponse - 包含認證狀態和用戶信息
+ * @throws Error - 如果 LIFF 不可用、profile 獲取失敗或登入失敗
+ */
+export async function handleLiffLogin(): Promise<AuthResponse> {
+  const liff = await liffManager.load()
+
+  // 取得 profile
+  const profile = await liff.getProfile()
+
+  const lineUserId = profile?.userId
+  const displayName = profile?.displayName
+  const pictureUrl = profile?.pictureUrl
+
+  if (!lineUserId) {
+    throw new Error(
+      `LIFF profile missing userId. Profile: ${JSON.stringify(profile)}`
+    )
+  }
+
+  // 使用 LIFF 用戶信息登入後端
+  return loginWithLine(lineUserId, displayName, pictureUrl)
+}
 
 /**
  * LINE LIFF 登入

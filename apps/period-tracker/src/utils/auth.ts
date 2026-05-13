@@ -1,5 +1,6 @@
 import { UserData } from '../types'
-import { loginWithLine, getCycleData } from '../api/client'
+import { getCycleData } from '../api/client'
+import { handleLiffLogin } from '@vitera/client-auth'
 import { MESSAGES } from './messages'
 
 // Import LIFF SDK
@@ -73,27 +74,8 @@ export const handleLineLoginSuccess = async (
   onError: (msg: string) => void
 ) => {
   try {
-    // 從 LIFF SDK 取得用戶信息
-    const liff = window.liff
-    if (!liff) {
-      throw new Error('LIFF not available')
-    }
-
-    // 取得 profile - 此時應該已經可用，因為 onLoggedIn 是在 profile 取得後才被調用的
-    const profile = await liff.getProfile()
-
-    const lineUserId = profile?.userId
-    const displayName = profile?.displayName
-    const pictureUrl = profile?.pictureUrl
-
-    if (!lineUserId) {
-      throw new Error(
-        `LIFF profile missing userId. Profile: ${JSON.stringify(profile)}`
-      )
-    }
-
-    // 使用 LIFF 用戶信息登入後端
-    await loginWithLine(lineUserId, displayName, pictureUrl)
+    // 從 LIFF 取得用戶信息並登入後端
+    await handleLiffLogin()
 
     // 獲取周期數據並初始化應用
     const data = await getCycleData()
