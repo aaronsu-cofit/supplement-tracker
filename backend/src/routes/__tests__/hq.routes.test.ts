@@ -5,23 +5,30 @@ import { hqRoutes } from '../hq.routes.js';
 import { container } from '../../lib/container.js';
 import { initializeContainer } from '../../lib/initializeContainer.js';
 
-// Mock dependencies
-vi.mock('../../lib/db.js', () => ({
-  db: vi.fn(() => mockPrismaClient),
-  getAdminRole: vi.fn(() => Promise.resolve('admin')),
-  getHQStats: vi.fn(() =>
-    Promise.resolve({
-      oaCount: 1,
-      scenarioCount: 5,
-      activeScenarioCount: 3,
-      templateCount: 10,
-      deployedTemplateCount: 8,
-      recentAssignmentCount: 25,
-      enrollmentCount: 15,
-      recentEngagementCount: 50,
-    }),
-  ),
-}));
+// Mock dependencies. Use importOriginal so we don't have to enumerate
+// every export of lib/db.ts — services downstream pull in helpers like
+// assignMission / upsertUserMenuAssignment / etc., and a strict mock
+// breaks the moment a new helper is added.
+vi.mock('../../lib/db.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/db.js')>();
+  return {
+    ...actual,
+    db: vi.fn(() => mockPrismaClient),
+    getAdminRole: vi.fn(() => Promise.resolve('admin')),
+    getHQStats: vi.fn(() =>
+      Promise.resolve({
+        oaCount: 1,
+        scenarioCount: 5,
+        activeScenarioCount: 3,
+        templateCount: 10,
+        deployedTemplateCount: 8,
+        recentAssignmentCount: 25,
+        enrollmentCount: 15,
+        recentEngagementCount: 50,
+      }),
+    ),
+  };
+});
 
 vi.mock('../../lib/auth.js', () => ({
   verifyToken: vi.fn(() => Promise.resolve({ userId: 'admin-123' })),

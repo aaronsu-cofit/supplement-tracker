@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { verifyLineSignature, replyText, replyMessage, pushText } from '../lib/line.js';
+import { verifyLineSignature, replyText, replyMessage, pushText, showLoadingAnimation } from '../lib/line.js';
 import { runLlmFallback } from '../lib/llmFallback.js';
 import {
   findOrCreateLineUser,
@@ -192,6 +192,10 @@ async function handleLineEvent(event: LineWebhookEvent, oa: OaContext): Promise<
     // ai-skill-node at (or before) their current day, use that agent.
     // Otherwise fall back to the OA's default agent.
     const agentId = (await resolveScenarioAgent(oa.id, lineUserId)) || oa.default_agent_id;
+
+    // Show loading animation while waiting for LLM — stops automatically
+    // when we send the reply message.
+    showLoadingAnimation(lineUserId, oa.channel_access_token).catch(() => {});
 
     // Race the LLM against a 9s fast-path window. Won race → use the
     // replyToken (free, threads as a "reply" in the chat UI). Lost race

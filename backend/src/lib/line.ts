@@ -81,6 +81,32 @@ async function replyMessages(
 }
 
 /**
+ * Show a loading animation in the chat with the given user.
+ * Call this before slow async work (e.g. LLM calls) so the user sees
+ * the typing indicator instead of silence. The animation stops automatically
+ * when any message is sent to the user, or after loadingSeconds (5–60).
+ */
+export async function showLoadingAnimation(
+  userId: string,
+  token: string,
+  loadingSeconds = 60,
+): Promise<void> {
+  if (!token) return;
+  try {
+    await fetch('https://api.line.me/v2/bot/chat/loading/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ chatId: userId, loadingSeconds }),
+    });
+  } catch {
+    // Non-critical — don't let a loading animation failure break the reply flow
+  }
+}
+
+/**
  * Fetch the bot's own info (including its LINE user ID that shows up in
  * webhook payloads as `destination`). Used when admin registers an OA —
  * we auto-populate `line_destination_id` from the channel access token.

@@ -88,7 +88,10 @@ describe('SupplementsController', () => {
 
       const controller = new SupplementsController(mockRequest, mockReply, mockSupplementsService);
 
-      await expect(controller.getSupplements()).rejects.toThrow('Unauthorized');
+      // UnauthorizedError propagates to the global error handler so the
+      // response carries the correct 401 status. The catch-all only
+      // converts unexpected errors (DB failure etc.) to a generic 500.
+      await expect(controller.getSupplements()).rejects.toThrow('User not authenticated');
     });
   });
 
@@ -165,7 +168,7 @@ describe('SupplementsController', () => {
       expect(result).toEqual(mockUpdated);
     });
 
-    it('應該在 ID 缺失時拋出 ValidationError', async () => {
+    it('應該在 ID 缺失時返回 400 + Invalid ID', async () => {
       const mockRequest = createMockRequest(
         { name: 'Test' },
         { id: '' }, // Empty ID
@@ -173,8 +176,10 @@ describe('SupplementsController', () => {
       const mockReply = createMockReply();
 
       const controller = new SupplementsController(mockRequest, mockReply, mockSupplementsService);
+      const result = await controller.updateSupplement();
 
-      await expect(controller.updateSupplement()).rejects.toThrow('Invalid ID');
+      expect(mockReply.code).toHaveBeenCalledWith(400);
+      expect(result).toEqual({ error: 'Invalid ID' });
     });
   });
 
@@ -192,13 +197,15 @@ describe('SupplementsController', () => {
       expect(result).toEqual({ success: true });
     });
 
-    it('應該在 ID 無效時拋出 ValidationError', async () => {
+    it('應該在 ID 無效時返回 400 + Invalid ID', async () => {
       const mockRequest = createMockRequest({}, { id: '   ' });
       const mockReply = createMockReply();
 
       const controller = new SupplementsController(mockRequest, mockReply, mockSupplementsService);
+      const result = await controller.deleteSupplement();
 
-      await expect(controller.deleteSupplement()).rejects.toThrow('Invalid ID');
+      expect(mockReply.code).toHaveBeenCalledWith(400);
+      expect(result).toEqual({ error: 'Invalid ID' });
     });
   });
 });

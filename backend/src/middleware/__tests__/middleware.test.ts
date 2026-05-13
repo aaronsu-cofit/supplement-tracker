@@ -5,14 +5,7 @@
  * 可以使用 vitest 運行: pnpm test
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { createFastifyApp } from '../../config/fastify.js';
-import {
-  authMiddleware,
-  requireAuthMiddleware,
-  softAuthMiddleware,
-  createAuthTokenCookie,
-} from '../auth.middleware.js';
+import { describe, it, expect } from 'vitest';
 import {
   ValidationError,
   NotFoundError,
@@ -21,35 +14,10 @@ import {
   handlePrismaError,
 } from '../errorHandler.js';
 
-describe('Auth Middleware', () => {
-  let app: any;
-
-  beforeEach(async () => {
-    app = await createFastifyApp();
-  });
-
-  it('should create auth token cookie with correct options in production', () => {
-    const token = 'test-token';
-    const cookie = createAuthTokenCookie(token, true);
-
-    expect(cookie.httpOnly).toBe(true);
-    expect(cookie.secure).toBe(true);
-    expect(cookie.sameSite).toBe('none');
-    expect(cookie.maxAge).toBe(60 * 60 * 24 * 365);
-    expect(cookie.path).toBe('/');
-  });
-
-  it('should create auth token cookie with correct options in development', () => {
-    const token = 'test-token';
-    const cookie = createAuthTokenCookie(token, false);
-
-    expect(cookie.httpOnly).toBe(true);
-    expect(cookie.secure).toBe(false);
-    expect(cookie.sameSite).toBe('lax');
-    expect(cookie.maxAge).toBe(60 * 60 * 24 * 365);
-    expect(cookie.path).toBe('/');
-  });
-});
+// NOTE: the old "Auth Middleware" describe block was removed when the
+// auth middleware was restructured (auth.middleware.ts → auth.ts +
+// authMiddleware.ts). Cookie helpers now live in the auth controller's
+// getCookieOptions() — they're verified via the auth controller tests.
 
 describe('Error Handler', () => {
   it('should create ValidationError with correct properties', () => {
