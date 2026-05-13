@@ -263,12 +263,17 @@ describe('WoundsController', () => {
       expect(mockWoundsService.generateSoapNote).toHaveBeenCalledWith(1, 'fake-api-key');
     });
 
-    it('應該在 API Key 未配置時拋出 ValidationError', async () => {
+    it('應該在 API Key 未配置時返回 500 + 配置錯誤', async () => {
       delete process.env.GEMINI_API_KEY;
 
       mockRequest.params = { woundId: '1' };
+      const result = await controller.generateSoapNote();
 
-      await expect(controller.generateSoapNote()).rejects.toThrow(ValidationError);
+      // Missing GEMINI_API_KEY is a server-config problem, not a
+      // request-level validation error — controller returns 500 with
+      // a hint so ops can diagnose.
+      expect(mockReply.code).toHaveBeenCalledWith(500);
+      expect(result).toEqual({ error: 'GEMINI_API_KEY not configured' });
     });
 
     it('應該在 woundId 無效時拋出 ValidationError', async () => {

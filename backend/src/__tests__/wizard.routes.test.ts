@@ -1,6 +1,6 @@
 // /Users/chingchingyeh/cofit/dtx-space/Vitera/backend/src/__tests__/wizard.routes.test.ts
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createFastifyApp } from '../fastify-app.js';
+import { createFastifyApp } from '../index.js';
 import type { FastifyInstance } from 'fastify';
 
 describe('Wizard Routes', () => {

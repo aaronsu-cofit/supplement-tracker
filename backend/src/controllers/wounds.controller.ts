@@ -3,7 +3,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { WoundsService } from '../services/wounds.service.js';
 import type { CreateWoundInput, UpdateWoundInput, CreateWoundLogInput } from '../types.js';
-import { ValidationError, NotFoundError } from '../middleware/errorHandler.js';
+import { ValidationError, NotFoundError, UnauthorizedError } from '../middleware/errorHandler.js';
 
 /**
  * WoundsController - HTTP 層
@@ -35,6 +35,7 @@ export class WoundsController extends BaseController {
       this.logDebug('[GET /api/wounds] 成功取得傷口列表', { count: wounds.length });
       return wounds;
     } catch (error: unknown) {
+      if (error instanceof UnauthorizedError) throw error;
       console.error('[GET /api/wounds] 錯誤:', error);
       this.logError('[GET /api/wounds] 錯誤', error);
       this.reply.code(500);
@@ -190,6 +191,7 @@ export class WoundsController extends BaseController {
         this.reply.code(404);
         throw error;
       }
+      if (error instanceof ValidationError) throw error;
       console.error('[DELETE /api/wounds/:woundId] 錯誤:', error);
       this.logError('[DELETE /api/wounds/:woundId] 錯誤', error);
       this.reply.code(500);
@@ -250,6 +252,7 @@ export class WoundsController extends BaseController {
         this.reply.code(404);
         throw error;
       }
+      if (error instanceof ValidationError) throw error;
       console.error('[GET /api/wounds/:woundId/logs] 錯誤:', error);
       this.logError('[GET /api/wounds/:woundId/logs] 錯誤', error);
       this.reply.code(500);
@@ -298,6 +301,7 @@ export class WoundsController extends BaseController {
         this.reply.code(404);
         throw error;
       }
+      if (error instanceof ValidationError) throw error;
       console.error('[POST /api/wounds/:woundId/logs] 錯誤:', error);
       this.logError('[POST /api/wounds/:woundId/logs] 錯誤', error);
       this.reply.code(500);

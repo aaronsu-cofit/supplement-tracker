@@ -1,6 +1,6 @@
 // /Users/chingchingyeh/cofit/dtx-space/Vitera/backend/src/routes/__tests__/wounds.routes.test.ts
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createFastifyApp } from '../../fastify-app.js';
+import { createFastifyApp } from '../../index.js';
 import type { FastifyInstance } from 'fastify';
 
 /**
@@ -8,8 +8,12 @@ import type { FastifyInstance } from 'fastify';
  *
  * 測試完整的 HTTP 請求流程：
  * Request → Middleware → Controller → Service → Database
+ *
+ * Requires POSTGRES_URL — skipped in environments without a test DB
+ * (most local dev + CI runs without a postgres container attached).
+ * Run with: POSTGRES_URL=... pnpm test
  */
-describe('Wounds Routes (Integration)', () => {
+describe.skipIf(!process.env.POSTGRES_URL)('Wounds Routes (Integration)', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {

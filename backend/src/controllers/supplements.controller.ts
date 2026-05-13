@@ -2,7 +2,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { BaseController } from './base.controller.js';
 import { SupplementsService } from '../services/supplements.service.js';
-import { ValidationError, NotFoundError } from '../middleware/errorHandler.js';
+import { ValidationError, NotFoundError, UnauthorizedError } from '../middleware/errorHandler.js';
 import type { CreateSupplementInput } from '../types.js';
 
 /**
@@ -39,6 +39,7 @@ export class SupplementsController extends BaseController {
       // 返回成功響應（直接返回數組，保持與原 Hono 實現兼容）
       return supplements;
     } catch (error) {
+      if (error instanceof UnauthorizedError) throw error;
       console.error('[supplements/get] error:', error);
       this.logError('[Supplements /getSupplements]', error);
       this.reply.code(500);
