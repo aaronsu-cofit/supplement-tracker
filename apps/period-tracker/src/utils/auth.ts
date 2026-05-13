@@ -81,7 +81,6 @@ export const handleLineLoginSuccess = async (
 
     // 取得 profile - 此時應該已經可用，因為 onLoggedIn 是在 profile 取得後才被調用的
     const profile = await liff.getProfile()
-    console.log('[DEBUG] LIFF profile:', profile)
 
     const lineUserId = profile?.userId
     const displayName = profile?.displayName
@@ -92,8 +91,6 @@ export const handleLineLoginSuccess = async (
         `LIFF profile missing userId. Profile: ${JSON.stringify(profile)}`
       )
     }
-
-    console.log('[DEBUG] Extracted values:', { lineUserId, displayName, pictureUrl })
 
     // 使用 LIFF 用戶信息登入後端
     await loginWithLine(lineUserId, displayName, pictureUrl)

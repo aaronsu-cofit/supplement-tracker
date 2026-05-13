@@ -38,12 +38,12 @@ export class CycleService {
 
     const lastPeriod = await this.prisma.period.findFirst({
       where: { user_id: userId },
-      orderBy: { startDate: 'desc' },
+      orderBy: { start_date: 'desc' },
     })
 
     let lastPeriodStart = null
     if (lastPeriod) {
-      const d = lastPeriod.startDate
+      const d = lastPeriod.start_date
       lastPeriodStart = { y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate() }
     } else if (user.daily_logs.length > 0) {
       // Fallback: Find earliest log with period: true
@@ -96,8 +96,8 @@ export class CycleService {
       await tx.period.create({
         data: {
           user_id: userId,
-          startDate,
-          endDate: addDays(startDate, periodDuration - 1),
+          start_date: startDate,
+          end_date: addDays(startDate, periodDuration - 1),
         },
       })
 

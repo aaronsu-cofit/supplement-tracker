@@ -58,8 +58,8 @@ export class PeriodService {
   private toPeriodResponse(period: {
     id: string
     user_id: string
-    startDate: Date
-    endDate: Date | null
+    start_date: Date
+    end_date: Date | null
     notes: string | null
     created_at: Date
     updated_at: Date
@@ -67,8 +67,8 @@ export class PeriodService {
     return {
       id: period.id,
       userId: period.user_id,
-      startDate: period.startDate.toISOString(),
-      endDate: period.endDate ? period.endDate.toISOString() : null,
+      startDate: period.start_date.toISOString(),
+      endDate: period.end_date ? period.end_date.toISOString() : null,
       notes: period.notes,
       createdAt: period.created_at.toISOString(),
       updatedAt: period.updated_at.toISOString(),
@@ -86,8 +86,8 @@ export class PeriodService {
     const period = await this.prisma.period.create({
       data: {
         user_id: userId,
-        startDate: new Date(validated.startDate),
-        endDate: validated.endDate ? new Date(validated.endDate) : null,
+        start_date: new Date(validated.startDate),
+        end_date: validated.endDate ? new Date(validated.endDate) : null,
         notes: validated.notes || null,
       },
     })
@@ -108,17 +108,17 @@ export class PeriodService {
     }
 
     if (validated.startDate) {
-      where.startDate = { gte: new Date(validated.startDate) }
+      where.start_date = { gte: new Date(validated.startDate) }
     }
 
     if (validated.endDate) {
-      where.endDate = { lte: new Date(validated.endDate) }
+      where.end_date = { lte: new Date(validated.endDate) }
     }
 
     // Query database
     const periods = await this.prisma.period.findMany({
       where,
-      orderBy: { startDate: 'desc' },
+      orderBy: { start_date: 'desc' },
       take: validated.limit,
       skip: validated.offset,
     })

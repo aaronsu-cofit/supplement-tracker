@@ -92,7 +92,6 @@ export async function loginWithLine(
   displayName?: string,
   pictureUrl?: string
 ): Promise<AuthResponse> {
-  console.log('[DEBUG API] Calling POST /api/auth/me with:', { lineUserId, displayName, pictureUrl })
   const response = await apiFetch('/api/auth/me', {
     method: 'POST',
     body: JSON.stringify({
@@ -101,7 +100,6 @@ export async function loginWithLine(
       pictureUrl,
     }),
   })
-  console.log('[DEBUG API] POST /api/auth/me status:', response.status)
   if (!response.ok) {
     throw new Error(`POST /api/auth/me failed with status ${response.status}`)
   }
