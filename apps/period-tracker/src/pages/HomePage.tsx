@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useLiff } from '@vitera/client-auth'
-import { setupCycle, updateSettings } from '../api/client'
+import { setupCycle, updateSettings, getCycleData } from '../api/client'
 import { PHASE_HINTS } from '../constants'
 import { DayLog, PbacLog, UserData } from '../types'
 import { formatDate, calculateCycleInfo, calculateDayInfo, getScore } from '@vitera/utils'
@@ -194,11 +194,9 @@ export function HomePage() {
     }
     try {
       await setupCycle(initialData)
-      setUserData({
-        hasData: true,
-        ...data,
-        dayData: {},
-      })
+      // 重新獲取完整數據以確保前後端一致
+      const fullData = await getCycleData()
+      setUserData(fullData)
       setView('main')
       setTutorialStep(1)
     } catch {
