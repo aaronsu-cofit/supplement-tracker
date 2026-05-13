@@ -25,6 +25,7 @@
     "db:push": "pnpm -C backend db:push",
     "db:deploy": "pnpm -C backend db:deploy",
     "db:seed": "pnpm -C backend db:seed",
+    "db:reset": "pnpm -C backend db:reset",
     "db:migrate-admins": "pnpm -C backend exec tsx prisma/migrate-admins.ts",
     "db:sync-staging-full": "./scripts/sync-staging-db-to-local.sh",
     "db:studio": "pnpm -C backend db:studio"
