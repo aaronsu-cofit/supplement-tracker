@@ -49,6 +49,10 @@ model User {
   engagement_events     EngagementEvent[]
   unmatched_intents     UnmatchedIntent[]
   user_menu_assignments UserMenuAssignment[]
+  // Period tracking
+  periods               Period[]
+  menstrual_cycle       MenstrualCycle?
+  daily_logs            DailyLog[]
 
   @@index([deleted_at], name: "idx_users_deleted_at")
   @@map("users")
@@ -807,4 +811,56 @@ enum ReliefType {
   BREATHING
   BODY_SCAN
   SLEEP_QUOTES
+}
+
+// ============================================
+// Period Tracking Models
+// ============================================
+
+// MenstrualCycle stores user's menstrual cycle settings and onboarding state
+model MenstrualCycle {
+  id             String   @id @default(cuid())
+  user_id        String   @unique @db.VarChar(64)
+  cycle_length   Int      @default(28)  // Average cycle length in days
+  period_length  Int      @default(5)   // Average period length in days
+  onboarding_done Boolean @default(false) // Whether user completed onboarding
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("menstrual_cycles")
+}
+
+// Period represents a user's menstrual period record
+model Period {
+  id        String   @id @default(cuid())
+  user_id   String   @db.VarChar(64)
+  startDate DateTime
+  endDate   DateTime?
+  notes     String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id], name: "idx_periods_user")
+  @@index([startDate], name: "idx_periods_startDate")
+  @@map("menstrual_periods")
+}
+
+// DailyLog stores detailed daily records for period tracking (symptoms, emotions, flow, etc.)
+model DailyLog {
+  id        String   @id @default(cuid())
+  user_id   String   @db.VarChar(64)
+  date      DateTime
+  data      Json     // Stores symptoms, emotions, flow, blood color, clots, pbacLogs
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, date], name: "uq_daily_logs_user_date")
+  @@index([user_id], name: "idx_daily_logs_user")
+  @@map("menstrual_daily_logs")
 }
