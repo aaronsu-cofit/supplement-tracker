@@ -1,6 +1,7 @@
 # @vitera/utils
 
-共用工具函數套件。cross framework：不限定 NextJS or Vite
+共用工具函數套件。
+cross framework：不限定 NextJS or Vite
 
 ## 功能
 

@@ -1,6 +1,7 @@
 # @vitera/client-auth
 
 客戶端認證工具包，包含 LINE LIFF 認證和 React hooks。
+cross framework：不限定 NextJS or Vite
 
 ## 功能
 
