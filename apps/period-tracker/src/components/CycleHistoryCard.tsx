@@ -29,7 +29,7 @@ export const CycleHistoryCard: React.FC<{ cycle: CycleHistory }> = ({ cycle }) =
           <span className={`h-badge-status ${cycle.cur ? 'current' : ''}`}>
             {cycle.cur ? '本次' : '已結束'}
           </span>
-          <span className="h-card-arr"> {isOpen ? '收起 ▲' : '查看 ▼'}</span>
+          <span className="h-card-arr">{isOpen ? '收起 ▲' : '查看 ▼'}</span>
         </div>
       </div>
       {isOpen && (
@@ -40,7 +40,7 @@ export const CycleHistoryCard: React.FC<{ cycle: CycleHistory }> = ({ cycle }) =
               {cycle.pbacDays.map((d, idx) => {
                 const maxScore = Math.max(...cycle.pbacDays.map((x) => x.score)) || 1
                 const pct = Math.round((d.score / maxScore) * 100)
-                const barColor = d.score >= 20 ? '#E24B4A' : d.score >= 10 ? '#EF9F27' : '#FF6B81'
+                const barColor = d.score === 0 ? '#EFF6FF' : d.score >= 20 ? '#E24B4A' : d.score >= 10 ? '#EF9F27' : '#FF6B81'
                 return (
                   <div key={idx} className="h-pbac-col">
                     <div className="h-pbac-score">{d.score}</div>
@@ -86,6 +86,7 @@ export const CycleHistoryCard: React.FC<{ cycle: CycleHistory }> = ({ cycle }) =
                 const clot = CLOT_TYPES.find((c) => c.id === d.clot)
                 const clotColor =
                   d.clot === 'large' ? '#A32D2D' : d.clot === 'small' ? 'var(--t2)' : 'var(--t3)'
+                const isUnrecorded = d.colors.length === 0
                 return (
                   <div key={idx} className="h-tube-item">
                     <TestTube colors={d.colors} />
@@ -94,7 +95,7 @@ export const CycleHistoryCard: React.FC<{ cycle: CycleHistory }> = ({ cycle }) =
                       className="h-tube-clot"
                       style={{ color: clotColor, fontWeight: d.clot !== 'none' ? '600' : '400' }}
                     >
-                      {clot?.label || '無血塊'}
+                      {isUnrecorded ? '–' : clot?.label}
                     </div>
                   </div>
                 )

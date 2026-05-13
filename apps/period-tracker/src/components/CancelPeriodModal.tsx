@@ -31,7 +31,7 @@ export const CancelPeriodModal: React.FC<CancelPeriodModalProps> = ({
         </div>
         <div className="modal-body-simple">
           <div className="modal-desc-text">
-            {isFirstDay ? `後續 ${successorsCount} 天有記錄。您想要：` : `該天之後有記錄。您想要：`}
+            {isFirstDay ? `後續 ${successorsCount} 天有記錄。您想要：` : '該天之後有記錄。您想要：'}
           </div>
 
           <div className="modal-btn-col">

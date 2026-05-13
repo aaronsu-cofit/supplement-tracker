@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { apiClient } from '../api/client'
 
 export function OAuthCallback() {
   const navigate = useNavigate()
@@ -54,14 +53,15 @@ export function OAuthCallback() {
           setStatus('linking')
 
           // 自動連結 Mobile 和 LINE 帳號
+          // 注意：OAuth2 自動連結功能目前未在 Vitera 後端實現
+          // 此邏輯保留供未來使用
           const linkResponse = await fetch('/api/auth/auto-link', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${apiClient.getAccessToken()}`,
+              credentials: 'include', // 使用 HttpOnly cookies
             },
             body: JSON.stringify({
-              mobileClientId: apiClient.getClientId(),
               lineAccessToken,
             }),
           })
@@ -76,8 +76,9 @@ export function OAuthCallback() {
           sessionStorage.removeItem('oauth_state')
           sessionStorage.removeItem('linking_mode')
         } else {
-          // 不在連結模式，直接設置新的 token
-          apiClient.setToken(lineAccessToken)
+          // 不在連結模式，使用新的 token 登入
+          // 注意：此流程為 OAuth2 回調，目前不再使用
+          // 改用 LIFF 直接認證
 
           // 清除 state
           sessionStorage.removeItem('oauth_state')

@@ -38,12 +38,12 @@ export class CycleService {
 
     const lastPeriod = await this.prisma.period.findFirst({
       where: { user_id: userId },
-      orderBy: { startDate: 'desc' },
+      orderBy: { start_date: 'desc' },
     })
 
     let lastPeriodStart = null
     if (lastPeriod) {
-      const d = lastPeriod.startDate
+      const d = lastPeriod.start_date
       lastPeriodStart = { y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate() }
     } else if (user.daily_logs.length > 0) {
       // Fallback: Find earliest log with period: true
@@ -96,8 +96,8 @@ export class CycleService {
       await tx.period.create({
         data: {
           user_id: userId,
-          startDate,
-          endDate: addDays(startDate, periodDuration - 1),
+          start_date: startDate,
+          end_date: addDays(startDate, periodDuration - 1),
         },
       })
 
@@ -212,18 +212,32 @@ export class CycleService {
 
   /**
    * Update user cycle settings
+   * Handles:
+   * - periodDuration, cycleLen: Update menstrual_cycle settings
+   * - lastPeriodStart: If null, delete all periods (clearing entire cycle)
    */
   async updateCycleSettings(userId: string, payload: any) {
-    const { periodDuration, cycleLen } = payload
+    const { periodDuration, cycleLen, lastPeriodStart } = payload
 
-    await this.prisma.menstrualCycle.update({
-      where: { user_id: userId },
-      data: {
-        period_length: periodDuration,
-        cycle_length: cycleLen,
-      },
+    return await this.prisma.$transaction(async (tx: any) => {
+      // Update cycle settings
+      await tx.menstrualCycle.update({
+        where: { user_id: userId },
+        data: {
+          period_length: periodDuration,
+          cycle_length: cycleLen,
+        },
+      })
+
+      // If lastPeriodStart is null, delete all periods for this user
+      // (This represents clearing all period records)
+      if (lastPeriodStart === null) {
+        await tx.period.deleteMany({
+          where: { user_id: userId },
+        })
+      }
+
+      return { success: true }
     })
-
-    return { success: true }
   }
 }

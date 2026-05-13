@@ -1,5 +1,5 @@
 import { UserData, DayLog, PbacLog } from '../types'
-import { apiClient } from '../api/client'
+import { saveDailyLog } from '../api/client'
 import {
   getPeriodAction,
   calculatePeriodUpdate,
@@ -59,35 +59,29 @@ export const handlePeriodToggle = async (
   const action = getPeriodAction(date, userData)
 
   if (action.type === 'cancel') {
-    // 取消經期邏輯：處理多日連續情況
-    if (action.successors && action.successors > 0) {
-      if (action.hasRecords) {
-        // 有相關紀錄，必須顯示確認對話框
-        options.onShowModal({
-          mode: action.mode as 'first-day' | 'middle-day',
-          date,
-          count: action.successors,
-        })
-        return
-      } else {
-        // 無紀錄，直接執行預設清除邏輯
-        await performPeriodToggle(date, userData, {
-          isPeriod: false,
-          clearEntireCycle: action.mode === 'first-day',
-          clearFollowing: action.mode === 'middle-day',
-          onUpdateUserData: options.onUpdateUserData,
-          onShowToast: options.onShowToast,
-        })
-        return
-      }
+    // 取消經期邏輯：根據 PRD 1.0.1
+    // 判斷是否有後續紀錄（PBAC、症狀、情緒、血液顏色、衛生產品）
+    const hasFollowingRecords = action.successors && action.successors > 0 && action.hasRecords
+
+    if (hasFollowingRecords) {
+      // 有後續紀錄，顯示確認對話框讓用戶選擇
+      options.onShowModal({
+        mode: action.mode as 'first-day' | 'middle-day',
+        date,
+        count: action.successors!,
+      })
+      return
+    } else {
+      // 無後續紀錄，直接執行預設清除邏輯（無需對話框）
+      await performPeriodToggle(date, userData, {
+        isPeriod: false,
+        clearEntireCycle: action.mode === 'first-day',
+        clearFollowing: action.mode === 'middle-day',
+        onUpdateUserData: options.onUpdateUserData,
+        onShowToast: options.onShowToast,
+      })
+      return
     }
-    // 簡單取消（無後續天數）
-    await performPeriodToggle(date, userData, {
-      isPeriod: false,
-      clearEntireCycle: action.mode === 'first-day',
-      onUpdateUserData: options.onUpdateUserData,
-      onShowToast: options.onShowToast,
-    })
   } else {
     // 標記經期邏輯
     if (action.mode === 'extend') {
@@ -207,7 +201,7 @@ export const handleSaveDailyLog = async (
   onUpdateUserData(newUserData)
 
   await _executeWithErrorHandling(
-    () => apiClient.saveDailyLog(key, data),
+    () => saveDailyLog(key, data),
     MESSAGES.DAILY_LOG.SAVED,
     MESSAGES.DAILY_LOG.SAVE_FAILED,
     'Failed to save daily log:',
@@ -253,7 +247,7 @@ export const handleAddPbacLog = async (
 
   await _executeWithErrorHandling(
     () =>
-      apiClient.saveDailyLog(key, {
+      saveDailyLog(key, {
         period: createdLog.period,
         pbacProduct: createdLog.pbacProduct,
         pbacLogs: createdLog.pbacLogs,

@@ -508,8 +508,8 @@ body {
   max-width: 400px;
 }
 .login-title {
-  font-size: var(--fs-4xl);
-  font-weight: 700;
+  font-size: var(--fs-3xl);
+  font-weight: 600;
   color: var(--t1);
   margin-bottom: 12px;
 }
@@ -2601,7 +2601,7 @@ body {
 }
 .h-card-badges {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
 }
 .h-badge-pbac {

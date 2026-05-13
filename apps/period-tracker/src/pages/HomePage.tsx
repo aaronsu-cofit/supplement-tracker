@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useLiff } from '@vitera/client-auth'
-import { apiClient } from '../api/client'
+import { setupCycle, updateSettings, getCycleData } from '../api/client'
 import { PHASE_HINTS } from '../constants'
 import { DayLog, PbacLog, UserData } from '../types'
 import { formatDate, calculateCycleInfo, calculateDayInfo, getScore } from '@vitera/utils'
@@ -17,7 +17,7 @@ import { PbacOverlay } from '../components/PbacOverlay'
 import { TutorialOverlay } from '../components/TutorialOverlay'
 import { SettingsIcon } from '../components/SettingsIcon'
 import { OnboardingView } from '../components/OnboardingView'
-import { LoginView } from '../components/LoginView'
+import { InitView } from '../components/InitView'
 import { PhaseBanner } from '../components/PhaseBanner'
 import { PbacSummaryCard } from '../components/PbacSummaryCard'
 import { PbacInfoModal } from '../components/PbacInfoModal'
@@ -112,17 +112,15 @@ export function HomePage() {
   // 取得使用者登入方式資訊
   useEffect(() => {
     const fetchUserInfo = async () => {
-      // 只在已登入且主畫面顯示時取得
-      if (view !== 'main' || !apiClient.isAuthenticated()) {
+      // 只在主畫面顯示時取得
+      if (view !== 'main') {
         setLoadingUserInfo(false)
         return
       }
 
       try {
         const response = await fetch('/api/auth/me', {
-          headers: {
-            Authorization: `Bearer ${apiClient.getAccessToken()}`,
-          },
+          credentials: 'include', // 自動發送 HttpOnly cookies
         })
 
         if (response.ok) {
@@ -195,12 +193,10 @@ export function HomePage() {
       ...data,
     }
     try {
-      await apiClient.setupCycle(initialData)
-      setUserData({
-        hasData: true,
-        ...data,
-        dayData: {},
-      })
+      await setupCycle(initialData)
+      // 重新獲取完整數據以確保前後端一致
+      const fullData = await getCycleData()
+      setUserData(fullData)
       setView('main')
       setTutorialStep(1)
     } catch {
@@ -258,7 +254,7 @@ export function HomePage() {
     })
   }
 
-  if (view === 'login') return <LoginView onLogin={login} />
+  if (view === 'login') return <InitView />
 
   if (view === 'onboarding') return <OnboardingView onFinish={handleOnboardingFinish} />
 
@@ -272,16 +268,6 @@ export function HomePage() {
           </div>
         </div>
       </div>
-
-      {!loadingUserInfo && shouldShowLinkPrompt(isInitialized && !!liffId, loginMethods) && (
-        <LinkAccountPrompt
-          onLinked={() => {
-            // 重新載入頁面或重新取得用戶資訊
-            window.location.reload()
-          }}
-        />
-      )}
-
       {activeTab !== 'settings' && (
         <div className="tab-bar">
           <div
@@ -378,7 +364,7 @@ export function HomePage() {
           onUpdateUserData={setUserData}
           onSave={async () => {
             try {
-              await apiClient.updateSettings({
+              await updateSettings({
                 periodDuration: userData.periodDuration,
                 cycleLen: userData.cycleLen,
               })

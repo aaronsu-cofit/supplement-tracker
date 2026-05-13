@@ -244,8 +244,62 @@ export const calculatePeriodUpdate = (
       d: date.getDate(),
     }
   } else if (clearEntireCycle) {
-    // 清除全週期：抹除基準日
-    newLastPeriodStart = undefined
+    // 清除全週期：尋找前一個經期作為新的基準日
+    // 這樣月曆預測不會消失，而是基於之前的經期週期繼續計算
+    const checkDate = new Date(date)
+    checkDate.setDate(checkDate.getDate() - 1)
+    let previousPeriodFirstDay: Date | null = null
+
+    // 向後掃描最多 120 天，尋找前一個經期的起點
+    for (let i = 0; i < 120; i++) {
+      const checkKey = formatDate(checkDate)
+      const hasPeriod = userData.dayData[checkKey]?.period === true
+
+      if (hasPeriod) {
+        // 找到一個經期日，記錄這個日期作為候選
+        previousPeriodFirstDay = new Date(checkDate)
+      } else if (previousPeriodFirstDay) {
+        // 經期已中斷，previousPeriodFirstDay 就是該經期的最後一天
+        // 不再更新，停止掃描以找到該經期的第一天
+        break
+      }
+
+      checkDate.setDate(checkDate.getDate() - 1)
+    }
+
+    // 如果找到前一個經期，確認其第一天
+    if (previousPeriodFirstDay) {
+      // previousPeriodFirstDay 現在指向該經期的最後一天
+      // 繼續向前掃描以找到該經期的第一天
+      for (let i = 1; i <= 30; i++) {
+        const prevDate = new Date(previousPeriodFirstDay)
+        prevDate.setDate(prevDate.getDate() - i)
+        const prevKey = formatDate(prevDate)
+        if (userData.dayData[prevKey]?.period !== true) {
+          // 找到了經期的開始（前一天沒有經期標記）
+          const actualFirstDay = new Date(prevDate)
+          actualFirstDay.setDate(actualFirstDay.getDate() + 1)
+          newLastPeriodStart = {
+            y: actualFirstDay.getFullYear(),
+            m: actualFirstDay.getMonth() + 1,
+            d: actualFirstDay.getDate(),
+          }
+          break
+        }
+      }
+
+      // 如果掃描 30 天都還是經期，則使用找到的最早日期
+      if (!newLastPeriodStart) {
+        newLastPeriodStart = {
+          y: previousPeriodFirstDay.getFullYear(),
+          m: previousPeriodFirstDay.getMonth() + 1,
+          d: previousPeriodFirstDay.getDate(),
+        }
+      }
+    } else {
+      // 沒有找到前一個經期，清除基準日
+      newLastPeriodStart = undefined
+    }
   } else if (!isPeriod && userData.lastPeriodStart) {
     // PRD 1.0.1: 取消首日且只取消本日時，若明天仍是經期，則基準日順延
     const isFirstDay =
@@ -270,11 +324,22 @@ export const calculatePeriodUpdate = (
     }
   }
 
+  // 確定最終的週期長度
+  let finalCycleLen: number | undefined = undefined
+
+  if (clearEntireCycle && !newLastPeriodStart) {
+    // 清除整個週期時，恢復為預設值 28
+    finalCycleLen = 28
+  } else if (newCycleLen) {
+    // 新開始經期時，使用計算出的週期長度
+    finalCycleLen = newCycleLen
+  }
+
   return {
     keysToUpdate,
     isPeriod,
     newLastPeriodStart,
-    newCycleLen: !newLastPeriodStart && !isPeriod ? 28 : newCycleLen || userData.cycleLen,
+    newCycleLen: finalCycleLen,
     clearEntireCycle,
   }
 }

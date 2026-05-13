@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type Liff from '@line/liff'
+import { liffManager } from './liff-utils'
 
 export interface UseLiffOptions {
   /**
@@ -159,9 +160,8 @@ export function useLiff(options: UseLiffOptions): UseLiffReturn {
     setError(null)
 
     try {
-      // 動態載入 LIFF SDK
-      const liffModule = await import('@line/liff')
-      const liffInstance = liffModule.default
+      // 動態載入 LIFF SDK（只加載一次，多個請求共用）
+      const liffInstance = await liffManager.load()
 
       await liffInstance.init({ liffId })
       setLiff(liffInstance)
