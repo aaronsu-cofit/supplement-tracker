@@ -138,6 +138,21 @@ export const updateCycleSettingsSchema = {
         minimum: 1,
         description: 'Menstrual cycle length in days',
       },
+      lastPeriodStart: {
+        oneOf: [
+          { type: 'null' },
+          {
+            type: 'object',
+            required: ['y', 'm', 'd'],
+            properties: {
+              y: { type: 'number', description: 'Year' },
+              m: { type: 'number', description: 'Month (1-12)' },
+              d: { type: 'number', description: 'Day (1-31)' },
+            },
+          },
+        ],
+        description: 'Last period start date (null to clear entire cycle)',
+      },
     },
   },
   response: {

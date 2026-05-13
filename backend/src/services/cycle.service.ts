@@ -212,18 +212,32 @@ export class CycleService {
 
   /**
    * Update user cycle settings
+   * Handles:
+   * - periodDuration, cycleLen: Update menstrual_cycle settings
+   * - lastPeriodStart: If null, delete all periods (clearing entire cycle)
    */
   async updateCycleSettings(userId: string, payload: any) {
-    const { periodDuration, cycleLen } = payload
+    const { periodDuration, cycleLen, lastPeriodStart } = payload
 
-    await this.prisma.menstrualCycle.update({
-      where: { user_id: userId },
-      data: {
-        period_length: periodDuration,
-        cycle_length: cycleLen,
-      },
+    return await this.prisma.$transaction(async (tx: any) => {
+      // Update cycle settings
+      await tx.menstrualCycle.update({
+        where: { user_id: userId },
+        data: {
+          period_length: periodDuration,
+          cycle_length: cycleLen,
+        },
+      })
+
+      // If lastPeriodStart is null, delete all periods for this user
+      // (This represents clearing all period records)
+      if (lastPeriodStart === null) {
+        await tx.period.deleteMany({
+          where: { user_id: userId },
+        })
+      }
+
+      return { success: true }
     })
-
-    return { success: true }
   }
 }
