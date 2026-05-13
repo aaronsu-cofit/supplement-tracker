@@ -107,7 +107,7 @@ export class CycleService {
 
         await tx.dailyLog.upsert({
           where: {
-            user_id_date: {
+            uq_daily_logs_user_date: {
               user_id: userId,
               date: currentDate,
             },
@@ -139,12 +139,10 @@ export class CycleService {
     const logDate = parseUTCDate(date)
 
     // 先查詢現有記錄
-    const existingLog = await this.prisma.dailyLog.findUnique({
+    const existingLog = await this.prisma.dailyLog.findFirst({
       where: {
-        user_id_date: {
-          user_id: userId,
-          date: logDate,
-        },
+        user_id: userId,
+        date: logDate,
       },
     })
 
@@ -187,7 +185,7 @@ export class CycleService {
 
     const log = await this.prisma.dailyLog.upsert({
       where: {
-        user_id_date: {
+        uq_daily_logs_user_date: {
           user_id: userId,
           date: logDate,
         },

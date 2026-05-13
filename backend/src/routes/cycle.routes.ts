@@ -4,6 +4,12 @@ import { CycleService } from '../services/cycle.service.js'
 import { asyncHandler } from '../controllers/base.controller.js'
 import { db } from '../lib/db.js'
 import { authenticateUser } from '../middleware/auth.js'
+import {
+  getUserCycleDataSchema,
+  setupCycleSchema,
+  saveDailyLogSchema,
+  updateCycleSettingsSchema,
+} from '../schemas/cycle.schema.js'
 
 /**
  * Cycle routes plugin
@@ -22,14 +28,7 @@ export async function cycleRoutes(app: FastifyInstance) {
    */
   app.get(
     '/user',
-    {
-      schema: {
-        tags: ['cycle'],
-        summary: 'Get user cycle data',
-        description: 'Retrieves cycle settings and all daily logs for the authenticated user',
-        security: [{ bearerAuth: [] }],
-      },
-    },
+    { schema: getUserCycleDataSchema },
     asyncHandler(async (request, reply) => {
       const controller = new CycleController(request, reply, cycleService)
       return controller.getUserData()
@@ -42,14 +41,7 @@ export async function cycleRoutes(app: FastifyInstance) {
    */
   app.post(
     '/setup',
-    {
-      schema: {
-        tags: ['cycle'],
-        summary: 'Setup cycle tracking',
-        description: 'Initial onboarding setup for menstrual cycle tracking',
-        security: [{ bearerAuth: [] }],
-      },
-    },
+    { schema: setupCycleSchema },
     asyncHandler(async (request, reply) => {
       const controller = new CycleController(request, reply, cycleService)
       return controller.setup()
@@ -62,14 +54,7 @@ export async function cycleRoutes(app: FastifyInstance) {
    */
   app.post(
     '/log',
-    {
-      schema: {
-        tags: ['cycle'],
-        summary: 'Save daily log',
-        description: 'Saves or updates a daily log entry (symptoms, emotions, flow, etc.)',
-        security: [{ bearerAuth: [] }],
-      },
-    },
+    { schema: saveDailyLogSchema },
     asyncHandler(async (request, reply) => {
       const controller = new CycleController(request, reply, cycleService)
       return controller.saveLog()
@@ -82,14 +67,7 @@ export async function cycleRoutes(app: FastifyInstance) {
    */
   app.patch(
     '/settings',
-    {
-      schema: {
-        tags: ['cycle'],
-        summary: 'Update cycle settings',
-        description: 'Updates cycle duration and length for the authenticated user',
-        security: [{ bearerAuth: [] }],
-      },
-    },
+    { schema: updateCycleSettingsSchema },
     asyncHandler(async (request, reply) => {
       const controller = new CycleController(request, reply, cycleService)
       return controller.updateSettings()

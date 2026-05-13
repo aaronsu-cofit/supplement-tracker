@@ -1,50 +1,102 @@
-import { Type, Static } from '@sinclair/typebox'
-
 /**
- * Request/Response schemas for Period endpoints
+ * Period 路由的 JSON Schema 定義
+ * 用於 Fastify 的請求驗證
  */
 
-// Request schemas
-export const CreatePeriodSchema = Type.Object({
-  startDate: Type.String({ description: 'Period start date in ISO 8601 format' }),
-  endDate: Type.Optional(Type.String({ description: 'Period end date in ISO 8601 format' })),
-  notes: Type.Optional(Type.String({ maxLength: 1000, description: 'Optional notes' })),
-})
+const periodObjectSchema = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    userId: { type: 'string' },
+    startDate: { type: 'string', format: 'date-time' },
+    endDate: { type: ['string', 'null'], format: 'date-time' },
+    notes: { type: ['string', 'null'] },
+    createdAt: { type: 'string', format: 'date-time' },
+    updatedAt: { type: 'string', format: 'date-time' },
+  },
+} as const
 
-export const PeriodQuerySchema = Type.Object({
-  startDate: Type.Optional(
-    Type.String({ description: 'Filter by periods starting after this date' })
-  ),
-  endDate: Type.Optional(Type.String({ description: 'Filter by periods ending before this date' })),
-  limit: Type.Optional(
-    Type.Number({ minimum: 1, maximum: 100, default: 50, description: 'Maximum number of results' })
-  ),
-  offset: Type.Optional(
-    Type.Number({ minimum: 0, default: 0, description: 'Number of results to skip' })
-  ),
-})
+const errorObjectSchema = {
+  type: 'object',
+  properties: {
+    error: { type: 'string' },
+    message: { type: 'string' },
+  },
+} as const
 
-// Response schemas
-export const PeriodResponseSchema = Type.Object({
-  id: Type.String(),
-  clientId: Type.String(),
-  startDate: Type.String({ format: 'date-time' }),
-  endDate: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-  notes: Type.Union([Type.String(), Type.Null()]),
-  createdAt: Type.String({ format: 'date-time' }),
-  updatedAt: Type.String({ format: 'date-time' }),
-})
+// ============================================
+// POST /api/periods - Create period
+// ============================================
+export const createPeriodSchema = {
+  body: {
+    type: 'object',
+    required: ['startDate'],
+    properties: {
+      startDate: { type: 'string', description: 'Period start date in ISO 8601 format' },
+      endDate: { type: ['string', 'null'], description: 'Period end date in ISO 8601 format' },
+      notes: { type: ['string', 'null'], maxLength: 1000, description: 'Optional notes' },
+    },
+  },
+  response: {
+    201: periodObjectSchema,
+    400: errorObjectSchema,
+    401: errorObjectSchema,
+  },
+} as const
 
-export const PeriodListResponseSchema = Type.Array(PeriodResponseSchema)
+// ============================================
+// GET /api/periods - List periods
+// ============================================
+export const listPeriodSchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      startDate: {
+        type: 'string',
+        description: 'Filter by periods starting after this date',
+      },
+      endDate: {
+        type: 'string',
+        description: 'Filter by periods ending before this date',
+      },
+      limit: {
+        type: 'number',
+        minimum: 1,
+        maximum: 100,
+        default: 50,
+        description: 'Maximum number of results',
+      },
+      offset: {
+        type: 'number',
+        minimum: 0,
+        default: 0,
+        description: 'Number of results to skip',
+      },
+    },
+  },
+  response: {
+    200: {
+      type: 'array',
+      items: periodObjectSchema,
+    },
+    401: errorObjectSchema,
+    500: errorObjectSchema,
+  },
+} as const
 
-// Error response schema
-export const ErrorResponseSchema = Type.Object({
-  error: Type.String(),
-  message: Type.String(),
-})
+// ============================================
+// Type Exports
+// ============================================
 
-// TypeScript types
-export type CreatePeriodRequest = Static<typeof CreatePeriodSchema>
-export type PeriodQuery = Static<typeof PeriodQuerySchema>
-export type PeriodResponse = Static<typeof PeriodResponseSchema>
-export type ErrorResponse = Static<typeof ErrorResponseSchema>
+export type CreatePeriodRequest = {
+  startDate: string
+  endDate?: string
+  notes?: string
+}
+
+export type PeriodQuery = {
+  startDate?: string
+  endDate?: string
+  limit?: number
+  offset?: number
+}
