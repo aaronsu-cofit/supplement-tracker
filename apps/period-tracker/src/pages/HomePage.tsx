@@ -25,19 +25,7 @@ import { DailyLogCard } from '../components/DailyLogCard'
 import { HistoryTab } from '../components/HistoryTab'
 import { SettingsTab } from '../components/SettingsTab'
 import { Calendar } from '../components/Calendar'
-import { LinkAccountPrompt } from '../components/LinkAccountPrompt'
 import '../App.css'
-
-/**
- * 判斷是否應該顯示帳戶連結提示
- * - LIFF 環境：不顯示（用戶已通過 LINE 登入）
- * - 其他環境：如果登入方式不足 2 個，就顯示
- */
-function shouldShowLinkPrompt(isLiffInitialized: boolean, loginMethods: any[]): boolean {
-  // 如果 LIFF 已初始化，代表在 LIFF 環境，不顯示連結提示
-  if (isLiffInitialized) return false
-  return loginMethods.length < 2
-}
 
 export function HomePage() {
   const liffId = useMemo(() => {
@@ -45,7 +33,7 @@ export function HomePage() {
     return params.get('liffId') || import.meta.env.VITE_LIFF_ID
   }, [])
 
-  const { isInitialized, isLoggedIn, login } = useLiff({
+  const { isInitialized, isLoggedIn } = useLiff({
     liffId,
     autoLogin: true,
     onLoggedIn: async (token) => {
@@ -80,8 +68,6 @@ export function HomePage() {
     count: number
   }>({ isOpen: false, mode: 'first-day', date: new Date(), count: 0 })
   const [tutorialStep, setTutorialStep] = useState(0)
-  const [loginMethods, setLoginMethods] = useState<any[]>([])
-  const [loadingUserInfo, setLoadingUserInfo] = useState(true)
 
   const selectedDateKey = useMemo(
     () => (selectedDate && hasUserSelectedDate ? formatDate(selectedDate) : ''),
@@ -109,33 +95,6 @@ export function HomePage() {
     init()
   }, [liffId, isInitialized, isLoggedIn])
 
-  // 取得使用者登入方式資訊
-  useEffect(() => {
-    const fetchUserInfo = async () => {
-      // 只在主畫面顯示時取得
-      if (view !== 'main') {
-        setLoadingUserInfo(false)
-        return
-      }
-
-      try {
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include', // 自動發送 HttpOnly cookies
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setLoginMethods(data.loginMethods || [])
-        }
-      } catch (error) {
-        console.error('Failed to fetch user info:', error)
-      } finally {
-        setLoadingUserInfo(false)
-      }
-    }
-
-    fetchUserInfo()
-  }, [view])
 
   const toast = (msg: string) => {
     setShowToast(msg)
