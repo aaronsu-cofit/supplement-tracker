@@ -30,7 +30,7 @@ import '../App.css'
 export function HomePage() {
   const liffId = useMemo(() => {
     const params = new URLSearchParams(window.location.search)
-    return params.get('liffId') || import.meta.env.VITE_LIFF_ID
+    return params.get('liffId')
   }, [])
 
   const { isInitialized, isLoggedIn } = useLiff({

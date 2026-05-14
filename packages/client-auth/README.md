@@ -29,7 +29,7 @@ function App() {
 
   const { isInitialized, error } = useLiff({
     // 優先使用 URL 參數，否則使用環境變數
-    liffId: searchParams.get('liffId') || import.meta.env.VITE_LIFF_ID,
+    liffId: searchParams.get('liffId'),
 
     // 自動登入（預設: true）
     autoLogin: true,
@@ -71,7 +71,7 @@ function App() {
   const searchParams = new URLSearchParams(window.location.search)
 
   const { isInitialized, isLoggedIn, error, login, logout } = useLiff({
-    liffId: searchParams.get('liffId') || import.meta.env.VITE_LIFF_ID,
+    liffId: searchParams.get('liffId'),
     autoLogin: false, // 停用自動登入
     onLoggedIn: async (lineAccessToken) => {
       await apiClient.loginWithLine(lineAccessToken)
