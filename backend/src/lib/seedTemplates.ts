@@ -533,9 +533,508 @@ const PERIOD_CYCLE_DEMO: SeedTemplate = {
   ],
 };
 
+// ─── 女性保健小課程（28 天）───────────────────────────────────────────────────
+// 9 個 LINE 訊息模板（7 flex + 2 text）+ 3 個 IntentRule
+// 品牌色 #c2185b（玫瑰粉）；LIFF/電商/預約 URL 為 placeholder，上線前置換
+// 需求文件：seed-women-healing-line-templates.md v1.1 / 2026-05-14
+
+const LIFF_BASE   = 'https://liff.example.com/women-healing';
+const SHOP_URL    = 'https://shop.cofit.me/women-healing';
+const BOOKING_URL = 'https://booking.cofit.me/one-on-one';
+const BRAND_PINK  = '#c2185b';
+
+const WH_WELCOME_BUBBLE: object = {
+  type: 'bubble', size: 'mega',
+  header: {
+    type: 'box', layout: 'vertical',
+    backgroundColor: BRAND_PINK,
+    contents: [
+      { type: 'text', text: '🌸 女性保健小課程', weight: 'bold', size: 'sm', color: '#ffffff' },
+    ],
+  },
+  body: {
+    type: 'box', layout: 'vertical', spacing: 'md',
+    contents: [
+      { type: 'text', text: '歡迎加入 28 天女性保健小課程！', weight: 'bold', size: 'lg', wrap: true },
+      { type: 'text', text: '我們將陪伴妳建立屬於自己的女性保健習慣。\n\n第一步，先完成前測問卷，讓我們了解妳的身體狀況 💗', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
+    ],
+  },
+  footer: {
+    type: 'box', layout: 'vertical', spacing: 'sm',
+    contents: [
+      { type: 'button', style: 'primary', color: BRAND_PINK, action: { type: 'uri', label: '前往前測問卷 →', uri: `${LIFF_BASE}/pretest` } },
+    ],
+  },
+};
+
+const WH_DAILY_TASK_BUBBLE: object = {
+  type: 'bubble', size: 'mega',
+  header: {
+    type: 'box', layout: 'vertical',
+    backgroundColor: BRAND_PINK,
+    contents: [
+      { type: 'text', text: '📋 今日任務提醒', weight: 'bold', size: 'sm', color: '#ffffff' },
+    ],
+  },
+  body: {
+    type: 'box', layout: 'vertical', spacing: 'md',
+    contents: [
+      { type: 'text', text: '今天的任務還沒完成喔！', weight: 'bold', size: 'lg', wrap: true },
+      { type: 'text', text: '每一個小習慣都是妳給身體最好的禮物。點下方按鈕查看今日 Checklist 吧 ✨', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
+    ],
+  },
+  footer: {
+    type: 'box', layout: 'vertical', spacing: 'sm',
+    contents: [
+      { type: 'button', style: 'primary', color: BRAND_PINK, action: { type: 'uri', label: '查看今日任務 →', uri: `${LIFF_BASE}/tasks` } },
+    ],
+  },
+};
+
+const WH_STAGE_D7_BUBBLE: object = {
+  type: 'bubble', size: 'mega',
+  header: {
+    type: 'box', layout: 'vertical',
+    backgroundColor: BRAND_PINK,
+    contents: [
+      { type: 'text', text: '🎉 完成第 1 週！', weight: 'bold', size: 'sm', color: '#ffffff' },
+    ],
+  },
+  body: {
+    type: 'box', layout: 'vertical', spacing: 'md',
+    contents: [
+      { type: 'text', text: '妳已經堅持了 7 天，做得很好！', weight: 'bold', size: 'lg', wrap: true },
+      { type: 'text', text: '第一週重點在認識自己的週期節律，妳已經踏出最重要的第一步。\n\n第二週我們要深入飲食調整，繼續加油！', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
+      { type: 'separator', margin: 'md' },
+      { type: 'text', text: '下週主題：飲食與激素平衡', size: 'xs', color: BRAND_PINK, weight: 'bold', margin: 'md' },
+    ],
+  },
+  footer: {
+    type: 'box', layout: 'vertical', spacing: 'sm',
+    contents: [
+      { type: 'button', style: 'primary', color: BRAND_PINK, action: { type: 'uri', label: '看第 2 週任務 →', uri: `${LIFF_BASE}/tasks?week=2` } },
+    ],
+  },
+};
+
+const WH_STAGE_D14_BUBBLE: object = {
+  type: 'bubble', size: 'mega',
+  header: {
+    type: 'box', layout: 'vertical',
+    backgroundColor: BRAND_PINK,
+    contents: [
+      { type: 'text', text: '🎉 完成第 2 週！', weight: 'bold', size: 'sm', color: '#ffffff' },
+    ],
+  },
+  body: {
+    type: 'box', layout: 'vertical', spacing: 'md',
+    contents: [
+      { type: 'text', text: '兩週了，妳是認真的！', weight: 'bold', size: 'lg', wrap: true },
+      { type: 'text', text: '飲食習慣的改變需要時間，妳已經在對的道路上。\n\n第三週進入運動與身體活動，讓我們一起動起來！', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
+      { type: 'separator', margin: 'md' },
+      { type: 'text', text: '下週主題：運動與子宮健康', size: 'xs', color: BRAND_PINK, weight: 'bold', margin: 'md' },
+    ],
+  },
+  footer: {
+    type: 'box', layout: 'vertical', spacing: 'sm',
+    contents: [
+      { type: 'button', style: 'primary', color: BRAND_PINK, action: { type: 'uri', label: '看第 3 週任務 →', uri: `${LIFF_BASE}/tasks?week=3` } },
+    ],
+  },
+};
+
+const WH_STAGE_D21_BUBBLE: object = {
+  type: 'bubble', size: 'mega',
+  header: {
+    type: 'box', layout: 'vertical',
+    backgroundColor: BRAND_PINK,
+    contents: [
+      { type: 'text', text: '🎉 完成第 3 週！', weight: 'bold', size: 'sm', color: '#ffffff' },
+    ],
+  },
+  body: {
+    type: 'box', layout: 'vertical', spacing: 'md',
+    contents: [
+      { type: 'text', text: '三週！妳的身體正在改變中。', weight: 'bold', size: 'lg', wrap: true },
+      { type: 'text', text: '運動讓身體充滿活力，妳的堅持令人佩服。\n\n最後一週，我們聚焦在心理調適與整合，迎接完美結業！', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
+      { type: 'separator', margin: 'md' },
+      { type: 'text', text: '下週主題：心理健康與整合', size: 'xs', color: BRAND_PINK, weight: 'bold', margin: 'md' },
+    ],
+  },
+  footer: {
+    type: 'box', layout: 'vertical', spacing: 'sm',
+    contents: [
+      { type: 'button', style: 'primary', color: BRAND_PINK, action: { type: 'uri', label: '看第 4 週任務 →', uri: `${LIFF_BASE}/tasks?week=4` } },
+    ],
+  },
+};
+
+const WH_COMPLETION_D28_BUBBLE: object = {
+  type: 'bubble', size: 'mega',
+  header: {
+    type: 'box', layout: 'vertical',
+    backgroundColor: BRAND_PINK,
+    contents: [
+      { type: 'text', text: '🎓 恭喜完課！', weight: 'bold', size: 'sm', color: '#ffffff' },
+    ],
+  },
+  body: {
+    type: 'box', layout: 'vertical', spacing: 'md',
+    contents: [
+      { type: 'text', text: '妳完成了 28 天女性保健小課程！', weight: 'bold', size: 'xxl', wrap: true },
+      { type: 'text', text: '這 28 天妳給自己的每一份用心，身體都記住了 💗\n\n接下來有三件事可以做：', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
+      { type: 'separator', margin: 'md' },
+      { type: 'text', text: '① 完成後測，看看妳的進步\n② 預約一對一，讓醫師為妳解答\n③ 使用折扣碼 WOMEN0 領取 0 元保健品', size: 'sm', wrap: true, color: '#444444', margin: 'sm' },
+    ],
+  },
+  footer: {
+    type: 'box', layout: 'vertical', spacing: 'sm',
+    contents: [
+      { type: 'button', style: 'primary', color: BRAND_PINK,  action: { type: 'uri', label: '前往後測問卷 →',     uri: `${LIFF_BASE}/posttest` } },
+      { type: 'button', style: 'secondary',                   action: { type: 'uri', label: '預約一對一諮詢',      uri: BOOKING_URL } },
+      { type: 'button', style: 'secondary',                   action: { type: 'uri', label: '領取 0 元保健品',     uri: SHOP_URL } },
+    ],
+  },
+};
+
+const WH_POSTTEST_COMPLETED_BUBBLE: object = {
+  type: 'carousel',
+  contents: [
+    // 卡 1：後測完成確認
+    {
+      type: 'bubble', size: 'mega',
+      header: {
+        type: 'box', layout: 'vertical',
+        backgroundColor: BRAND_PINK,
+        contents: [
+          { type: 'text', text: '✨ 後測完成！', weight: 'bold', size: 'sm', color: '#ffffff' },
+        ],
+      },
+      body: {
+        type: 'box', layout: 'vertical', spacing: 'md',
+        contents: [
+          { type: 'text', text: '了解自己，是照顧自己的第一步。', weight: 'bold', size: 'lg', wrap: true },
+          { type: 'text', text: '妳已經完成前後對照，數據會讓妳更清楚這 28 天的成果。\n\n記得：保健不是一時的，而是一輩子的選擇 🌸', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
+        ],
+      },
+    },
+    // 卡 2：精準保健規劃
+    {
+      type: 'bubble', size: 'mega',
+      header: {
+        type: 'box', layout: 'vertical',
+        backgroundColor: BRAND_PINK,
+        contents: [
+          { type: 'text', text: '🌿 精準保健規劃', weight: 'bold', size: 'sm', color: '#ffffff' },
+        ],
+      },
+      body: {
+        type: 'box', layout: 'vertical', spacing: 'md',
+        contents: [
+          { type: 'text', text: '為妳量身打造的保健方案', weight: 'bold', size: 'lg', wrap: true },
+          { type: 'text', text: '28 天的數據讓我們更了解妳的身體，讓醫師為妳設計專屬保健規劃。', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
+        ],
+      },
+      footer: {
+        type: 'box', layout: 'vertical', spacing: 'sm',
+        contents: [
+          { type: 'button', style: 'primary', color: BRAND_PINK, action: { type: 'uri', label: '預約一對一諮詢 →', uri: BOOKING_URL } },
+        ],
+      },
+    },
+    // 卡 3：查看推薦保健品
+    {
+      type: 'bubble', size: 'mega',
+      header: {
+        type: 'box', layout: 'vertical',
+        backgroundColor: BRAND_PINK,
+        contents: [
+          { type: 'text', text: '💊 推薦保健品', weight: 'bold', size: 'sm', color: '#ffffff' },
+        ],
+      },
+      body: {
+        type: 'box', layout: 'vertical', spacing: 'md',
+        contents: [
+          { type: 'text', text: '適合妳的保健品在這裡', weight: 'bold', size: 'lg', wrap: true },
+          { type: 'text', text: '根據妳的分型與課程紀錄，為妳推薦最適合的保健品組合。', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
+        ],
+      },
+      footer: {
+        type: 'box', layout: 'vertical', spacing: 'sm',
+        contents: [
+          { type: 'button', style: 'primary', color: BRAND_PINK, action: { type: 'uri', label: '查看推薦保健品 →', uri: SHOP_URL } },
+        ],
+      },
+    },
+  ],
+};
+
+const WH_BADGE_3D_BUBBLE: object = {
+  type: 'bubble', size: 'mega',
+  header: {
+    type: 'box', layout: 'vertical',
+    backgroundColor: BRAND_PINK,
+    contents: [
+      { type: 'text', text: '🌱 徽章解鎖！', weight: 'bold', size: 'sm', color: '#ffffff' },
+    ],
+  },
+  body: {
+    type: 'box', layout: 'vertical', spacing: 'md',
+    contents: [
+      { type: 'text', text: '3 日初芽', weight: 'bold', size: 'xxl', color: BRAND_PINK },
+      { type: 'text', text: '連續 3 天完成任務了！\n\n小小的堅持，正在為妳的身體打下好基礎 🌿 繼續保持，下一個里程碑是 5 天！', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
+    ],
+  },
+  footer: {
+    type: 'box', layout: 'vertical',
+    contents: [
+      { type: 'button', style: 'primary', color: BRAND_PINK, action: { type: 'uri', label: '查看我的徽章 →', uri: `${LIFF_BASE}/profile` } },
+    ],
+  },
+};
+
+const WH_BADGE_5D_BUBBLE: object = {
+  type: 'bubble', size: 'mega',
+  header: {
+    type: 'box', layout: 'vertical',
+    backgroundColor: BRAND_PINK,
+    contents: [
+      { type: 'text', text: '🌸 徽章解鎖！', weight: 'bold', size: 'sm', color: '#ffffff' },
+    ],
+  },
+  body: {
+    type: 'box', layout: 'vertical', spacing: 'md',
+    contents: [
+      { type: 'text', text: '5 日開花', weight: 'bold', size: 'xxl', color: BRAND_PINK },
+      { type: 'text', text: '5 天了！妳做到了 🎉\n\n研究顯示，連續 5 天養成習慣，大腦已經開始記住這個節奏。下一站：10 天盛放！', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
+    ],
+  },
+  footer: {
+    type: 'box', layout: 'vertical',
+    contents: [
+      { type: 'button', style: 'primary', color: BRAND_PINK, action: { type: 'uri', label: '查看我的徽章 →', uri: `${LIFF_BASE}/profile` } },
+    ],
+  },
+};
+
+const WH_BADGE_10D_BUBBLE: object = {
+  type: 'bubble', size: 'mega',
+  header: {
+    type: 'box', layout: 'vertical',
+    backgroundColor: BRAND_PINK,
+    contents: [
+      { type: 'text', text: '🌺 徽章解鎖！', weight: 'bold', size: 'sm', color: '#ffffff' },
+    ],
+  },
+  body: {
+    type: 'box', layout: 'vertical', spacing: 'md',
+    contents: [
+      { type: 'text', text: '10 日盛放', weight: 'bold', size: 'xxl', color: BRAND_PINK },
+      { type: 'text', text: '連續 10 天，真的很厲害！🌺\n\n妳已經跨越習慣養成最難的那道坎。這不只是毅力，是妳對自己身體的愛 💗', size: 'sm', wrap: true, color: '#444444', margin: 'md' },
+    ],
+  },
+  footer: {
+    type: 'box', layout: 'vertical',
+    contents: [
+      { type: 'button', style: 'primary', color: BRAND_PINK, action: { type: 'uri', label: '查看我的徽章 →', uri: `${LIFF_BASE}/profile` } },
+    ],
+  },
+};
+
+const WOMEN_HEALING_COURSE: SeedTemplate = {
+  key: 'women_healing_course',
+  name: '女性保健小課程',
+  description: '28 天女性保健課程：9 個 LINE 訊息模板（Welcome、每日提醒、D7/14/21 回饋、D28 完課、後測完成、月經確認、喚回）+ 3 個 IntentRule（前測入口、查看任務、回報月經開始）。',
+
+  content: [
+    // 1. wh_welcome_msg — 加好友第一則訊息 + 前測 CTA
+    {
+      key: 'wh_welcome_msg',
+      type: 'flex',
+      title: '歡迎加入女性保健小課程',
+      body: JSON.stringify(WH_WELCOME_BUBBLE),
+    },
+    // 2. wh_daily_task_reminder — 每日任務提醒（用戶在設定時間前未勾任務時的備援推播）
+    {
+      key: 'wh_daily_task_reminder',
+      type: 'flex',
+      title: '每日任務提醒',
+      body: JSON.stringify(WH_DAILY_TASK_BUBBLE),
+    },
+    // 3. stage_feedback_d7 — D7 階段回饋 + 看 L2 任務 CTA
+    {
+      key: 'stage_feedback_d7',
+      type: 'flex',
+      title: 'D7 階段回饋',
+      body: JSON.stringify(WH_STAGE_D7_BUBBLE),
+    },
+    // 4. stage_feedback_d14 — D14 階段回饋 + 看 L3 任務 CTA
+    {
+      key: 'stage_feedback_d14',
+      type: 'flex',
+      title: 'D14 階段回饋',
+      body: JSON.stringify(WH_STAGE_D14_BUBBLE),
+    },
+    // 5. stage_feedback_d21 — D21 階段回饋 + 看 L4 任務 CTA
+    {
+      key: 'stage_feedback_d21',
+      type: 'flex',
+      title: 'D21 階段回饋',
+      body: JSON.stringify(WH_STAGE_D21_BUBBLE),
+    },
+    // 6. completion_d28 — 完課訊息 + 後測 + 預約 + 折扣碼
+    {
+      key: 'completion_d28',
+      type: 'flex',
+      title: 'D28 完課訊息',
+      body: JSON.stringify(WH_COMPLETION_D28_BUBBLE),
+    },
+    // 7. posttest_completed — 後測完成 + 衛教結語 + 結業 CTA
+    {
+      key: 'posttest_completed',
+      type: 'flex',
+      title: '後測完成',
+      body: JSON.stringify(WH_POSTTEST_COMPLETED_BUBBLE),
+    },
+    // 8. period_started_ack — 用戶回報「月經開始」後的確認訊息（text）
+    {
+      key: 'period_started_ack',
+      type: 'text',
+      body: '收到 🩸 月經照護模式開啟！\n\n今天的任務清單已自動追加「月經照護」小任務，好好照顧自己 💗',
+    },
+    // 9. recall_inactive — 喚回 N 天未活躍用戶（text）
+    {
+      key: 'recall_inactive',
+      type: 'text',
+      body: '妳好！好久沒見到妳了 🌸\n\n課程還在等妳，今天回來看看任務吧？哪怕只完成一件小事，都是對自己的承諾 💪',
+    },
+    // 10. wh_badge_3d — 連勝 3 天徽章推播
+    {
+      key: 'wh_badge_3d',
+      type: 'flex',
+      title: '徽章：3 日初芽',
+      body: JSON.stringify(WH_BADGE_3D_BUBBLE),
+    },
+    // 11. wh_badge_5d — 連勝 5 天徽章推播
+    {
+      key: 'wh_badge_5d',
+      type: 'flex',
+      title: '徽章：5 日開花',
+      body: JSON.stringify(WH_BADGE_5D_BUBBLE),
+    },
+    // 12. wh_badge_10d — 連勝 10 天徽章推播
+    {
+      key: 'wh_badge_10d',
+      type: 'flex',
+      title: '徽章：10 日盛放',
+      body: JSON.stringify(WH_BADGE_10D_BUBBLE),
+    },
+  ],
+
+  missions: [],
+
+  // streak_key: 'wh_daily_checkin' — LIFF 打勾 API 呼叫 incrementStreak 時要用同一個 key
+  badges: [
+    {
+      key: 'wh_streak_3d',
+      name: '3 日初芽',
+      description: '連續 3 天完成任務',
+      icon: '🌱',
+      criteria: { type: 'streak_reached', streak_key: 'wh_daily_checkin', threshold: 3 },
+      notify_content_key: 'wh_badge_3d',
+    },
+    {
+      key: 'wh_streak_5d',
+      name: '5 日開花',
+      description: '連續 5 天完成任務',
+      icon: '🌸',
+      criteria: { type: 'streak_reached', streak_key: 'wh_daily_checkin', threshold: 5 },
+      notify_content_key: 'wh_badge_5d',
+    },
+    {
+      key: 'wh_streak_10d',
+      name: '10 日盛放',
+      description: '連續 10 天完成任務',
+      icon: '🌺',
+      criteria: { type: 'streak_reached', streak_key: 'wh_daily_checkin', threshold: 10 },
+      notify_content_key: 'wh_badge_10d',
+    },
+    {
+      key: 'wh_streak_28d',
+      name: '28 日圓滿',
+      description: '連續 28 天完成任務',
+      icon: '🏆',
+      criteria: { type: 'streak_reached', streak_key: 'wh_daily_checkin', threshold: 28 },
+      notify_content_key: null,
+    },
+  ],
+
+  journeys: [
+    {
+      key: 'women_healing_28d',
+      name: '28 天女性保健課程',
+      description: '用戶在 LIFF 問卷選擇開始日後進入 active phase，D7/14/21/28 自動推階段回饋。D1 基準從 course_start_date attribute 讀取。',
+      phases: [
+        {
+          key: 'active',
+          name: '進行中',
+          icon: '🌸',
+          // D1 由 LIFF 完成問卷時立即推 welcome_msg，cron 從 D7 起。
+          // 推播時間 09:00，搭配日補提醒讓用戶早上看到。
+          schedule: [
+            { day: 7,  time: '09:00', content_key: 'stage_feedback_d7' },
+            { day: 14, time: '09:00', content_key: 'stage_feedback_d14' },
+            { day: 21, time: '09:00', content_key: 'stage_feedback_d21' },
+            { day: 28, time: '09:00', content_key: 'completion_d28' },
+          ],
+        },
+        {
+          key: 'completed',
+          name: '完課',
+          icon: '🎓',
+        },
+      ],
+      transitions: [
+        // LIFF 問卷完成後寫入 course_started=yes，觸發進入 active phase
+        { to_phase: 'active',   trigger: { type: 'attribute_equals', attribute_key: 'course_started',   value: 'yes' } },
+        // D28 推播後用戶完成後測，LIFF 寫入 course_completed=yes
+        { from_phase: 'active', to_phase: 'completed', trigger: { type: 'attribute_equals', attribute_key: 'course_completed', value: 'yes' } },
+      ],
+    },
+  ],
+
+  intents: [
+    {
+      name: '前測入口',
+      priority: 20,
+      match_type: 'keyword',
+      patterns: ['前測', '問卷', '開始課程', '我要開始'],
+      action_type: 'reply_content',
+      action_config: { content_key: 'wh_welcome_msg' },
+    },
+    {
+      name: '查看任務',
+      priority: 30,
+      match_type: 'keyword',
+      patterns: ['任務', '今日任務', '今天任務', 'checklist'],
+      action_type: 'reply_content',
+      action_config: { content_key: 'wh_daily_task_reminder' },
+    },
+    {
+      name: '回報月經開始',
+      priority: 10,
+      match_type: 'keyword',
+      patterns: ['月經來了', '月經開始', 'MC來了', 'mc來了', '我月經來了', '生理期來了'],
+      action_type: 'set_attribute',
+      action_config: { key: 'period_state', value: 'menstrual', reply_content_key: 'period_started_ack' },
+    },
+  ],
+};
+
 export const SEED_TEMPLATES: Record<string, SeedTemplate> = {
   wellness_21d: WELLNESS_21D,
   period_cycle_demo: PERIOD_CYCLE_DEMO,
+  women_healing_course: WOMEN_HEALING_COURSE,
 };
 
 export const SEED_TEMPLATE_LIST = Object.values(SEED_TEMPLATES).map(t => ({
