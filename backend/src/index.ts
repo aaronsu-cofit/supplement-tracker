@@ -20,6 +20,7 @@ import { richmenuRoutes } from './routes/richmenu.routes.js';
 import { lineoaRoutes } from './routes/lineoa.routes.js';
 import { meRoutes } from './routes/me.routes.js';
 import { productsRoutes } from './routes/products.routes.js';
+import { questionnaireRoutes } from './routes/questionnaire.routes.js';
 import { womenHealingRoutes } from './routes/womenHealing.routes.js';
 import { menuRoutes } from './routes/menu.routes.js';
 import { webhookRoutes } from './routes/webhook.routes.js';
@@ -207,6 +208,9 @@ export async function createFastifyApp() {
 
   // 註冊產品管理路由（MVC 架構）
   await app.register(productsRoutes, { prefix: '/api/products' });
+
+  // 註冊問卷路由（MVC 架構）
+  await app.register(questionnaireRoutes, { prefix: '/api/questionnaires' });
 
   // 註冊女性健康療癒路由（MVC 架構）
   await app.register(womenHealingRoutes, { prefix: '/api/women' });
