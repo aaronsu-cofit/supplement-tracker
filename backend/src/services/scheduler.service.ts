@@ -1,7 +1,7 @@
 // /Users/chingchingyeh/cofit/dtx-space/Vitera/backend/src/services/scheduler.service.ts
 import { PrismaClient } from '@prisma/client';
 import { ValidationError } from '../middleware/errorHandler.js';
-import { runDailyCycle, dryRunScheduler } from '../lib/scheduler.js';
+import { runDailyCycle, dryRunScheduler, type TimeSlot } from '../lib/scheduler.js';
 import {
   getActiveEnrollmentsList,
   getRecentDeliveries,
@@ -29,8 +29,8 @@ export class SchedulerService {
    * @param skipMenu - 是否跳過菜單重新評估
    * @returns 調度執行結果
    */
-  async runDailyCycle(skipMenu: boolean) {
-    return runDailyCycle({ includeMenuReeval: !skipMenu });
+  async runDailyCycle(skipMenu: boolean, timeSlot?: TimeSlot) {
+    return runDailyCycle({ includeMenuReeval: !skipMenu, timeSlot });
   }
 
   /**
