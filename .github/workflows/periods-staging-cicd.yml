@@ -1,4 +1,4 @@
-# .github/workflows/period-tracker-staging-cicd.yml
+# .github/workflows/periods-staging-cicd.yml
 
 name: Staging Period Tracker CI/CD
 
@@ -10,18 +10,18 @@ on:
       - 'packages/client-auth/**'
       - 'packages/types/**'
       - 'packages/utils/**'
-      - '.github/workflows/period-tracker-staging-cicd.yml'
+      - '.github/workflows/periods-staging-cicd.yml'
   workflow_dispatch:
 
 env:
   # Docker Image
-  IMAGE: asia-east1-docker.pkg.dev/cofit-stg/cofit-vitera-staging-docker/period-tracker
+  IMAGE: asia-east1-docker.pkg.dev/cofit-stg/cofit-vitera-staging-docker/periods
   PROJECT_ID: cofit-stg
 
   # K8s Manifests Repository
   K8S_REPO: Cofit/cofit-k8s-applications
   K8S_BRANCH: main
-  KUSTOMIZE_FILE: apps/vitera/vitera-period-tracker/overlays/staging/kustomization.yaml
+  KUSTOMIZE_FILE: apps/vitera/vitera-periods/overlays/staging/kustomization.yaml
 
   # Build Args
   VITE_API_URL: https://vitera-api-staging.cofit.me
@@ -124,7 +124,7 @@ jobs:
           exit 0
         fi
 
-        git commit -m "chore(vitera-period-tracker): update staging image to $SHORT_SHA
+        git commit -m "chore(vitera-periods): update staging image to $SHORT_SHA
 
         - Update staging image tag: $SHORT_SHA
         - Source commit: ${{ github.sha }}
@@ -149,12 +149,12 @@ jobs:
         curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
         chmod +x /usr/local/bin/argocd
 
-        argocd app sync staging-vitera-period-tracker \
+        argocd app sync staging-vitera-periods \
           --auth-token ${{ secrets.ARGOCD_TOKEN }} \
           --server ${{ secrets.ARGOCD_SERVER }} \
           --grpc-web
 
-        argocd app wait staging-vitera-period-tracker \
+        argocd app wait staging-vitera-periods \
           --auth-token ${{ secrets.ARGOCD_TOKEN }} \
           --server ${{ secrets.ARGOCD_SERVER }} \
           --grpc-web \
@@ -172,7 +172,7 @@ jobs:
           -H "Content-Type: application/json" \
           -d "{
             \"channel\": \"#gke-staging-prd-cicd\",
-            \"text\": \"✅ *[Vitera] Staging Period Tracker* 部署成功\",
+            \"text\": \"✅ *[Vitera] Staging Periods* 部署成功\",
             \"attachments\": [{
               \"color\": \"good\",
               \"fields\": [
@@ -193,7 +193,7 @@ jobs:
           -H "Content-Type: application/json" \
           -d "{
             \"channel\": \"#gke-staging-prd-cicd\",
-            \"text\": \"❌ *[Vitera] Staging Period Tracker* 部署失敗\",
+            \"text\": \"❌ *[Vitera] Staging Periods* 部署失敗\",
             \"attachments\": [{
               \"color\": \"danger\",
               \"fields\": [
