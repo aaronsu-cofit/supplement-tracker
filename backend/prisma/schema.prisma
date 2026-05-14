@@ -50,6 +50,7 @@ model User {
   unmatched_intents     UnmatchedIntent[]
   user_menu_assignments UserMenuAssignment[]
   user_oa_sessions      UserOaSession[]
+  questionnaire_responses QuestionnaireResponse[]
   // Period tracking
   periods               Period[]
   menstrual_cycle       MenstrualCycle?
@@ -278,6 +279,7 @@ model Product {
   badge_templates   BadgeTemplate[]
   user_streaks      UserStreak[]
   journey_templates JourneyTemplate[]
+  questionnaires    Questionnaire[]
   // N:N: every OA that has this product in its bound set, plus the
   // per-user "current product" sessions pointing here.
   oa_products       OaProduct[]
@@ -615,6 +617,61 @@ model JourneyTemplate {
   @@unique([product_id, key])
   @@index([product_id], name: "idx_journey_templates_product")
   @@map("journey_templates")
+}
+
+// Product-scoped questionnaires. `spec` is a JSON document describing
+// question_sets / questions / choices / branching / scoring rules — see
+// backend/docs/questionnaire-spec.md. LIFF apps under
+// apps/questionnaires/q/[key] read this via GET /spec and submit via
+// POST /responses; server scores + fires on_submit_actions.
+model Questionnaire {
+  id                String   @id @default(cuid()) @db.VarChar(30)
+  product_id        String   @db.VarChar(30)
+  key               String   @db.VarChar(100)
+  name              String   @db.VarChar(200)
+  description       String?
+  spec              Json     @default("{\"question_sets\":[]}")
+  // Same shape as MissionTemplate.on_complete_actions:
+  //   [{type:'set_attribute',key,value}, {type:'assign_mission',mission_key}, ...]
+  on_submit_actions Json     @default("[]")
+  // URL of the deployed LIFF page for this questionnaire. Set in HQ
+  // after vibe-coded UI is deployed; referenced from rich menus,
+  // scenarios, and intent replies to drive users in.
+  liff_url          String?
+  is_active         Boolean  @default(true)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  product   Product                 @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  responses QuestionnaireResponse[]
+
+  @@unique([product_id, key])
+  @@index([product_id], name: "idx_questionnaires_product")
+  @@map("questionnaires")
+}
+
+// Append-only per submission. A user can fill the same questionnaire
+// many times — each fill is its own row, so we can chart progress
+// over time. Exactly one of user_id / anonymous_id is non-null
+// (DB CHECK constraint); anonymous_id is reserved for the future web
+// version where we don't have a LINE user.
+model QuestionnaireResponse {
+  id                String    @id @default(cuid()) @db.VarChar(30)
+  questionnaire_id  String    @db.VarChar(30)
+  user_id           String?   @db.VarChar(64)
+  anonymous_id      String?   @db.VarChar(64)
+  answers           Json
+  scores            Json
+  interpretation    Json?
+  triggered_actions Json      @default("[]")
+  started_at        DateTime  @default(now())
+  completed_at      DateTime?
+
+  questionnaire Questionnaire @relation(fields: [questionnaire_id], references: [id], onDelete: Cascade)
+  user          User?         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([questionnaire_id, completed_at(sort: Desc)], name: "idx_questionnaire_responses_q_completed")
+  @@map("questionnaire_responses")
 }
 
 // Full conversation log: every inbound user message and every outbound

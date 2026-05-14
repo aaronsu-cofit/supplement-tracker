@@ -9,13 +9,14 @@ import ProductIntentSection from './ProductIntentSection';
 import ProductMissionSection from './ProductMissionSection';
 import ProductBadgeSection from './ProductBadgeSection';
 import ProductJourneySection from './ProductJourneySection';
+import ProductQuestionnaireSection from './ProductQuestionnaireSection';
 import ProductSeedCard from './ProductSeedCard';
 
 interface Props {
   id: string;
 }
 
-type TabKey = 'settings' | 'content' | 'missions' | 'badges' | 'journey' | 'intents';
+type TabKey = 'settings' | 'content' | 'missions' | 'badges' | 'journey' | 'intents' | 'questionnaires';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'settings', label: '基本' },
@@ -24,6 +25,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'badges', label: '徽章' },
   { key: 'journey', label: 'Journey' },
   { key: 'intents', label: '意圖規則' },
+  { key: 'questionnaires', label: '問卷' },
 ];
 
 export default function ProductDetailClient({ id }: Props) {
@@ -201,6 +203,7 @@ export default function ProductDetailClient({ id }: Props) {
       {activeTab === 'badges' && <ProductBadgeSection productId={id} />}
       {activeTab === 'journey' && <ProductJourneySection productId={id} />}
       {activeTab === 'intents' && <ProductIntentSection productId={id} />}
+      {activeTab === 'questionnaires' && <ProductQuestionnaireSection productId={id} />}
     </div>
   );
 }

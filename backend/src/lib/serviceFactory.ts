@@ -22,6 +22,7 @@ import { RichmenuService } from '../services/richmenu.service.js';
 import { LineoaService } from '../services/lineoa.service.js';
 import { MeService } from '../services/me.service.js';
 import { ProductsService } from '../services/products.service.js';
+import { QuestionnaireService } from '../services/questionnaire.service.js';
 import { WomenHealingService } from '../services/womenHealing.service.js';
 
 /**
@@ -46,6 +47,7 @@ export const serviceFactory = {
   lineoaService: () => new LineoaService(db()),
   meService: () => new MeService(db()),
   productsService: () => new ProductsService(db()),
+  questionnaireService: () => new QuestionnaireService(db()),
   womenHealingService: () => new WomenHealingService(db()),
 };
 

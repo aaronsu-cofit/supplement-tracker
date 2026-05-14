@@ -30,5 +30,6 @@ export function initializeContainer(container: Container): void {
   container.register('lineoaService', serviceFactory.lineoaService, true);
   container.register('meService', serviceFactory.meService, true);
   container.register('productsService', serviceFactory.productsService, true);
+  container.register('questionnaireService', serviceFactory.questionnaireService, true);
   container.register('womenHealingService', serviceFactory.womenHealingService, true);
 }

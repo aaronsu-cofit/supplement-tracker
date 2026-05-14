@@ -1,0 +1,52 @@
+# ---- Base ----
+FROM node:22-alpine AS base
+RUN npm install -g pnpm@9.15.0
+
+# ---- Install deps (cached layer) ----
+FROM base AS deps
+WORKDIR /app
+
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json turbo.json ./
+COPY apps/questionnaires/package.json ./apps/questionnaires/
+COPY packages/lib/package.json ./packages/lib/
+COPY packages/ui/package.json ./packages/ui/
+
+RUN pnpm install --frozen-lockfile
+
+# ---- Build ----
+FROM deps AS builder
+WORKDIR /app
+
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_LOGIN_URL
+ARG NEXT_PUBLIC_LIFF_ID
+
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_LOGIN_URL=$NEXT_PUBLIC_LOGIN_URL
+ENV NEXT_PUBLIC_LIFF_ID=$NEXT_PUBLIC_LIFF_ID
+
+COPY apps/questionnaires ./apps/questionnaires
+COPY packages/lib ./packages/lib
+COPY packages/ui ./packages/ui
+
+WORKDIR /app/apps/questionnaires
+RUN pnpm build
+
+# ---- Runner ----
+FROM node:22-alpine AS runner
+WORKDIR /app
+
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+
+ENV NODE_ENV=production
+ENV PORT=8080
+EXPOSE 8080
+
+COPY --from=builder /app/apps/questionnaires/.next/standalone ./
+COPY --from=builder /app/apps/questionnaires/.next/static ./apps/questionnaires/.next/static
+COPY --from=builder /app/apps/questionnaires/public ./apps/questionnaires/public
+
+RUN chown -R nextjs:nodejs /app
+USER nextjs
+
+CMD ["node", "apps/questionnaires/server.js"]
