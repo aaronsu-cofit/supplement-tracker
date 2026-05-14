@@ -28,9 +28,9 @@ FROM nginx:alpine
 
 # Build args for nginx backend URL (must be specified at build time)
 # Examples:
-#   docker build --build-arg BACKEND_URL=http://192.168.0.12:8000 ...  (Local development)
-#   docker build --build-arg BACKEND_URL=http://backend-service:8000 ... (GKE production)
-ARG BACKEND_URL=http://localhost:8000
+#   docker build --build-arg BACKEND_URL=http://192.168.0.12:8080 ...  (Local development)
+#   docker build --build-arg BACKEND_URL=http://backend-service:8080 ... (GKE production)
+ARG BACKEND_URL=http://localhost:8080
 
 # Copy nginx configuration template
 # nginx:alpine automatically processes templates with envsubst
