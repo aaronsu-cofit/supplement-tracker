@@ -16,7 +16,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@line/liff": "^2.28.0"
+    "@line/liff": "^2.28.0",
+    "@vitera/utils": "workspace:*"
   },
   "devDependencies": {
     "@vitera/typescript-config": "workspace:*",
