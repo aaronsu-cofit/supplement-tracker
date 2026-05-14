@@ -1,5 +1,5 @@
 import { UserData, DayLog, PbacLog } from '../types'
-import { saveDailyLog } from '../api/client'
+import { saveDailyLog, getCycleData } from '../api/client'
 import {
   getPeriodAction,
   calculatePeriodUpdate,
@@ -163,6 +163,17 @@ export const performPeriodToggle = async (
       newCycleLen: options.newCycleLen,
       clearEntireCycle: options.clearEntireCycle,
     })
+
+    // 如果清除了整個週期，重新獲取後端資料以確保前後端同步
+    if (options.clearEntireCycle) {
+      try {
+        const updatedData = await getCycleData()
+        options.onUpdateUserData(updatedData)
+      } catch (error) {
+        console.error('Failed to refresh cycle data after clearing:', error)
+        // 即使重新獲取失敗，也不影響用戶體驗，只記錄錯誤
+      }
+    }
 
     // 顯示對應的操作回饋
     const message = getToggleFeedbackMessage(
