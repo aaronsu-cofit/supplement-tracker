@@ -24,7 +24,7 @@ export const PbacSummaryRow: React.FC<PbacSummaryRowProps> = ({
       <div className="pbac-summary-right">
         本次經期累計：
         <b className={scoreClass}>{liveCycleScore}</b> 分
-        <span className="pbac-info-icon" onClick={onShowInfo}>
+        <span id="pbac-score-info" className="pbac-info-icon" onClick={onShowInfo}>
           <InfoIcon />
         </span>
       </div>
