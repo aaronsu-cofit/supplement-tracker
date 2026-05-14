@@ -44,12 +44,12 @@ function RouteGuard({ children }) {
     }
   }, [isLoading, isAuthenticated, isPublic, userType, user, router, pathname]);
 
-  // Redirect authenticated users away from login page
+  // Redirect authenticated admin users away from login page
   useEffect(() => {
-    if (!isLoading && isAuthenticated && pathname === '/login') {
+    if (!isLoading && isAuthenticated && userType === 'admin' && pathname === '/login') {
       router.replace('/');
     }
-  }, [isLoading, isAuthenticated, pathname, router]);
+  }, [isLoading, isAuthenticated, userType, pathname, router]);
 
   const handleLogout = async () => {
     await logout();
