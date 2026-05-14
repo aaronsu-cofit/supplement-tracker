@@ -39,25 +39,43 @@
 
 ## 整體流程總覽
 
-```
-加好友
-  ↓
-收到歡迎訊息（LINE）→ 點「前往前測問卷」→ 進入 LIFF
-  ↓
-完成前測問卷（LIFF）
-  ↓  寫入 course_start_date、course_started=yes
-課程開始（D1）
-  ↓
-每天：LIFF 任務 Checklist 打勾
-  ↓  寫入 MissionDailyLog + 累計 UserStreak
-達成連勝門檻 → 推 LINE 徽章訊息（3/5/10 天）
-D7 / D14 / D21 → 自動推 LINE 階段回饋
-  ↓
-D28 → 推「完課訊息」→ 點「前往後測」→ 進入 LIFF
-  ↓
-完成後測（LIFF）
-  ↓  寫入 course_completed=yes
-收到後測完成訊息（LINE carousel）→ 結業
+```mermaid
+flowchart TD
+    A([加好友]) --> B[收到歡迎訊息 LINE]
+    B --> C[點「前往前測問卷」]
+    C --> C1[進入 LIFF 填寫問卷]
+    C1 --> C2[顯示分型結果]
+    C2 --> C3[設定月經週期\n與推播提醒時間]
+    C3 --> C4[進入任務頁]
+    C4 --> E([課程開始 D1])
+
+    E --> F[每天：LIFF 打勾任務]
+    F --> H[累計連勝天數]
+    H --> J{達成連勝門檻？}
+
+    E --> G[到達用戶設定的提醒時間]
+    G --> GQ{今天已打勾？}
+    GQ -- 是 --> GS[不推提醒]
+    GQ -- 否 --> I[推每日提醒 LINE]
+    J -- 3天 --> K[🌱 推徽章通知 LINE]
+    J -- 5天 --> L[🌸 推徽章通知 LINE]
+    J -- 10天 --> M[🌺 推徽章通知 LINE]
+    J -- 尚未 --> N[ ]
+
+    F --> O{今天傳\n月經來了？}
+    O -- 是 --> P[回覆確認訊息 LINE\n月經照護模式開啟]
+    P --> Q[LIFF 自動追加月經照護任務]
+    P --> R[經期紀錄工具自動標記今天月經來了\n用戶不需重複設定]
+
+    E --> R[D7 09:00\n自動推第1週回饋 LINE]
+    E --> S[D14 09:00\n自動推第2週回饋 LINE]
+    E --> T[D21 09:00\n自動推第3週回饋 LINE]
+    E --> U[D28 09:00\n推完課訊息 LINE]
+
+    U --> V[點「前往後測問卷」]
+    V --> W[填完後測 LIFF]
+    W --> X[收到結業 carousel LINE\n諮詢 / 推薦保健品]
+    X --> Y([結業])
 ```
 
 ---
@@ -350,6 +368,7 @@ LIFF 呼叫後端 API（待建）
 | **LIFF 任務頁** | 顯示當天 Checklist、打勾互動 |
 | **LIFF 前測問卷** | 填完後寫入 `course_start_date` 和 `course_started=yes` |
 | **LIFF 後測問卷** | 填完後寫入 `course_completed=yes`，觸發 Journey 完課 |
+| **置換上線 URL** | `LIFF_BASE`、`SHOP_URL`、`BOOKING_URL` 目前是 placeholder，上線前需換成正式 URL |
 
 ### 🟡 重要（提升體驗）
 
@@ -357,15 +376,10 @@ LIFF 呼叫後端 API（待建）
 |------|------|
 | **月經照護任務動態注入** | LIFF 任務頁偵測 `period_state=menstrual`，自動追加月經照護任務群組 |
 | **LIFF 個人頁（徽章展示）** | `/profile` 頁顯示已獲得的徽章、當前連勝天數 |
-
-### 🟢 加分（未來擴充）
-
-| 功能 | 說明 |
-|------|------|
 | **period-tracker 自動同步** | 用戶回報月經時，自動在 `menstrual_periods` 表建立紀錄 |
 | **喚回 cron** | N 天未打開 LIFF 的用戶自動發 `recall_inactive` |
 | **用戶自訂提醒時間** | 在 LIFF 設定每日任務提醒的時間點 |
-| **置換上線 URL** | `LIFF_BASE`、`SHOP_URL`、`BOOKING_URL` 目前是 placeholder，上線前需換成正式 URL |
+
 
 ---
 
