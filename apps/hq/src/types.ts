@@ -368,6 +368,40 @@ export interface ActionStatus {
   message: string;
 }
 
+// ─── Questionnaire ───────────────────────────────────────────────────────────
+// Full spec types live in backend/src/lib/questionnaire/spec.types.ts.
+// HQ treats spec as opaque JSON during list views; the editor parses
+// it as the full QuestionnaireSpec shape (imported from there if we
+// publish it, or inlined locally if we don't).
+
+export interface Questionnaire {
+  id: string;
+  product_id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  spec: unknown;
+  on_submit_actions: unknown;
+  liff_url: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuestionnaireResponseRow {
+  id: string;
+  questionnaire_id: string;
+  user_id: string | null;
+  anonymous_id: string | null;
+  answers: unknown;
+  scores: Record<string, number | string>;
+  interpretation: Record<string, string> | null;
+  triggered_actions: Array<{ type: string; ok: boolean; reason?: string }>;
+  started_at: string;
+  completed_at: string | null;
+  user?: { id: string; display_name: string | null } | null;
+}
+
 // ─── UI ──────────────────────────────────────────────────────────────────────
 
 export interface ModuleInfo {
