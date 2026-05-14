@@ -211,7 +211,8 @@ export function HomePage() {
       isPeriod: boolean
       clearFollowing?: boolean
       clearEntireCycle?: boolean
-    }
+    },
+    onComplete?: () => void
   ) => {
     await performPeriodToggle(date, userData, {
       isPeriod: options.isPeriod,
@@ -220,6 +221,10 @@ export function HomePage() {
       onUpdateUserData: setUserData,
       onShowToast: toast,
     })
+    // 在異步操作完成後調用回調
+    if (onComplete) {
+      onComplete()
+    }
   }
 
   if (view === 'login') return <InitView />
@@ -378,21 +383,27 @@ export function HomePage() {
         onClose={() => setCancelModal({ ...cancelModal, isOpen: false })}
         onConfirmOnlyToday={() => {
           setCancelModal({ ...cancelModal, isOpen: false })
-          performCancelAction(cancelModal.date, { isPeriod: false })
-          // Close DailyLogCard after unmark
-          setSelectedDate(null)
-          setHasUserSelectedDate(false)
+          performCancelAction(cancelModal.date, { isPeriod: false }, () => {
+            // Close DailyLogCard after unmark
+            setSelectedDate(null)
+            setHasUserSelectedDate(false)
+          })
         }}
         onConfirmClearFollowing={() => {
           setCancelModal({ ...cancelModal, isOpen: false })
           if (cancelModal.mode === 'first-day') {
-            performCancelAction(cancelModal.date, { isPeriod: false, clearEntireCycle: true })
+            performCancelAction(cancelModal.date, { isPeriod: false, clearEntireCycle: true }, () => {
+              // Close DailyLogCard after unmark
+              setSelectedDate(null)
+              setHasUserSelectedDate(false)
+            })
           } else {
-            performCancelAction(cancelModal.date, { isPeriod: false, clearFollowing: true })
+            performCancelAction(cancelModal.date, { isPeriod: false, clearFollowing: true }, () => {
+              // Close DailyLogCard after unmark
+              setSelectedDate(null)
+              setHasUserSelectedDate(false)
+            })
           }
-          // Close DailyLogCard after unmark
-          setSelectedDate(null)
-          setHasUserSelectedDate(false)
         }}
       />
       <TutorialOverlay
