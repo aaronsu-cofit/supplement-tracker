@@ -32,24 +32,28 @@ function RouteGuard({ children }) {
 
       // Check user type: only admin users can access HQ
       if (userType !== 'admin') {
+        // Log out non-admin users to clear their invalid token
+        logout();
         router.replace('/login');
         return;
       }
 
       // Check authorization: only admin or superadmin role can access HQ
       if (!user?.role || !['admin', 'superadmin'].includes(user.role)) {
+        // Log out unauthorized users to clear their invalid token
+        logout();
         router.replace('/login');
         return;
       }
     }
-  }, [isLoading, isAuthenticated, isPublic, userType, user, router, pathname]);
+  }, [isLoading, isAuthenticated, isPublic, userType, user, router, pathname, logout]);
 
-  // Redirect authenticated users away from login page
+  // Redirect authenticated ADMIN users away from login page
   useEffect(() => {
-    if (!isLoading && isAuthenticated && pathname === '/login') {
+    if (!isLoading && isAuthenticated && userType === 'admin' && pathname === '/login') {
       router.replace('/');
     }
-  }, [isLoading, isAuthenticated, pathname, router]);
+  }, [isLoading, isAuthenticated, userType, pathname, router]);
 
   const handleLogout = async () => {
     await logout();
