@@ -74,8 +74,19 @@ export async function runPhaseDailyPush(now: Date = new Date()): Promise<PhaseDa
 
     const tz = tzByUser.get(row.user_id) ?? 'Asia/Taipei';
 
-    // Calendar-day diff (ignores time-of-day on entered_at)
-    const enteredDate = localDateInTz(row.entered_at, tz);
+    // Calendar-day diff (ignores time-of-day).
+    // If the user chose a custom start date via LIFF (stored as
+    // UserAttribute course_start_date = "YYYY-MM-DD"), use that as D1
+    // instead of the phase entered_at timestamp.
+    const startAttr = await db().userAttribute.findUnique({
+      where: { user_id_key: { user_id: row.user_id, key: 'course_start_date' } },
+      select: { value: true },
+    });
+    // course_start_date is "YYYY-MM-DD" (UTC midnight); treat it as the
+    // user's local calendar date by running it through localDateInTz.
+    const enteredDate = startAttr?.value
+      ? localDateInTz(new Date(startAttr.value), tz)
+      : localDateInTz(row.entered_at, tz);
     const todayDate = localDateInTz(now, tz);
     const daysDiff = Math.floor((todayDate.getTime() - enteredDate.getTime()) / (24 * 3600 * 1000));
     const dayInPhase = daysDiff + 1;
