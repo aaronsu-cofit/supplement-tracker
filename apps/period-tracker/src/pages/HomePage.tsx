@@ -74,6 +74,15 @@ export function HomePage() {
     [selectedDate, hasUserSelectedDate]
   )
 
+  // 判斷是否有設定過週期資料（根據 lastPeriodStart 或是否有任何日期標記為經期）
+  const hasSetPeriodData = useMemo(() => {
+    if (userData.lastPeriodStart !== null) {
+      return true
+    }
+    // 檢查是否有任何日期的 period 標記為 true
+    return Object.values(userData.dayData).some((dayLog) => dayLog?.period === true)
+  }, [userData])
+
   // Auth & Data Init (for non-LINE or recovery)
   useEffect(() => {
     // If we are using LIFF and it's not initialized yet, we wait for LIFF's onLoggedIn
@@ -248,26 +257,33 @@ export function HomePage() {
         <div className="det-scroll">
           {activeTab === 'log' && (
             <>
-              <PhaseBanner
-                phase={phase}
-                phaseDay={phaseDay}
-                phaseInfo={phaseInfo}
-                dailyAdviceSummary={dailyAdviceSummary}
-                onShowAdvice={() => setShowAdviceModal(true)}
-                gridInfo={
-                  cycleInfo
-                    ? {
-                        ovulationDate: cycleInfo.ovulationDate,
-                        nextPeriodDate: cycleInfo.nextPeriodDate,
-                        daysToNext: cycleInfo.daysToNext,
-                        lastPeriodStart: cycleInfo.lastPeriodStart,
-                        periodDuration: cycleInfo.periodDuration,
-                      }
-                    : undefined
-                }
-              />
+              {hasSetPeriodData ? (
+                <PhaseBanner
+                  phase={phase}
+                  phaseDay={phaseDay}
+                  phaseInfo={phaseInfo}
+                  dailyAdviceSummary={dailyAdviceSummary}
+                  onShowAdvice={() => setShowAdviceModal(true)}
+                  gridInfo={
+                    cycleInfo
+                      ? {
+                          ovulationDate: cycleInfo.ovulationDate,
+                          nextPeriodDate: cycleInfo.nextPeriodDate,
+                          daysToNext: cycleInfo.daysToNext,
+                          lastPeriodStart: cycleInfo.lastPeriodStart,
+                          periodDuration: cycleInfo.periodDuration,
+                        }
+                      : undefined
+                  }
+                />
+              ) : (
+                <div className="empty-state-banner">
+                  <div className="empty-state-title">尚未設定週期資料</div>
+                  <div className="empty-state-hint">請點選曆上的日期來標記經期</div>
+                </div>
+              )}
 
-              {phase === '經期' && (
+              {hasSetPeriodData && phase === '經期' && (
                 <PbacSummaryCard
                   pbacTotal={cycleInfo?.pbacTotal || 0}
                   cycleDay={cycleDay}

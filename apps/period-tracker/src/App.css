@@ -1685,6 +1685,22 @@ body {
   border-top: 1px solid var(--phase-border);
   margin-bottom: 12px;
 }
+.empty-state-banner {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--t3);
+  font-size: var(--fs-md);
+  line-height: 1.7;
+  flex-shrink: 0;
+}
+.empty-state-title {
+  display: block;
+}
+.empty-state-hint {
+  display: block;
+  font-size: var(--fs-sm);
+}
+
 .phase-cycle-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
