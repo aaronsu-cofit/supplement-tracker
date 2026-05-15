@@ -26,21 +26,8 @@ export function PushMessageEditor({ node, onChange, contentItems }: EditorProps)
   // OR flex items. We offer the dropdown on both types.
   const showContentRef = msgType === 'text' || msgType === 'flex';
 
-  const timeSlot = (data.timeSlot ?? 'any') as string;
-
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2 flex-wrap">
-        <label className="text-xs text-slate-500">發送時段</label>
-        <select className="hq-input text-sm"
-          value={timeSlot}
-          onChange={e => onChange(updateData(node, { timeSlot: e.target.value as 'morning' | 'evening' | 'bedtime' | 'any' }))}>
-          <option value="any">任意時段（每次排程都送）</option>
-          <option value="morning">☀️ 早起（morning）</option>
-          <option value="evening">🌙 晚間任務（evening）</option>
-          <option value="bedtime">😴 睡前（bedtime）</option>
-        </select>
-      </div>
       <div className="flex items-center gap-2 flex-wrap">
         <label className="text-xs text-slate-500">訊息類型</label>
         <select className="hq-input text-sm" value={msgType}
@@ -51,7 +38,6 @@ export function PushMessageEditor({ node, onChange, contentItems }: EditorProps)
           <option value="sticker">貼圖</option>
         </select>
       </div>
-
       {showContentRef && contentItems && contentItems.length > 0 && (
         <div className="flex items-center gap-2">
           <label className="text-xs text-slate-500 shrink-0">引用內容</label>
@@ -204,15 +190,12 @@ export function nodeTypeIcon(type: string | undefined): string {
 export function summarizeNode(node: ScenarioFlowNode): string {
   const d = node.data ?? {};
   switch (node.type) {
-    case 'push-message-node': {
-      const slotIcon: Record<string, string> = { morning: '☀️', evening: '🌙', bedtime: '😴' };
-      const slotPrefix = d.timeSlot && d.timeSlot !== 'any' ? `${slotIcon[d.timeSlot] ?? ''} ` : '';
-      if (d.contentKey) return `${slotPrefix}引用 ${d.contentKey}`;
-      if (d.type === 'image') return `${slotPrefix}圖片: ${d.imageUrl || '(未設)'}`;
-      if (d.type === 'sticker') return `${slotPrefix}貼圖 ${d.stickerPackageId}/${d.stickerId}`;
-      if (d.type === 'flex') return `${slotPrefix}Flex: ${d.message || '(未設 altText)'}`;
-      return d.message ? `${slotPrefix}${d.message.length > 40 ? d.message.slice(0, 40) + '…' : d.message}` : `${slotPrefix}(未設訊息)`;
-    }
+    case 'push-message-node':
+      if (d.contentKey) return `引用 ${d.contentKey}`;
+      if (d.type === 'image') return `圖片: ${d.imageUrl || '(未設)'}`;
+      if (d.type === 'sticker') return `貼圖 ${d.stickerPackageId}/${d.stickerId}`;
+      if (d.type === 'flex') return `Flex: ${d.message || '(未設 altText)'}`;
+      return d.message ? (d.message.length > 40 ? d.message.slice(0, 40) + '…' : d.message) : '(未設訊息)';
     case 'ai-skill-node':
       return d.agentId || '(未設 agent)';
     case 'menu-change-node':

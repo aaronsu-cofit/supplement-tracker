@@ -23,7 +23,6 @@ export const runSchedulerSchema = {
     type: 'object',
     properties: {
       skip_menu_reeval: { type: 'string', enum: ['1'] },
-      time_slot: { type: 'string', enum: ['morning', 'evening', 'bedtime', 'any'] },
     },
   },
   response: {
