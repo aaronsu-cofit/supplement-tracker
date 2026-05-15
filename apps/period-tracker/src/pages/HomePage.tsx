@@ -119,7 +119,7 @@ export function HomePage() {
   const cycleDay = cycleInfo?.cycleDay || 1
   const phaseDay = cycleInfo?.phaseDay || 1
   const phaseInfo = PHASE_HINTS[phase]
-  const dailyAdviceSummary = PHASE_HINTS[phase]?.dailyDesc?.[cycleDay] || ''
+  const dailyAdviceSummary = PHASE_HINTS[phase]?.dailyDesc?.[phaseDay] || ''
 
   const selectedDayInfo = useMemo(
     () =>
@@ -368,7 +368,6 @@ export function HomePage() {
         isOpen={showAdviceModal}
         onClose={() => setShowAdviceModal(false)}
         phase={phase}
-        cycleDay={cycleDay}
         phaseDay={phaseDay}
       />
       <PbacOverlay
