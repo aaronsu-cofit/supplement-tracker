@@ -186,19 +186,11 @@ export const adminLoginSchema = {
 export const lineLoginSchema = {
   body: {
     type: 'object',
-    required: ['lineUserId'],
+    required: ['accessToken'],
     properties: {
-      lineUserId: {
+      accessToken: {
         type: 'string',
-        description: 'LINE 用戶 ID',
-      },
-      displayName: {
-        type: 'string',
-        description: 'LINE 用戶顯示名稱（可選）',
-      },
-      pictureUrl: {
-        type: 'string',
-        description: 'LINE 用戶頭像 URL（可選）',
+        description: 'LIFF access token（由前端 liff.getAccessToken() 取得）',
       },
     },
   },
