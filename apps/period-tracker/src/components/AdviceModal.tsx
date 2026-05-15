@@ -109,7 +109,7 @@ export const AdviceModal: React.FC<AdviceModalProps> = ({
               color: hint.textC,
               marginBottom: '16px',
             }}
-          >
+          > 
             今日身體說明書
           </div>
         </div>
