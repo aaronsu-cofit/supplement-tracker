@@ -79,6 +79,17 @@ function tryParseJson(raw: string): ParseResult {
   }
 }
 
+// Single LIFF covers every questionnaire under apps/questionnaires;
+// each questionnaire is reached by ?path + ?product. Override per-env
+// via NEXT_PUBLIC_QUESTIONNAIRES_LIFF_ID at build time; default below
+// is the current staging LIFF.
+const QUESTIONNAIRES_LIFF_ID =
+  process.env.NEXT_PUBLIC_QUESTIONNAIRES_LIFF_ID || '2009369966-ZwZuOht2';
+
+function buildLiffUrl(productId: string, key: string): string {
+  return `https://liff.line.me/${QUESTIONNAIRES_LIFF_ID}?path=/q/${key}&product=${productId}`;
+}
+
 export default function ProductQuestionnaireSection({ productId }: Props) {
   const [items, setItems] = useState<Questionnaire[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +97,15 @@ export default function ProductQuestionnaireSection({ productId }: Props) {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [viewingResponsesKey, setViewingResponsesKey] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const copyUrl = (key: string, url: string) => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey((current) => (current === key ? null : current)), 1500);
+    });
+  };
 
   const load = useCallback(() => {
     setLoading(true);
@@ -115,65 +135,97 @@ export default function ProductQuestionnaireSection({ productId }: Props) {
       <div className="hq-card flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-lg">問卷（{items.length}）</h3>
-          <button onClick={() => setCreating(true)} className="hq-btn-primary text-sm">
-            + 新增問卷
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setHelpOpen(true)}
+              className="text-sm px-3 py-1.5 rounded border border-slate-300 hover:bg-slate-50"
+            >
+              📘 怎麼建頁面
+            </button>
+            <button onClick={() => setCreating(true)} className="hq-btn-primary text-sm">
+              + 新增問卷
+            </button>
+          </div>
         </div>
         <p className="text-xs text-slate-500">
-          每個問卷對應一個 LIFF 頁面（由 vibe-coded frontend 渲染）。Spec 是題目結構 + 算分規則。
+          建好後，把下方的 LIFF URL 給 ops 貼到 rich menu / scenario / intent rule。
+          Vibe coder 拿到指引（點「怎麼建頁面」）就可以著手做 UI。
         </p>
 
         {items.length === 0 ? (
           <p className="text-sm text-slate-500 py-4">尚無問卷。點「+ 新增問卷」開始建立。</p>
         ) : (
-          <ul className="flex flex-col gap-1">
-            {items.map(q => (
-              <li
-                key={q.id}
-                className="flex items-center justify-between border-b border-slate-100 last:border-0 py-2 gap-2 text-sm"
-              >
-                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium truncate">{q.name}</span>
-                    <code className="text-xs text-slate-500 font-mono">{q.key}</code>
-                    <span
-                      className={`hq-badge ${
-                        q.is_active ? 'hq-badge-green' : 'hq-badge-gray'
-                      } shrink-0`}
-                    >
-                      {q.is_active ? '啟用' : '停用'}
-                    </span>
-                    {q.liff_url && (
-                      <a
-                        href={q.liff_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-cyan-700 hover:underline shrink-0"
+          <ul className="flex flex-col gap-2">
+            {items.map(q => {
+              const url = buildLiffUrl(productId, q.key);
+              const copied = copiedKey === q.key;
+              return (
+                <li
+                  key={q.id}
+                  className="border border-slate-200 rounded-lg p-3 flex flex-col gap-2 text-sm"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium truncate">{q.name}</span>
+                        <code className="text-xs text-slate-500 font-mono">{q.key}</code>
+                        <span
+                          className={`hq-badge ${
+                            q.is_active ? 'hq-badge-green' : 'hq-badge-gray'
+                          } shrink-0`}
+                        >
+                          {q.is_active ? '啟用' : '停用'}
+                        </span>
+                      </div>
+                      {q.description && (
+                        <p className="text-xs text-slate-500 line-clamp-1">{q.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => setViewingResponsesKey(q.key)}
+                        className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50"
                       >
-                        LIFF ↗
-                      </a>
-                    )}
+                        📊 回應
+                      </button>
+                      <button
+                        onClick={() => setEditingKey(q.key)}
+                        className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50"
+                      >
+                        編輯
+                      </button>
+                    </div>
                   </div>
-                  {q.description && (
-                    <p className="text-xs text-slate-500 line-clamp-1">{q.description}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => setViewingResponsesKey(q.key)}
-                    className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50"
-                  >
-                    📊 回應
-                  </button>
-                  <button
-                    onClick={() => setEditingKey(q.key)}
-                    className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50"
-                  >
-                    編輯
-                  </button>
-                </div>
-              </li>
-            ))}
+                  {/* Canonical LIFF URL — what ops pastes into rich menu /
+                      scenario / intent rules. productId baked in so the
+                      vibe-coded page doesn't need to know it. */}
+                  <div className="flex items-center gap-2 bg-slate-50 rounded px-2 py-1.5">
+                    <code className="text-xs text-slate-700 font-mono truncate flex-1" title={url}>
+                      {url}
+                    </code>
+                    <button
+                      onClick={() => copyUrl(q.key, url)}
+                      className={`text-xs px-2 py-1 rounded border shrink-0 transition-colors ${
+                        copied
+                          ? 'border-green-400 bg-green-50 text-green-700'
+                          : 'border-slate-300 hover:bg-white'
+                      }`}
+                    >
+                      {copied ? '✓ 已複製' : '📋 複製'}
+                    </button>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-white shrink-0"
+                      title="在 LINE 上開啟（電腦會跳到 LINE 加入頁）"
+                    >
+                      ↗ 開啟
+                    </a>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -201,6 +253,104 @@ export default function ProductQuestionnaireSection({ productId }: Props) {
           onClose={() => setViewingResponsesKey(null)}
         />
       )}
+
+      {helpOpen && <VibeCoderHelpModal onClose={() => setHelpOpen(false)} />}
+    </div>
+  );
+}
+
+// ─── Vibe-coder guide ──────────────────────────────────────────────────────
+// Inline cheatsheet for ops to forward to whoever is building the LIFF
+// page. Single source of truth so the repo README and HQ stay aligned.
+
+function VibeCoderHelpModal({ onClose }: { onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const promptTemplate = `# 任務：為 Vitera 新增一張問卷頁面
+
+我已經在 HQ 建好問卷了。幫我用 vibe coding 做出對應的 LIFF 頁面：
+
+1. 在 \`apps/questionnaires/src/app/q/\` 下複製 \`example/\` 整個資料夾
+2. 把新資料夾改名成這張問卷的 key（例如 onboarding_v1）
+3. 開 \`page.tsx\` —— **不要動最上方 PRODUCT_ID / KEY 的 hooks**，它們會自動從 URL 拿
+4. 重新設計題目的 UI（風格、配色、動畫、文案隨意），但保留：
+   - \`useQuestionnaireSpec\` / \`useSubmitResponse\` 兩個 hook
+   - \`meta.spec.question_sets\` 的迴圈邏輯
+   - 送出按鈕呼叫 \`submit(answers)\`
+   - 完成後 \`result\` 顯示分數
+5. \`git push origin staging\` 後 5-8 分鐘部署完
+6. 我把 HQ 上的 LIFF URL 貼到 LINE 測試
+
+風格參考： <填你想要的設計風格>`;
+
+  const copy = () => {
+    navigator.clipboard.writeText(promptTemplate).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-auto flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 sticky top-0 bg-white">
+          <h3 className="font-semibold text-lg">怎麼建問卷頁面（給 vibe coder 看的）</h3>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-900 text-sm">
+            ✕ 關閉
+          </button>
+        </div>
+
+        <div className="p-5 flex flex-col gap-4 text-sm">
+          <section>
+            <h4 className="font-semibold mb-2">流程（共 3 步）</h4>
+            <ol className="list-decimal list-inside flex flex-col gap-1 text-slate-700">
+              <li>HQ 先建好問卷（spec + scoring + on_submit_actions）</li>
+              <li>Vibe coder 在 <code className="text-xs bg-slate-100 px-1 rounded">apps/questionnaires</code> 加一個 page</li>
+              <li>Push staging → 5-8 分鐘部署完 → 用上面那行 LIFF URL 測試</li>
+            </ol>
+          </section>
+
+          <section>
+            <h4 className="font-semibold mb-2">給 vibe coder 的 prompt（複製貼上）</h4>
+            <div className="relative">
+              <pre className="bg-slate-50 border border-slate-200 rounded p-3 text-xs whitespace-pre-wrap leading-relaxed">{promptTemplate}</pre>
+              <button
+                onClick={copy}
+                className={`absolute top-2 right-2 text-xs px-2 py-1 rounded border transition-colors ${
+                  copied
+                    ? 'border-green-400 bg-green-50 text-green-700'
+                    : 'border-slate-300 bg-white hover:bg-slate-50'
+                }`}
+              >
+                {copied ? '✓ 已複製' : '📋 複製'}
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              貼到 Cursor / Claude Code，把最後一行的 <code className="bg-slate-100 px-1 rounded">&lt;填你想要的設計風格&gt;</code> 換成你想要的描述（例：「柔和粉色、有手繪插圖、按鈕大顆」）。
+            </p>
+          </section>
+
+          <section>
+            <h4 className="font-semibold mb-2">關鍵設計</h4>
+            <ul className="list-disc list-inside flex flex-col gap-1 text-slate-700 text-xs">
+              <li>每張問卷 = <code className="bg-slate-100 px-1 rounded">apps/questionnaires/src/app/q/&lt;key&gt;/page.tsx</code></li>
+              <li>所有問卷共用 <strong>一個 LIFF ID</strong>，靠 URL 的 <code className="bg-slate-100 px-1 rounded">?path=/q/&lt;key&gt;&amp;product=&lt;id&gt;</code> 區分</li>
+              <li>頁面從 URL 自動拿 <code className="bg-slate-100 px-1 rounded">key</code> 和 <code className="bg-slate-100 px-1 rounded">productId</code>，**vibe coder 不需要改任何常數**</li>
+              <li>送出後自動算分、寫 attribute / 派 mission / 切 journey（看 on_submit_actions 設定）</li>
+            </ul>
+          </section>
+
+          <section>
+            <h4 className="font-semibold mb-2">完成檢查表</h4>
+            <ul className="text-xs text-slate-700 flex flex-col gap-1">
+              <li>☐ <code className="bg-slate-100 px-1 rounded">apps/questionnaires/src/app/q/&lt;key&gt;/page.tsx</code> 存在</li>
+              <li>☐ Page 沒有改 PRODUCT_ID / KEY（兩個都是 auto-derive 的）</li>
+              <li>☐ <code className="bg-slate-100 px-1 rounded">git push origin staging</code> 成功</li>
+              <li>☐ GitHub Actions <code className="bg-slate-100 px-1 rounded">Staging Questionnaires CI/CD</code> 跑綠</li>
+              <li>☐ 從手機 LINE 開啟 LIFF URL 看得到自己的設計</li>
+            </ul>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }
