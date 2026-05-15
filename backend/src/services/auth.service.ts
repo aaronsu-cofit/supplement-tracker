@@ -203,15 +203,25 @@ export class AuthService {
 
   /**
    * LINE 用戶登入或註冊
-   * @param lineUserId - LINE 用戶 ID
-   * @param displayName - 用戶顯示名稱
-   * @param pictureUrl - 用戶頭像 URL
+   * @param accessToken - LIFF access token（由前端 liff.getAccessToken() 取得）
    * @returns 用戶對象和 JWT token
    */
-  async lineLogin(lineUserId: string, displayName?: string, pictureUrl?: string) {
-    if (!lineUserId) {
-      throw new UnauthorizedError('LINE user ID is required');
+  async lineLogin(accessToken: string) {
+    // Verify the token with LINE's API and get the canonical profile.
+    // This is the only way to confirm the token was issued by LINE for this app
+    // and that the userId in it hasn't been tampered with.
+    const lineRes = await fetch('https://api.line.me/v2/profile', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!lineRes.ok) {
+      throw new UnauthorizedError('Invalid LINE access token');
     }
+    const lineProfile = await lineRes.json() as {
+      userId: string;
+      displayName: string;
+      pictureUrl?: string;
+    };
+    const { userId: lineUserId, displayName, pictureUrl } = lineProfile;
 
     // 查詢或創建 LINE 用戶 - 使用 email 進行識別
     const lineEmail = `line_${lineUserId}@line.local`;
