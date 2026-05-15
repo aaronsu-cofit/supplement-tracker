@@ -437,9 +437,7 @@ export interface RegisterRequestBody {
 }
 
 export interface LineLoginRequestBody {
-  lineUserId: string;
-  displayName?: string;
-  pictureUrl?: string;
+  accessToken: string;
 }
 
 export interface TokenPayload {

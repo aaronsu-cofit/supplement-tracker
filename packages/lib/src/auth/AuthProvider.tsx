@@ -32,7 +32,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [user, setUser] = useState<any>(null);
   const [isSessionChecked, setIsSessionChecked] = useState(false);
   const [isLineLoginFinished, setIsLineLoginFinished] = useState(false);
-  const { profile, isInitialized: liffInitialized, isInLineClient } = useLiff();
+  const { liff, profile, isInitialized: liffInitialized, isInLineClient } = useLiff();
 
   // Check existing session on mount (reads auth_token cookie via backend)
   useEffect(() => {
@@ -59,13 +59,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     if (profile && profile.userId && !user) {
       const loginWithLine = async () => {
         try {
+          const accessToken = liff?.getAccessToken?.() ?? null;
+          if (!accessToken) {
+            console.error('LINE login failed: no access token available');
+            return;
+          }
           const res = await apiFetch('/api/auth/me', {
             method: 'POST',
-            body: JSON.stringify({
-              lineUserId: profile.userId,
-              displayName: profile.displayName,
-              pictureUrl: profile.pictureUrl,
-            }),
+            body: JSON.stringify({ accessToken }),
           });
           if (res.ok) {
             const data = await res.json();
