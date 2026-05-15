@@ -11,6 +11,11 @@
 import { apiFetch } from '@vitera/lib';
 import { useCallback, useEffect, useState } from 'react';
 import type { Questionnaire, QuestionnaireResponseRow } from '../../../types';
+import {
+  QUESTIONNAIRE_TEMPLATES,
+  CATEGORY_ORDER,
+  type QuestionnaireTemplate,
+} from './questionnaireTemplates';
 
 interface Props {
   productId: string;
@@ -473,6 +478,23 @@ function QuestionnaireEditor({ productId, existing, onClose, onSaved }: EditorPr
         </div>
       )}
 
+      {!existing && (
+        <TemplateLoader
+          onLoad={(t) => {
+            setForm({
+              key: t.template.key,
+              name: t.template.name,
+              description: t.template.description,
+              liff_url: '',
+              is_active: true,
+              spec_json: JSON.stringify(t.template.spec, null, 2),
+              actions_json: JSON.stringify(t.template.on_submit_actions, null, 2),
+            });
+            setStatus({ type: 'success', message: `已載入範本：${t.label}（記得改 key 避免衝突）` });
+          }}
+        />
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">key</label>
@@ -590,6 +612,74 @@ function QuestionnaireEditor({ productId, existing, onClose, onSaved }: EditorPr
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Template loader ───────────────────────────────────────────────────────
+// 10 ready-made examples in questionnaireTemplates.ts — picking one
+// fills the editor form with a complete spec + on_submit_actions, so
+// ops can inspect a working example for every calc_type / feature.
+//
+// Tags in pill form on hover tell ops which feature this template
+// demonstrates.
+
+function TemplateLoader({ onLoad }: { onLoad: (t: QuestionnaireTemplate) => void }) {
+  const [selectedId, setSelectedId] = useState('');
+  const selected = QUESTIONNAIRE_TEMPLATES.find((t) => t.id === selectedId);
+
+  return (
+    <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3 flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-semibold text-cyan-900">📋 從範本載入</span>
+        <span className="text-xs text-cyan-700">
+          {QUESTIONNAIRE_TEMPLATES.length} 種常見問卷，每個示範不同算分結構；挑一個來改最快
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <select
+          className="hq-input flex-1 text-sm"
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value)}
+        >
+          <option value="">— 選一個範本 —</option>
+          {CATEGORY_ORDER.map((category) => {
+            const inCategory = QUESTIONNAIRE_TEMPLATES.filter((t) => t.category === category);
+            if (inCategory.length === 0) return null;
+            return (
+              <optgroup key={category} label={category}>
+                {inCategory.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </optgroup>
+            );
+          })}
+        </select>
+        <button
+          onClick={() => selected && onLoad(selected)}
+          disabled={!selected}
+          className="text-sm px-3 py-1.5 rounded bg-cyan-600 text-white hover:bg-cyan-700 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          載入
+        </button>
+      </div>
+      {selected && (
+        <div className="flex flex-col gap-1 text-xs">
+          <p className="text-slate-700">{selected.description}</p>
+          <div className="flex items-center gap-1 flex-wrap">
+            {selected.feature_tags.map((tag) => (
+              <code
+                key={tag}
+                className="bg-white text-cyan-800 border border-cyan-200 px-1.5 py-0.5 rounded font-mono text-[10px]"
+              >
+                {tag}
+              </code>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
