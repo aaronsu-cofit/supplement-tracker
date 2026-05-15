@@ -151,32 +151,15 @@ jobs:
         echo "Target namespace: vitera"
 
     # ==================== 等待 ArgoCD 部署完成 ====================
-    # On first-time deploy the app object doesn't exist in ArgoCD yet —
-    # the root-app reconciles every ~3 min and creates it from the yaml
-    # we just pushed to K8s repo. ArgoCD returns PermissionDenied for
-    # non-existent apps (not 404), so we retry the sync until the app
-    # appears or we've waited 6 minutes.
     - name: Wait for ArgoCD rollout
       run: |
         curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
         chmod +x /usr/local/bin/argocd
 
-        for attempt in 1 2 3 4 5 6; do
-          if argocd app sync staging-vitera-questionnaires \
-            --auth-token ${{ secrets.ARGOCD_TOKEN }} \
-            --server ${{ secrets.ARGOCD_SERVER }} \
-            --grpc-web; then
-            echo "✅ Sync triggered (attempt $attempt)"
-            break
-          fi
-          if [ "$attempt" = "6" ]; then
-            echo "❌ Gave up after 6 attempts — root-app likely hasn't reconciled."
-            echo "   Check ArgoCD: kubectl -n argocd get application staging-vitera-questionnaires"
-            exit 1
-          fi
-          echo "⏳ App not registered yet (attempt $attempt/6) — waiting 60s for root-app..."
-          sleep 60
-        done
+        argocd app sync staging-vitera-questionnaires \
+          --auth-token ${{ secrets.ARGOCD_TOKEN }} \
+          --server ${{ secrets.ARGOCD_SERVER }} \
+          --grpc-web
 
         argocd app wait staging-vitera-questionnaires \
           --auth-token ${{ secrets.ARGOCD_TOKEN }} \
