@@ -26,11 +26,10 @@ env:
   # Build Args
   NEXT_PUBLIC_API_URL: https://vitera-api-staging.cofit.me
   NEXT_PUBLIC_LOGIN_URL: https://vitera-portal-staging.cofit.me/login
-  # TODO: register a LIFF in LINE Developers Console pointing at
-  # https://vitera-questionnaires-staging.cofit.me and paste the ID here.
   # One LIFF covers every questionnaire under this app — vibe-coded
-  # pages all live at /q/<key>.
-  NEXT_PUBLIC_LIFF_ID_QUESTIONNAIRES: ''
+  # pages all live at /q/<key>, opened via
+  # https://liff.line.me/<LIFF_ID>?path=/q/<key>
+  NEXT_PUBLIC_LIFF_ID_QUESTIONNAIRES: '2009369966-ZwZuOht2'
 
 concurrency:
   group: vitera-staging-gitops
