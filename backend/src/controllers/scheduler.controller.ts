@@ -32,11 +32,12 @@ export class SchedulerController extends BaseController {
    */
   async runScheduler() {
     try {
-      const query = this.request.query as { skip_menu_reeval?: string };
+      const query = this.request.query as { skip_menu_reeval?: string; time_slot?: string };
       const skipMenu = query.skip_menu_reeval === '1';
+      const timeSlot = (query.time_slot as import('../lib/scheduler.js').TimeSlot) || undefined;
 
-      this.logDebug('Running daily scheduler', { skipMenu });
-      const result = await this.schedulerService.runDailyCycle(skipMenu);
+      this.logDebug('Running daily scheduler', { skipMenu, timeSlot });
+      const result = await this.schedulerService.runDailyCycle(skipMenu, timeSlot);
 
       return result;
     } catch (error) {

@@ -35,9 +35,12 @@ export interface SchedulerRunResult {
   menuReeval?: MenuReevalResult;
 }
 
+export type TimeSlot = 'morning' | 'evening' | 'bedtime' | 'any';
+
 export interface DailyCycleOptions {
   now?: Date;
   includeMenuReeval?: boolean;
+  timeSlot?: TimeSlot;
 }
 
 export interface DryRunAction {
@@ -66,7 +69,7 @@ export interface DryRunResult {
  */
 export async function runDailyCycle(opts: DailyCycleOptions = {}): Promise<SchedulerRunResult> {
   const now = opts.now ?? new Date();
-  const result = await runScheduler(now);
+  const result = await runScheduler(now, opts.timeSlot);
   if (opts.includeMenuReeval !== false) {
     try {
       result.menuReeval = await evaluateAllActiveUsers();
@@ -85,7 +88,7 @@ export async function runDailyCycle(opts: DailyCycleOptions = {}): Promise<Sched
  * LINE — with per-call claim-first idempotency and retry on transient
  * errors.
  */
-export async function runScheduler(now: Date = new Date()): Promise<SchedulerRunResult> {
+export async function runScheduler(now: Date = new Date(), timeSlot?: TimeSlot): Promise<SchedulerRunResult> {
   // Determine which OAs to run for:
   // - If LINE_OA_ID env is set → single-OA mode (legacy)
   // - Otherwise → iterate every active OA in DB
@@ -117,7 +120,7 @@ export async function runScheduler(now: Date = new Date()): Promise<SchedulerRun
   const errors: string[] = [];
 
   for (const oaId of oaIds) {
-    const result = await runForOa(oaId, now);
+    const result = await runForOa(oaId, now, timeSlot);
     sent += result.sent;
     skipped += result.skipped;
     enrollmentsConsidered += result.enrollmentsConsidered;
@@ -127,7 +130,15 @@ export async function runScheduler(now: Date = new Date()): Promise<SchedulerRun
   return { sent, skipped, errors, enrollmentsConsidered };
 }
 
-async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
+function matchesTimeSlot(nodeSlot: string | undefined, requestSlot: TimeSlot | undefined): boolean {
+  // No slot filter requested → fire everything (backward compat).
+  if (!requestSlot || requestSlot === 'any') return true;
+  // Node has no slot (or 'any') → always fire regardless of requested slot.
+  if (!nodeSlot || nodeSlot === 'any') return true;
+  return nodeSlot === requestSlot;
+}
+
+async function runForOa(oaId: number, now: Date, timeSlot?: TimeSlot): Promise<SchedulerRunResult> {
   const oa = await getLineOAById(oaId.toString());
   if (!oa?.channel_access_token) {
     return {
@@ -159,7 +170,8 @@ async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
     const edges: FlowEdge[] = Array.isArray(enr.scenario.flow_edges)
       ? (enr.scenario.flow_edges as unknown as FlowEdge[]) : [];
 
-    const pushNodes = findPushNodesForDay(nodes, edges, daysSinceEnrollment);
+    const pushNodes = findPushNodesForDay(nodes, edges, daysSinceEnrollment)
+      .filter(n => matchesTimeSlot(n.data?.timeSlot, timeSlot));
     for (const pushNode of pushNodes) {
       // Resolve content_key reference: if the node points at a ContentItem
       // by key, fetch it at send time (so edits to the item flow through).
@@ -207,7 +219,8 @@ async function runForOa(oaId: number, now: Date): Promise<SchedulerRunResult> {
     // AI-generated push: ai-skill-nodes connected to this Day fire the
     // agent. The agent decides what to generate (using client_id for
     // memory); we just push its result text. Same claim-first idempotency.
-    const aiNodes = findAiSkillNodesForDay(nodes, edges, daysSinceEnrollment);
+    const aiNodes = findAiSkillNodesForDay(nodes, edges, daysSinceEnrollment)
+      .filter(n => matchesTimeSlot(n.data?.timeSlot, timeSlot));
     for (const aiNode of aiNodes) {
       const agentId = aiNode.data?.agentId;
       if (!agentId) continue;

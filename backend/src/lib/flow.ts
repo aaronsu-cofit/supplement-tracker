@@ -32,6 +32,9 @@ export interface FlowNode {
     // set-attribute-node
     attributeKey?: string;
     value?: string;
+    // push-message-node time slot: only fire when scheduler runs with matching slot.
+    // Omit or set to 'any' for backward-compatible always-fire behaviour.
+    timeSlot?: 'morning' | 'evening' | 'bedtime' | 'any';
   };
 }
 
