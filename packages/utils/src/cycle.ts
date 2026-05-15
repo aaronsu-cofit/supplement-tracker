@@ -672,13 +672,39 @@ export const calculateCycleInfo = (
   const dayInCycle = (adjustedDiffDays % cycleLen) + 1
   const actualDay = dayInCycle > 0 ? dayInCycle : cycleLen + dayInCycle
 
-  const phase = getPhaseForDay(actualDay, cycleLen, userData.periodDuration)
-  const phaseDay = getPhaseDay(phase, actualDay, cycleLen, userData.periodDuration)
+  // 動態計算實際經期長度
+  // 從 currentCycleStart 開始，掃描連續的經期標記
+  let actualDuration = userData.periodDuration // 預設值
+  let maxPeriodDay = 0
+
+  // 掃描從週期開始日往後的 14 天，找出實際的經期長度
+  for (let i = 0; i <= userData.periodDuration + 7; i++) {
+    const checkDate = addDaysToDate(currentCycleStart, i)
+    const dayLog = userData.dayData[formatDate(checkDate)] as { period?: boolean } | undefined
+
+    if (dayLog?.period === true) {
+      maxPeriodDay = i + 1 // 更新最後一個經期日（1-based）
+    } else if (maxPeriodDay > 0) {
+      // 如果已經找到經期日，但當前日不是經期，則停止掃描
+      // 這樣可以避免跨週期的問題
+      break
+    }
+  }
+
+  // 如果找到實際的經期標記，使用實際長度
+  if (maxPeriodDay > 0) {
+    actualDuration = maxPeriodDay
+  }
+
+  // 使用實際的經期長度來計算階段
+  const phase = getPhaseForDay(actualDay, cycleLen, actualDuration)
+  const phaseDay = getPhaseDay(phase, actualDay, cycleLen, actualDuration)
 
   const p = predictCycleDates(currentCycleStart, cycleLen, userData.periodDuration)
 
   let pbacTotal = 0
-  for (let i = 0; i < userData.periodDuration + 7; i++) {
+  // 使用實際經期長度 + 7 天來計算 PBAC
+  for (let i = 0; i < actualDuration + 7; i++) {
     const date = addDaysToDate(currentCycleStart, i)
     const key = formatDate(date)
     const log = userData.dayData[key] as
@@ -699,9 +725,9 @@ export const calculateCycleInfo = (
     nextPeriodDate: p.npDay,
     ovulationDate: p.ovDay,
     lastPeriodStart: userData.lastPeriodStart,
-    periodDuration: userData.periodDuration,
+    periodDuration: actualDuration,
     pbacTotal,
-    actualDuration: userData.periodDuration,
+    actualDuration, // 使用動態計算的實際經期長度
   }
 }
 
