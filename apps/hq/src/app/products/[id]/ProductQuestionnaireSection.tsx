@@ -50,6 +50,15 @@ const SPEC_PLACEHOLDER = JSON.stringify(
   2,
 );
 
+// Structured on_submit_actions. Saved to backend as a JSON array;
+// in the editor we keep them as a typed array of discriminated-union
+// rows so the visual editor doesn't have to parse JSON on every
+// keystroke.
+type SubmitAction =
+  | { type: 'set_attribute'; key: string; value: string }
+  | { type: 'assign_mission'; mission_key: string }
+  | { type: 'transition_journey'; journey_key: string; phase_key: string };
+
 interface EditorForm {
   key: string;
   name: string;
@@ -57,7 +66,7 @@ interface EditorForm {
   liff_url: string;
   is_active: boolean;
   spec_json: string;
-  actions_json: string;
+  actions: SubmitAction[];
 }
 
 const EMPTY: EditorForm = {
@@ -67,7 +76,7 @@ const EMPTY: EditorForm = {
   liff_url: '',
   is_active: true,
   spec_json: SPEC_PLACEHOLDER,
-  actions_json: '[]',
+  actions: [],
 };
 
 interface ParseResult {
@@ -82,6 +91,36 @@ function tryParseJson(raw: string): ParseResult {
   } catch (e) {
     return { value: null, error: (e as Error).message };
   }
+}
+
+// Loose parser: accepts whatever backend returns / template provides
+// and coerces into typed rows the editor can render. Unknown action
+// types are dropped (logged once for debugging).
+function parseActions(raw: unknown): SubmitAction[] {
+  if (!Array.isArray(raw)) return [];
+  const out: SubmitAction[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const a = item as Record<string, unknown>;
+    if (a.type === 'set_attribute') {
+      out.push({
+        type: 'set_attribute',
+        key: String(a.key ?? ''),
+        value: a.value == null ? '' : String(a.value),
+      });
+    } else if (a.type === 'assign_mission') {
+      out.push({ type: 'assign_mission', mission_key: String(a.mission_key ?? '') });
+    } else if (a.type === 'transition_journey') {
+      out.push({
+        type: 'transition_journey',
+        journey_key: String(a.journey_key ?? ''),
+        phase_key: String(a.phase_key ?? ''),
+      });
+    } else {
+      console.warn('[questionnaire] skipping unknown action type:', a.type);
+    }
+  }
+  return out;
 }
 
 // Single LIFF covers every questionnaire under apps/questionnaires;
@@ -379,7 +418,7 @@ function QuestionnaireEditor({ productId, existing, onClose, onSaved }: EditorPr
       liff_url: existing.liff_url ?? '',
       is_active: existing.is_active,
       spec_json: JSON.stringify(existing.spec ?? { question_sets: [] }, null, 2),
-      actions_json: JSON.stringify(existing.on_submit_actions ?? [], null, 2),
+      actions: parseActions(existing.on_submit_actions),
     };
   });
   const [saving, setSaving] = useState(false);
@@ -387,15 +426,10 @@ function QuestionnaireEditor({ productId, existing, onClose, onSaved }: EditorPr
   const [deleting, setDeleting] = useState(false);
 
   const specParse = tryParseJson(form.spec_json);
-  const actionsParse = tryParseJson(form.actions_json);
 
   const handleSave = async () => {
     if (specParse.error) {
       setStatus({ type: 'error', message: `Spec JSON 解析失敗：${specParse.error}` });
-      return;
-    }
-    if (actionsParse.error) {
-      setStatus({ type: 'error', message: `Actions JSON 解析失敗：${actionsParse.error}` });
       return;
     }
     setSaving(true);
@@ -407,7 +441,7 @@ function QuestionnaireEditor({ productId, existing, onClose, onSaved }: EditorPr
       liff_url: form.liff_url || null,
       is_active: form.is_active,
       spec: specParse.value,
-      on_submit_actions: actionsParse.value ?? [],
+      on_submit_actions: form.actions,
     };
 
     try {
@@ -488,7 +522,7 @@ function QuestionnaireEditor({ productId, existing, onClose, onSaved }: EditorPr
               liff_url: '',
               is_active: true,
               spec_json: JSON.stringify(t.template.spec, null, 2),
-              actions_json: JSON.stringify(t.template.on_submit_actions, null, 2),
+              actions: parseActions(t.template.on_submit_actions),
             });
             setStatus({ type: 'success', message: `已載入範本：${t.label}（記得改 key 避免衝突）` });
           }}
@@ -570,20 +604,16 @@ function QuestionnaireEditor({ productId, existing, onClose, onSaved }: EditorPr
       </div>
 
       <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">on_submit_actions (JSON)</label>
-          {actionsParse.error && (
-            <span className="text-xs text-red-600">⚠ {actionsParse.error}</span>
-          )}
-        </div>
-        <textarea
-          className="hq-input font-mono text-xs min-h-[100px]"
-          value={form.actions_json}
-          onChange={e => setForm({ ...form, actions_json: e.target.value })}
-          spellCheck={false}
+        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">送出後動作</label>
+        <ActionsEditor
+          value={form.actions}
+          onChange={(actions) => setForm({ ...form, actions })}
         />
         <p className="text-xs text-slate-500">
-          答完問卷後觸發：set_attribute / assign_mission / transition_journey。匿名提交時略過。
+          答完問卷後伺服器自動執行。匿名提交時略過。set_attribute 的 value 可以用
+          <code className="bg-slate-100 px-1 rounded font-mono">{'{{scores.<setKey>}}'}</code> 或
+          <code className="bg-slate-100 px-1 rounded font-mono">{'{{interpretation.<setKey>}}'}</code>
+          自動替換成計算結果。
         </p>
       </div>
 
@@ -605,13 +635,193 @@ function QuestionnaireEditor({ productId, existing, onClose, onSaved }: EditorPr
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || !!specParse.error || !!actionsParse.error}
+            disabled={saving || !!specParse.error}
             className="hq-btn-primary"
           >
             {saving ? '儲存中...' : '儲存'}
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Actions editor ────────────────────────────────────────────────────────
+// Visual editor for on_submit_actions. Each row is one action with a
+// type dropdown + the fields that type needs. Saves as a JSON array.
+//
+// Three action types — match SubmitAction discriminated union above.
+// Backend interpolates {{scores.x}} / {{interpretation.x}} in
+// set_attribute.value at run time (see questionnaire.service.ts).
+
+function ActionsEditor({
+  value,
+  onChange,
+}: {
+  value: SubmitAction[];
+  onChange: (actions: SubmitAction[]) => void;
+}) {
+  const update = (index: number, next: SubmitAction) => {
+    onChange(value.map((a, i) => (i === index ? next : a)));
+  };
+  const remove = (index: number) => onChange(value.filter((_, i) => i !== index));
+  const add = (type: SubmitAction['type']) => {
+    const blank: SubmitAction =
+      type === 'set_attribute'
+        ? { type: 'set_attribute', key: '', value: '' }
+        : type === 'assign_mission'
+          ? { type: 'assign_mission', mission_key: '' }
+          : { type: 'transition_journey', journey_key: '', phase_key: '' };
+    onChange([...value, blank]);
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      {value.length === 0 && (
+        <p className="text-xs text-slate-400 italic py-2">尚無動作。點下方按鈕新增。</p>
+      )}
+
+      {value.map((action, i) => (
+        <ActionRow
+          key={i}
+          index={i}
+          action={action}
+          onChange={(next) => update(i, next)}
+          onRemove={() => remove(i)}
+        />
+      ))}
+
+      <div className="flex items-center gap-2 flex-wrap pt-1">
+        <span className="text-xs text-slate-500">+ 新增動作：</span>
+        <button
+          type="button"
+          onClick={() => add('set_attribute')}
+          className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50"
+        >
+          📝 寫使用者屬性
+        </button>
+        <button
+          type="button"
+          onClick={() => add('assign_mission')}
+          className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50"
+        >
+          🎯 派任務
+        </button>
+        <button
+          type="button"
+          onClick={() => add('transition_journey')}
+          className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50"
+        >
+          🌊 切換 Journey 階段
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ActionRow({
+  index,
+  action,
+  onChange,
+  onRemove,
+}: {
+  index: number;
+  action: SubmitAction;
+  onChange: (next: SubmitAction) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="border border-slate-200 rounded-lg p-2.5 flex flex-col gap-2 bg-slate-50/50">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-500 font-mono">#{index + 1}</span>
+          <select
+            className="hq-input text-xs py-1 px-2"
+            value={action.type}
+            onChange={(e) => {
+              const newType = e.target.value as SubmitAction['type'];
+              if (newType === action.type) return;
+              // Switching type — start with a blank of the new shape
+              onChange(
+                newType === 'set_attribute'
+                  ? { type: 'set_attribute', key: '', value: '' }
+                  : newType === 'assign_mission'
+                    ? { type: 'assign_mission', mission_key: '' }
+                    : { type: 'transition_journey', journey_key: '', phase_key: '' },
+              );
+            }}
+          >
+            <option value="set_attribute">寫使用者屬性 (set_attribute)</option>
+            <option value="assign_mission">派任務 (assign_mission)</option>
+            <option value="transition_journey">切換 Journey 階段 (transition_journey)</option>
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="text-xs text-red-600 hover:bg-red-50 px-2 py-1 rounded"
+        >
+          ✕ 移除
+        </button>
+      </div>
+
+      {action.type === 'set_attribute' && (
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col gap-0.5">
+            <label className="text-[10px] text-slate-500 font-semibold uppercase">attribute key</label>
+            <input
+              className="hq-input text-xs py-1"
+              value={action.key}
+              onChange={(e) => onChange({ ...action, key: e.target.value })}
+              placeholder="如：anxiety_level"
+            />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-[10px] text-slate-500 font-semibold uppercase">value</label>
+            <input
+              className="hq-input text-xs py-1 font-mono"
+              value={action.value}
+              onChange={(e) => onChange({ ...action, value: e.target.value })}
+              placeholder="如：high 或 {{scores.phq9}}"
+            />
+          </div>
+        </div>
+      )}
+
+      {action.type === 'assign_mission' && (
+        <div className="flex flex-col gap-0.5">
+          <label className="text-[10px] text-slate-500 font-semibold uppercase">mission_key</label>
+          <input
+            className="hq-input text-xs py-1 font-mono"
+            value={action.mission_key}
+            onChange={(e) => onChange({ ...action, mission_key: e.target.value })}
+            placeholder="如：breathing_practice（必須是本 product 已存在的 mission key）"
+          />
+        </div>
+      )}
+
+      {action.type === 'transition_journey' && (
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col gap-0.5">
+            <label className="text-[10px] text-slate-500 font-semibold uppercase">journey_key</label>
+            <input
+              className="hq-input text-xs py-1 font-mono"
+              value={action.journey_key}
+              onChange={(e) => onChange({ ...action, journey_key: e.target.value })}
+              placeholder="如：wellness_path"
+            />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-[10px] text-slate-500 font-semibold uppercase">phase_key</label>
+            <input
+              className="hq-input text-xs py-1 font-mono"
+              value={action.phase_key}
+              onChange={(e) => onChange({ ...action, phase_key: e.target.value })}
+              placeholder="如：maintenance"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
