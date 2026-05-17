@@ -1,5 +1,7 @@
 # BaseController 使用指南
 
+Last updated: 2026-05-18
+
 ## 概述
 
 `BaseController` 是 Vitera 後端 MVC 架構的控制層基礎類。所有具體的控制器都應該繼承這個基類，以獲得統一的請求處理、驗證和響應能力。

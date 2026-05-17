@@ -4,7 +4,7 @@ How Vitera talks to LLMs. Two independent chains, different jobs, no shared stat
 
 ## A. AI Skill Platform (chat / ops-managed agents)
 
-Externally hosted FastAPI service (`ai-skill-platform-staging-*.run.app`). Each OA stores its own URL + API key + default agent. Wrapped by `backend/src/lib/adk.ts` — calls `POST <url>/run` with header `X-API-Key`.
+Externally hosted FastAPI service (`ai-skill-platform-staging-*.run.app`). Each OA stores its own URL + bearer token + default agent. Wrapped by `backend/src/lib/adk.ts` — calls `POST <url>/vitera/run` and `POST <url>/vitera/run_sse` with header `Authorization: Bearer <token>`.
 
 ```mermaid
 flowchart TD
@@ -12,7 +12,7 @@ flowchart TD
     classDef wrapper fill:#dbeafe,stroke:#2563eb,color:#000
     classDef caller fill:#e9d5ff,stroke:#7c3aed,color:#000
 
-    AISP[("AI Skill Platform<br/>(external Cloud Run)<br/>POST /run · POST /run_sse")]:::svc
+    AISP[("AI Skill Platform<br/>(external Cloud Run)<br/>POST /vitera/run · POST /vitera/run_sse")]:::svc
 
     adk["lib/adk.ts<br/>adkRun() / adkStream()"]:::wrapper
     fb["lib/llmFallback.ts<br/>runLlmFallback()<br/>+ writes unmatched_intents"]:::wrapper
@@ -68,7 +68,14 @@ sequenceDiagram
 
 ## B. Gemini direct (multimodal / structured extraction)
 
-`backend/src/lib/ai.ts` — calls `https://generativelanguage.googleapis.com/.../models/<model>:generateContent` with the global `GEMINI_API_KEY`. Multi-model fallback list inside (`gemini-3.1-flash-lite-preview` → `gemini-flash-latest`).
+`backend/src/lib/ai.ts` — calls `https://generativelanguage.googleapis.com/.../models/<model>:generateContent` with the global `GEMINI_API_KEY`. Multi-model fallback list (嘗試順序)：
+
+1. `gemini-3.1-flash-lite-preview`
+2. `gemini-3-flash-preview`
+3. `gemini-2.5-flash-lite`
+4. `gemini-2.5-flash`
+5. `gemini-flash-lite-latest`
+6. `gemini-flash-latest`
 
 ```mermaid
 flowchart TD
@@ -80,9 +87,9 @@ flowchart TD
 
     ai_lib["lib/ai.ts<br/>callGemini() · callGeminiText()<br/>parseGeminiJson()"]:::wrapper
 
-    analyze["routes/analyze.ts<br/>image analysis (food, wound, foot, …)"]:::caller
-    wounds["routes/wounds.ts<br/>SOAP note generation"]:::caller
-    women["routes/womenHealing.ts<br/>women's health Q&A + image"]:::caller
+    analyze["routes/analyze.routes.ts<br/>image analysis (supplement labels,<br/>wounds, foot, sexual health, shoe wear)"]:::caller
+    wounds["routes/wounds.routes.ts<br/>SOAP note generation (via service)"]:::caller
+    women["routes/womenHealing.routes.ts<br/>women's healing room Q&A + image"]:::caller
 
     analyze --> ai_lib --> GEMINI
     wounds --> ai_lib
@@ -114,7 +121,7 @@ Stored on `LineOA` row, edited at HQ → OA → Settings tab:
 | Column | Used by | Notes |
 |---|---|---|
 | `ai_skill_platform_url` | All Chain-A callers | OA-scoped — different products can point at different platforms |
-| `ai_skill_platform_api_key` | All Chain-A callers | Sent as `X-API-Key` header |
+| `ai_skill_platform_api_key` | All Chain-A callers | Pre-signed bearer token, sent as `Authorization: Bearer <token>` header |
 | `default_agent_id` | webhook fallback, lineoa test | Per-scenario `ai-skill-node` overrides this for its day window |
 
 Gemini chain (B) reads `GEMINI_API_KEY` from process env — not per-OA.

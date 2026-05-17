@@ -160,7 +160,7 @@ LIMIT 50;
 |---|---|---|
 | 用戶說的話沒人理 | webhook 沒部署 / OA 沒設 token / Platform URL 錯 | 進 Settings 按「↻ 測連線」 |
 | 「測連線」過、用戶問還是沒回 | runIntent 中了 rule 但 rule 設定錯（沒回應）／OA `product_id` 沒設 | 看 conversations tab 該訊息的 badge —— 是不是綠 🎯 但 reply 為空？ |
-| 大量「🤖 AI Fallback · 🐢 慢回應」 | platform agent 太慢 | platform 那邊優化 prompt / agent，或考慮拉長 fast-path window（[`webhook.ts:FAST_PATH_MS`](../../backend/src/routes/webhook.ts)） |
+| 大量「🤖 AI Fallback · 🐢 慢回應」 | platform agent 太慢 | platform 那邊優化 prompt / agent，或考慮拉長 fast-path window（[`webhook.routes.ts:FAST_PATH_MS`](../../backend/src/routes/webhook.routes.ts)） |
 | 大量「⚠ 錯誤」 | platform 不穩 / token 過期 | 查 `unmatched_intents.error` 訊息；token 過期就重產貼回 OA Settings |
 | 同一個問題反覆問 | 該升級成 Intent | 跑 §3.1 的 SQL，把高頻 message 變成新規則 |
 
@@ -169,5 +169,5 @@ LIMIT 50;
 ## 5. 部署注意
 
 - 改 OA Settings 的 token / URL → **立即生效**（每次 webhook 觸發都會從 DB 讀）
-- 改 `lib/adk.ts` / `lib/llmFallback.ts` / `routes/webhook.ts` → 需要 Cloud Run 部署生效
+- 改 `lib/adk.ts` / `lib/llmFallback.ts` / `routes/webhook.routes.ts` → 需要 Cloud Run 部署生效
 - migration `unmatched_intents` 表必須先 deploy（`prisma migrate deploy`），否則第一個 fallback 訊息會 crash
