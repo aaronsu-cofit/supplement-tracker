@@ -5,6 +5,7 @@
 - **Schema 定義檔**：`backend/prisma/schema.prisma`
 - **資料庫連線**：透過環境變數 `POSTGRES_URL` 注入
 - **ORM 實作**：`backend/src/lib/db.ts` (使用 PrismaClient)
+- **ER 圖**: 📊 [完整 ER 圖總覽](./er-diagrams.md) - 視覺化資料表關係
 
 ---
 
