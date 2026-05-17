@@ -762,7 +762,6 @@ body {
 }
 .cc.pred {
   background: rgba(255, 107, 129, 0.3);
-  border-left: 3px solid var(--pink);
 }
 .cc.pred .cc-num {
   color: var(--pink700);
