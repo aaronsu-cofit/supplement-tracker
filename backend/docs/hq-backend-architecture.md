@@ -2,7 +2,7 @@
 
 本文檔記錄 Vitera HQ（後台管理系統）的完整架構、功能、數據流和核心設計模式。
 
-Last updated: 2026-05-15
+Last updated: 2026-05-18
 
 ---
 
@@ -185,7 +185,7 @@ HQ Controller
 HQ Service
     └─ setUserAttributeWithHooks(userId, "life_stage", "新手")
         ↓
-lib/db.ts
+lib/missions.ts
 ├─ 1. 設置 user_attributes
 ├─ 2. 查詢監聽 life_stage 的任務
 │   └─ SELECT * FROM mission_templates WHERE auto_complete_on_attribute = { key: "life_stage" }

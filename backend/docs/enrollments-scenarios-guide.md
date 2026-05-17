@@ -2,7 +2,7 @@
 
 本文檔詳細說明 Enrollments 和 CoBlocksScenarios 表的設計、用途和整個工作流程。
 
-Last updated: 2026-05-15
+Last updated: 2026-05-18
 
 ---
 
@@ -479,7 +479,93 @@ async function findRuleMatch(
 }
 ```
 
-### 8.2 推播時序
+### 8.2 DAG 視覺化實例圖
+
+以下是 28 天女性療癒課程的完整有向無環圖（DAG）：
+
+```mermaid
+graph TB
+    subgraph "Day 0 - 用戶加入當天"
+        D0["📅 day-0<br/>Day 0 節點"]
+        P0["💬 push-welcome<br/>推送歡迎訊息<br/>contentKey: wh_welcome_msg"]
+        M0["✅ mission-pretest<br/>分配前測任務<br/>missionKey: wh_pretest"]
+    end
+
+    subgraph "Day 1 - 第一天提醒"
+        D1["📅 day-1<br/>Day 1 節點"]
+        P1["💬 push-d1-reminder<br/>每日任務提醒<br/>contentKey: wh_daily_task_reminder"]
+    end
+
+    subgraph "Day 7 - 第一週反饋"
+        D7["📅 day-7<br/>Day 7 節點"]
+        P7["💬 push-d7-feedback<br/>階段反饋 D7<br/>contentKey: stage_feedback_d7"]
+    end
+
+    subgraph "Day 14 - 第二週反饋"
+        D14["📅 day-14<br/>Day 14 節點"]
+        P14["💬 push-d14-feedback<br/>階段反饋 D14<br/>contentKey: stage_feedback_d14"]
+    end
+
+    subgraph "Day 21 - 第三週反饋"
+        D21["📅 day-21<br/>Day 21 節點"]
+        P21["💬 push-d21-feedback<br/>階段反饋 D21<br/>contentKey: stage_feedback_d21"]
+    end
+
+    subgraph "Day 28 - 課程完成"
+        D28["📅 day-28<br/>Day 28 節點"]
+        P28["💬 push-d28-completion<br/>完課卡片<br/>contentKey: completion_d28"]
+        ME28["🍔 menu-d28<br/>切換菜單<br/>menuName: Women Healing Completed"]
+    end
+
+    D0 -->|edge 1| P0
+    D0 -->|edge 2| M0
+
+    D1 -->|edge 3| P1
+
+    D7 -->|edge 4| P7
+
+    D14 -->|edge 5| P14
+
+    D21 -->|edge 6| P21
+
+    D28 -->|edge 7| P28
+    D28 -->|edge 8| ME28
+
+    style D0 fill:#e3f2fd
+    style D1 fill:#e3f2fd
+    style D7 fill:#e3f2fd
+    style D14 fill:#e3f2fd
+    style D21 fill:#e3f2fd
+    style D28 fill:#e3f2fd
+
+    style P0 fill:#fff3e0
+    style P1 fill:#fff3e0
+    style P7 fill:#fff3e0
+    style P14 fill:#fff3e0
+    style P21 fill:#fff3e0
+    style P28 fill:#fff3e0
+
+    style M0 fill:#e8f5e9
+    style ME28 fill:#f3e5f5
+```
+
+**圖例說明：**
+
+- 📅 **藍色框** = Day Node（時序錨點）
+- 💬 **橘色框** = Push Message Node（推送訊息）
+- ✅ **綠色框** = Mission Assign Node（任務分配）
+- 🍔 **紫色框** = Menu Change Node（菜單切換）
+
+**執行流程：**
+
+1. **Scheduler 每天午夜執行**
+2. **計算 `daysSinceEnrollment`**（例如：用戶加入第 7 天）
+3. **找到對應的 Day Node**（例如：`day-7`）
+4. **查找所有從該 Day Node 出發的 edges**（例如：`{ source: "day-7", target: "push-d7-feedback" }`）
+5. **依序執行所有 target 節點**（例如：推送「D7 階段反饋」訊息）
+6. **冪等性檢查**：每個節點執行前會檢查 `message_deliveries` 表，確保不重複執行
+
+### 8.3 推播時序
 
 ```
 Day 0 (用戶加入當日)

@@ -4,7 +4,7 @@ Cross-table conventions for the Vitera Prisma schema. If you're adding
 a column or table that touches users, products, or "is the row alive?",
 read the relevant section first.
 
-Last updated: 2026-05-08 (after the Phase 1/2 DB review fixes).
+Last updated: 2026-05-18 (after the Phase 1/2 DB review fixes).
 
 ---
 
