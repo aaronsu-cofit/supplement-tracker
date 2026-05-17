@@ -220,14 +220,22 @@ export class CycleService {
     const { periodDuration, cycleLen, lastPeriodStart } = payload
 
     return await this.prisma.$transaction(async (tx: any) => {
-      // Update cycle settings
-      await tx.menstrualCycle.update({
-        where: { user_id: userId },
-        data: {
-          period_length: periodDuration,
-          cycle_length: cycleLen,
-        },
-      })
+      // Update cycle settings - 只更新有提供的欄位
+      const updateData: any = {}
+      if (periodDuration !== undefined) {
+        updateData.period_length = periodDuration
+      }
+      if (cycleLen !== undefined) {
+        updateData.cycle_length = cycleLen
+      }
+
+      // 只有在有欄位需要更新時才執行 update
+      if (Object.keys(updateData).length > 0) {
+        await tx.menstrualCycle.update({
+          where: { user_id: userId },
+          data: updateData,
+        })
+      }
 
       // If lastPeriodStart is null, delete all periods for this user
       // (This represents clearing all period records)
