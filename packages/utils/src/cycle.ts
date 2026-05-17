@@ -496,7 +496,8 @@ export const getCalendarDateStatus = (
   const dOnly = getDateOnly(date)
   if (dOnly === getDateOnly(p.ovDay)) return ' ovulation-day'
   if (dOnly >= getDateOnly(p.fsDay) && dOnly <= getDateOnly(p.feDay)) return ' ovulation-period'
-  if (dOnly === getDateOnly(p.npDay)) return ' pred'
+  // 預測經期範圍：從 npDay 開始到 npEndDay（包含完整的 periodDuration 天數）
+  if (dOnly >= getDateOnly(p.npDay) && dOnly <= getDateOnly(p.npEndDay)) return ' pred'
 
   return ''
 }
