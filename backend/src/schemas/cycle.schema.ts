@@ -128,7 +128,6 @@ export const saveDailyLogSchema = {
 export const updateCycleSettingsSchema = {
   body: {
     type: 'object',
-    required: ['periodDuration', 'cycleLen'],
     properties: {
       periodDuration: {
         type: 'number',
