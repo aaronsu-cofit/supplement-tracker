@@ -7,67 +7,42 @@ import { liffManager } from './liff-utils'
 import type { AuthResponse } from './types'
 
 /**
- * 從 LIFF SDK 取得用戶信息並進行後端登入
+ * 從 LIFF SDK 取得 access token 並進行後端登入
  *
  * 流程：
- * 1. 從 LIFF SDK 的 getProfile() 取得用戶信息（userId, displayName, pictureUrl）
- * 2. 驗證 userId 是否存在
- * 3. 發送 POST /api/auth/me 請求到後端
- * 4. 後端驗證 userId 並創建用戶（如需要）
- * 5. 後端通過 Set-Cookie header 設置 httpOnly cookie（auth_token）
- * 6. 瀏覽器自動存儲並在後續請求中攜帶此 cookie
+ * 1. 透過 liff.getAccessToken() 取得 LIFF access token
+ * 2. 發送 POST /api/auth/me 請求到後端（帶 accessToken）
+ * 3. 後端向 LINE API 驗證 token，取得真實 userId / displayName / pictureUrl
+ * 4. 後端建立或更新用戶，透過 Set-Cookie 設置 httpOnly auth_token
  *
  * @returns AuthResponse - 包含認證狀態和用戶信息
- * @throws Error - 如果 LIFF 不可用、profile 獲取失敗或登入失敗
+ * @throws Error - 如果 LIFF 不可用、token 取得失敗或登入失敗
  */
 export async function handleLiffLogin(): Promise<AuthResponse> {
   const liff = await liffManager.load()
 
-  // 取得 profile
-  const profile = await liff.getProfile()
-
-  const lineUserId = profile?.userId
-  const displayName = profile?.displayName
-  const pictureUrl = profile?.pictureUrl
-
-  if (!lineUserId) {
-    throw new Error(
-      `LIFF profile missing userId. Profile: ${JSON.stringify(profile)}`
-    )
+  const accessToken = liff.getAccessToken()
+  if (!accessToken) {
+    throw new Error('LIFF access token unavailable — user may not be logged in')
   }
 
-  // 使用 LIFF 用戶信息登入後端
-  return loginWithLine(lineUserId, displayName, pictureUrl)
+  return loginWithLine(accessToken)
 }
 
 /**
- * LINE LIFF 登入
+ * LINE LIFF 登入（帶 access token）
  *
- * 流程：
- * 1. 從 LINE LIFF 上下文獲取用戶信息（lineUserId, displayName, pictureUrl）
- * 2. 發送 POST /api/auth/me 請求到後端
- * 3. 後端驗證 lineUserId 並創建用戶（如需要）
- * 4. 後端通過 Set-Cookie header 設置 httpOnly cookie（auth_token）
- * 5. 瀏覽器自動存儲並在後續請求中攜帶此 cookie
+ * 發送 accessToken 給後端，由後端向 LINE API 驗證並取得真實用戶資料。
+ * 避免客戶端直接傳入 lineUserId 造成的身份偽造風險。
  *
- * @param lineUserId - LINE 用戶 ID
- * @param displayName - LINE 用戶顯示名稱
- * @param pictureUrl - LINE 用戶頭像 URL
+ * @param accessToken - liff.getAccessToken() 取得的 token
  * @returns AuthResponse - 包含認證狀態和用戶信息
  * @throws Error - 如果登入失敗
  */
-export async function loginWithLine(
-  lineUserId: string,
-  displayName?: string,
-  pictureUrl?: string
-): Promise<AuthResponse> {
+export async function loginWithLine(accessToken: string): Promise<AuthResponse> {
   const response = await apiFetch('/api/auth/me', {
     method: 'POST',
-    body: JSON.stringify({
-      lineUserId,
-      displayName,
-      pictureUrl,
-    }),
+    body: JSON.stringify({ accessToken }),
   })
   if (!response.ok) {
     throw new Error(`POST /api/auth/me failed with status ${response.status}`)

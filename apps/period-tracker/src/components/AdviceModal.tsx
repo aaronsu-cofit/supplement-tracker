@@ -1,5 +1,5 @@
 import React from 'react'
-import { PHASE_HINTS, DAILY_DETAIL } from '../constants'
+import { PHASE_HINTS, MENSTRUATION_DAILY, FOLLICULAR_DAILY, FERTILE_WINDOW_DAILY, LUTEAL_DAILY } from '../constants'
 
 const ADVICE_ICONS = {
   energy: (
@@ -52,7 +52,6 @@ interface AdviceModalProps {
   isOpen: boolean
   onClose: () => void
   phase: string
-  cycleDay: number
   phaseDay: number
 }
 
@@ -60,21 +59,30 @@ export const AdviceModal: React.FC<AdviceModalProps> = ({
   isOpen,
   onClose,
   phase,
-  cycleDay,
   phaseDay,
 }) => {
   if (!isOpen) return null
 
   const hint = PHASE_HINTS[phase] || PHASE_HINTS['經期']
-  const daily = DAILY_DETAIL[cycleDay] || null
 
-  const rows = daily
+  // 根據 phase 選擇對應的每日指南
+  const dailyGuides: Record<string, Record<number, any>> = {
+    經期: MENSTRUATION_DAILY,
+    濾泡期: FOLLICULAR_DAILY,
+    易孕期: FERTILE_WINDOW_DAILY,
+    黃體期: LUTEAL_DAILY,
+  }
+
+  const dailyContent = dailyGuides[phase]?.[phaseDay]
+
+  // 顯示每日詳細建議
+  const rows = dailyContent
     ? [
-        { icon: ADVICE_ICONS.energy, lbl: '能量狀態', val: daily.energy },
-        { icon: ADVICE_ICONS.body, lbl: '身體提醒', val: daily.body },
-        { icon: ADVICE_ICONS.mood, lbl: '心情氣象', val: daily.mood },
-        { icon: ADVICE_ICONS.fuel, lbl: '給身體的燃料', val: daily.fuel },
-        { icon: ADVICE_ICONS.move, lbl: '今日律動', val: daily.move },
+        { icon: ADVICE_ICONS.energy, lbl: '能量狀態', val: dailyContent.energy },
+        { icon: ADVICE_ICONS.body, lbl: '身體提醒', val: dailyContent.body },
+        { icon: ADVICE_ICONS.mood, lbl: '情緒狀況', val: dailyContent.mood },
+        { icon: ADVICE_ICONS.fuel, lbl: '營養建議', val: dailyContent.fuel },
+        { icon: ADVICE_ICONS.move, lbl: '運動建議', val: dailyContent.move },
       ]
     : [
         { icon: ADVICE_ICONS.body, lbl: '身體特性', val: hint.body },
@@ -93,9 +101,6 @@ export const AdviceModal: React.FC<AdviceModalProps> = ({
             <span style={{ fontSize: 'var(--fs-xl)', fontWeight: 700, color: hint.textC }}>
               {phase}第{phaseDay}天
             </span>
-            <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--t3)', fontWeight: 400 }}>
-              。週期第{cycleDay}天
-            </span>
           </div>
           <div
             style={{
@@ -104,7 +109,7 @@ export const AdviceModal: React.FC<AdviceModalProps> = ({
               color: hint.textC,
               marginBottom: '16px',
             }}
-          >
+          > 
             今日身體說明書
           </div>
         </div>
@@ -127,7 +132,7 @@ export const AdviceModal: React.FC<AdviceModalProps> = ({
           ))}
         </div>
 
-        {daily && (
+        {dailyContent && (
           <div
             className="advice-summary-box"
             style={{ background: hint.bg, border: `1px solid ${hint.border}` }}
@@ -136,7 +141,7 @@ export const AdviceModal: React.FC<AdviceModalProps> = ({
               小總結
             </div>
             <div className="advice-summary-text" style={{ color: hint.textC }}>
-              {daily.summary}
+              {dailyContent.summary}
             </div>
           </div>
         )}

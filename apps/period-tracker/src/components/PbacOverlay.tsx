@@ -31,7 +31,7 @@ export const PbacOverlay: React.FC<PbacOverlayProps> = ({
 
   if (!isOpen) return null
 
-  const isWarn = clot === 'large' || (clot === 'small' && cycleDay > 2)
+  const isWarn = clot === 'large' || (clot === 'small' && cycleDay >= 3)
 
   const todayScore = dayLogs.reduce((s, l) => {
     const lvScore = l.level === 'light' ? 1 : l.level === 'medium' ? 5 : 20
@@ -122,7 +122,7 @@ export const PbacOverlay: React.FC<PbacOverlayProps> = ({
           <div className="clot-row">
             {CLOT_TYPES.map((ct) => {
               const isSelected = clot === ct.id
-              const shouldWarn = ct.id === 'large' || (ct.id === 'small' && cycleDay > 2)
+              const shouldWarn = ct.id === 'large' || (ct.id === 'small' && cycleDay >= 3)
               const cls = isSelected
                 ? shouldWarn
                   ? 'clot-btn warn-on'

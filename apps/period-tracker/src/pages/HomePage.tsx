@@ -15,6 +15,7 @@ import { AdviceModal } from '../components/AdviceModal'
 import { CancelPeriodModal } from '../components/CancelPeriodModal'
 import { PbacOverlay } from '../components/PbacOverlay'
 import { TutorialOverlay } from '../components/TutorialOverlay'
+import { PbacTutorialOverlay } from '../components/PbacTutorialOverlay'
 import { SettingsIcon } from '../components/SettingsIcon'
 import { OnboardingView } from '../components/OnboardingView'
 import { InitView } from '../components/InitView'
@@ -61,6 +62,7 @@ export function HomePage() {
   const [showAdviceModal, setShowAdviceModal] = useState(false)
   const [showPbacOverlay, setShowPbacOverlay] = useState(false)
   const [showPbacInfo, setShowPbacInfo] = useState(false)
+  const [showPbacTutorial, setShowPbacTutorial] = useState(false)
   const [cancelModal, setCancelModal] = useState<{
     isOpen: boolean
     mode: 'first-day' | 'middle-day'
@@ -117,7 +119,7 @@ export function HomePage() {
   const cycleDay = cycleInfo?.cycleDay || 1
   const phaseDay = cycleInfo?.phaseDay || 1
   const phaseInfo = PHASE_HINTS[phase]
-  const dailyAdviceSummary = PHASE_HINTS[phase]?.dailyDesc?.[cycleDay] || ''
+  const dailyAdviceSummary = PHASE_HINTS[phase]?.dailyDesc?.[phaseDay] || ''
 
   const selectedDayInfo = useMemo(
     () =>
@@ -148,6 +150,7 @@ export function HomePage() {
       prevPeriodStateRef.current = currentIsPeriod
     }
   }, [userData.dayData, hasUserSelectedDate, selectedDate, cancelModal.isOpen])
+
 
   // --- Handlers ---
   const handleOnboardingFinish = async (data: {
@@ -319,6 +322,7 @@ export function HomePage() {
                       onTogglePeriod={togglePeriod}
                       onSaveDaily={handleSaveDaily}
                       onShowPbacInfo={() => setShowPbacInfo(true)}
+                      onShowPbacTutorial={() => setShowPbacTutorial(true)}
                       onClose={() => {
                         setSelectedDate(null)
                         setHasUserSelectedDate(false)
@@ -364,7 +368,6 @@ export function HomePage() {
         isOpen={showAdviceModal}
         onClose={() => setShowAdviceModal(false)}
         phase={phase}
-        cycleDay={cycleDay}
         phaseDay={phaseDay}
       />
       <PbacOverlay
@@ -412,6 +415,10 @@ export function HomePage() {
           setTutorialStep(0)
           localStorage.setItem('tutorial_done', 'true')
         }}
+      />
+      <PbacTutorialOverlay
+        isOpen={showPbacTutorial}
+        onClose={() => setShowPbacTutorial(false)}
       />
     </div>
   )

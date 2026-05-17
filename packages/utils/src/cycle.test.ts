@@ -19,13 +19,13 @@ describe('cycle utilities', () => {
       expect(getPhaseForDay(5, cycleLen, periodDuration)).toBe('經期')
     })
 
-    it('should identify 排卵期 correctly (Day 9-15 per PRD)', () => {
+    it('should identify 易孕期 correctly (Day 9-15 per PRD)', () => {
       // In 28-day cycle, ovulation start offset is 19 -> Day 9
       // Ovulation end offset is 13 -> Day 15
-      // Per PRD: 排卵期 = cyc - 19 ~ cyc - 13
-      expect(getPhaseForDay(9, cycleLen, periodDuration)).toBe('排卵期')
-      expect(getPhaseForDay(14, cycleLen, periodDuration)).toBe('排卵期')
-      expect(getPhaseForDay(15, cycleLen, periodDuration)).toBe('排卵期')
+      // Per PRD: 易孕期 = cyc - 19 ~ cyc - 13
+      expect(getPhaseForDay(9, cycleLen, periodDuration)).toBe('易孕期')
+      expect(getPhaseForDay(14, cycleLen, periodDuration)).toBe('易孕期')
+      expect(getPhaseForDay(15, cycleLen, periodDuration)).toBe('易孕期')
     })
 
     it('should identify 黃體期 correctly (after ovulation)', () => {
@@ -34,7 +34,7 @@ describe('cycle utilities', () => {
     })
 
     it('should identify 濾泡期 correctly (Day 6-8, before ovulation)', () => {
-      // 濾泡期是排卵期前的階段，第 6-8 天
+      // 濾泡期是易孕期前的階段，第 6-8 天
       expect(getPhaseForDay(6, cycleLen, periodDuration)).toBe('濾泡期')
       expect(getPhaseForDay(8, cycleLen, periodDuration)).toBe('濾泡期')
     })
@@ -53,11 +53,11 @@ describe('cycle utilities', () => {
       expect(getPhaseDay('濾泡期', 6, cycleLen, periodDuration)).toBe(1)
     })
 
-    it('should calculate 排卵期 day correctly', () => {
+    it('should calculate 易孕期 day correctly', () => {
       // Base is 19. cycleLen - 19 = 9. Day 9 is day 1.
-      expect(getPhaseDay('排卵期', 9, cycleLen, periodDuration)).toBe(1)
-      expect(getPhaseDay('排卵期', 14, cycleLen, periodDuration)).toBe(5) // 14 - 9 = 5
-      expect(getPhaseDay('排卵期', 15, cycleLen, periodDuration)).toBe(6) // 15 - 9 = 6
+      expect(getPhaseDay('易孕期', 9, cycleLen, periodDuration)).toBe(1)
+      expect(getPhaseDay('易孕期', 14, cycleLen, periodDuration)).toBe(5) // 14 - 9 = 5
+      expect(getPhaseDay('易孕期', 15, cycleLen, periodDuration)).toBe(6) // 15 - 9 = 6
     })
 
     it('should calculate 黃體期 day correctly', () => {
@@ -115,8 +115,8 @@ describe('cycle utilities', () => {
       expect(info).not.toBeNull()
       if (info) {
         expect(info.cycleDay).toBe(10)
-        // Day 10 is now in 排卵期 (Day 9-15 per PRD)
-        expect(info.phase).toBe('排卵期')
+        // Day 10 is now in 易孕期 (Day 9-15 per PRD)
+        expect(info.phase).toBe('易孕期')
         expect(info.pbacTotal).toBe(6)
         expect(info.daysToNext).toBe(19) // 28 - 9
       }
@@ -154,8 +154,8 @@ describe('cycle utilities', () => {
         // 在沒有新經期標記的情況下，應該仍然在第一個週期中
         // dayInCycle = (42 % 28) + 1 = 15
         expect(info.cycleDay).toBe(15)
-        // 第15天應該是排卵期
-        expect(info.phase).toBe('排卵期')
+        // 第15天應該是易孕期
+        expect(info.phase).toBe('易孕期')
         // 下次經期應該在 5月3日（距離42天的起點 28 天）
         // 5月3日距離今天(5月17日)= 14 天前 = -14 天
         expect(info.daysToNext).toBe(-14)
@@ -196,8 +196,8 @@ describe('cycle utilities', () => {
         // 5月17日距離5月3日 = 14天
         // dayInCycle = (14 % 28) + 1 = 15
         expect(info.cycleDay).toBe(15)
-        // 第15天應該是排卵期
-        expect(info.phase).toBe('排卵期')
+        // 第15天應該是易孕期
+        expect(info.phase).toBe('易孕期')
         // 下次經期應該在 5月31日（5月3日 + 28天）
         // 5月31日距離今天(5月17日)= 14 天
         expect(info.daysToNext).toBe(14)

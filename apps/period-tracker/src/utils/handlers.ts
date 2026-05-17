@@ -1,5 +1,5 @@
 import { UserData, DayLog, PbacLog } from '../types'
-import { saveDailyLog, getCycleData } from '../api/client'
+import { saveDailyLog, getCycleData, updateSettings } from '../api/client'
 import {
   getPeriodAction,
   calculatePeriodUpdate,
@@ -157,12 +157,18 @@ export const performPeriodToggle = async (
   options.onUpdateUserData(newUserData)
 
   try {
-    // 同步變更至後端資料庫
-    await syncPeriodChanges(result.keysToUpdate, newDayData, newUserData, {
-      updateLastStart: options.updateLastStart,
-      newCycleLen: options.newCycleLen,
-      clearEntireCycle: options.clearEntireCycle,
-    })
+    // 同步日誌變更至後端
+    await syncPeriodChanges(result.keysToUpdate, newDayData)
+
+    // 同步設定變更至後端（只在 lastPeriodStart 有變化時更新）
+    const lastPeriodStartChanged =
+      JSON.stringify(newUserData.lastPeriodStart) !== JSON.stringify(userData.lastPeriodStart)
+
+    if (lastPeriodStartChanged) {
+      await updateSettings({
+        lastPeriodStart: newUserData.lastPeriodStart,
+      })
+    }
 
     // 如果清除了整個週期，重新獲取後端資料以確保前後端同步
     if (options.clearEntireCycle) {

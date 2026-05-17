@@ -11,6 +11,11 @@
 import { apiFetch } from '@vitera/lib';
 import { useCallback, useEffect, useState } from 'react';
 import type { Questionnaire, QuestionnaireResponseRow } from '../../../types';
+import {
+  QUESTIONNAIRE_TEMPLATES,
+  CATEGORY_ORDER,
+  type QuestionnaireTemplate,
+} from './questionnaireTemplates';
 
 interface Props {
   productId: string;
@@ -45,6 +50,15 @@ const SPEC_PLACEHOLDER = JSON.stringify(
   2,
 );
 
+// Structured on_submit_actions. Saved to backend as a JSON array;
+// in the editor we keep them as a typed array of discriminated-union
+// rows so the visual editor doesn't have to parse JSON on every
+// keystroke.
+type SubmitAction =
+  | { type: 'set_attribute'; key: string; value: string }
+  | { type: 'assign_mission'; mission_key: string }
+  | { type: 'transition_journey'; journey_key: string; phase_key: string };
+
 interface EditorForm {
   key: string;
   name: string;
@@ -52,7 +66,7 @@ interface EditorForm {
   liff_url: string;
   is_active: boolean;
   spec_json: string;
-  actions_json: string;
+  actions: SubmitAction[];
 }
 
 const EMPTY: EditorForm = {
@@ -62,7 +76,7 @@ const EMPTY: EditorForm = {
   liff_url: '',
   is_active: true,
   spec_json: SPEC_PLACEHOLDER,
-  actions_json: '[]',
+  actions: [],
 };
 
 interface ParseResult {
@@ -79,6 +93,47 @@ function tryParseJson(raw: string): ParseResult {
   }
 }
 
+// Loose parser: accepts whatever backend returns / template provides
+// and coerces into typed rows the editor can render. Unknown action
+// types are dropped (logged once for debugging).
+function parseActions(raw: unknown): SubmitAction[] {
+  if (!Array.isArray(raw)) return [];
+  const out: SubmitAction[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const a = item as Record<string, unknown>;
+    if (a.type === 'set_attribute') {
+      out.push({
+        type: 'set_attribute',
+        key: String(a.key ?? ''),
+        value: a.value == null ? '' : String(a.value),
+      });
+    } else if (a.type === 'assign_mission') {
+      out.push({ type: 'assign_mission', mission_key: String(a.mission_key ?? '') });
+    } else if (a.type === 'transition_journey') {
+      out.push({
+        type: 'transition_journey',
+        journey_key: String(a.journey_key ?? ''),
+        phase_key: String(a.phase_key ?? ''),
+      });
+    } else {
+      console.warn('[questionnaire] skipping unknown action type:', a.type);
+    }
+  }
+  return out;
+}
+
+// Single LIFF covers every questionnaire under apps/questionnaires;
+// each questionnaire is reached by ?path + ?product. Override per-env
+// via NEXT_PUBLIC_QUESTIONNAIRES_LIFF_ID at build time; default below
+// is the current staging LIFF.
+const QUESTIONNAIRES_LIFF_ID =
+  process.env.NEXT_PUBLIC_QUESTIONNAIRES_LIFF_ID || '2009369966-ZwZuOht2';
+
+function buildLiffUrl(productId: string, key: string): string {
+  return `https://liff.line.me/${QUESTIONNAIRES_LIFF_ID}?path=/q/${key}&product=${productId}`;
+}
+
 export default function ProductQuestionnaireSection({ productId }: Props) {
   const [items, setItems] = useState<Questionnaire[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +141,15 @@ export default function ProductQuestionnaireSection({ productId }: Props) {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [viewingResponsesKey, setViewingResponsesKey] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const copyUrl = (key: string, url: string) => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey((current) => (current === key ? null : current)), 1500);
+    });
+  };
 
   const load = useCallback(() => {
     setLoading(true);
@@ -115,65 +179,97 @@ export default function ProductQuestionnaireSection({ productId }: Props) {
       <div className="hq-card flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-lg">問卷（{items.length}）</h3>
-          <button onClick={() => setCreating(true)} className="hq-btn-primary text-sm">
-            + 新增問卷
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setHelpOpen(true)}
+              className="text-sm px-3 py-1.5 rounded border border-slate-300 hover:bg-slate-50"
+            >
+              📘 怎麼建頁面
+            </button>
+            <button onClick={() => setCreating(true)} className="hq-btn-primary text-sm">
+              + 新增問卷
+            </button>
+          </div>
         </div>
         <p className="text-xs text-slate-500">
-          每個問卷對應一個 LIFF 頁面（由 vibe-coded frontend 渲染）。Spec 是題目結構 + 算分規則。
+          建好後，把下方的 LIFF URL 給 ops 貼到 rich menu / scenario / intent rule。
+          Vibe coder 拿到指引（點「怎麼建頁面」）就可以著手做 UI。
         </p>
 
         {items.length === 0 ? (
           <p className="text-sm text-slate-500 py-4">尚無問卷。點「+ 新增問卷」開始建立。</p>
         ) : (
-          <ul className="flex flex-col gap-1">
-            {items.map(q => (
-              <li
-                key={q.id}
-                className="flex items-center justify-between border-b border-slate-100 last:border-0 py-2 gap-2 text-sm"
-              >
-                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium truncate">{q.name}</span>
-                    <code className="text-xs text-slate-500 font-mono">{q.key}</code>
-                    <span
-                      className={`hq-badge ${
-                        q.is_active ? 'hq-badge-green' : 'hq-badge-gray'
-                      } shrink-0`}
-                    >
-                      {q.is_active ? '啟用' : '停用'}
-                    </span>
-                    {q.liff_url && (
-                      <a
-                        href={q.liff_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-cyan-700 hover:underline shrink-0"
+          <ul className="flex flex-col gap-2">
+            {items.map(q => {
+              const url = buildLiffUrl(productId, q.key);
+              const copied = copiedKey === q.key;
+              return (
+                <li
+                  key={q.id}
+                  className="border border-slate-200 rounded-lg p-3 flex flex-col gap-2 text-sm"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium truncate">{q.name}</span>
+                        <code className="text-xs text-slate-500 font-mono">{q.key}</code>
+                        <span
+                          className={`hq-badge ${
+                            q.is_active ? 'hq-badge-green' : 'hq-badge-gray'
+                          } shrink-0`}
+                        >
+                          {q.is_active ? '啟用' : '停用'}
+                        </span>
+                      </div>
+                      {q.description && (
+                        <p className="text-xs text-slate-500 line-clamp-1">{q.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => setViewingResponsesKey(q.key)}
+                        className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50"
                       >
-                        LIFF ↗
-                      </a>
-                    )}
+                        📊 回應
+                      </button>
+                      <button
+                        onClick={() => setEditingKey(q.key)}
+                        className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50"
+                      >
+                        編輯
+                      </button>
+                    </div>
                   </div>
-                  {q.description && (
-                    <p className="text-xs text-slate-500 line-clamp-1">{q.description}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => setViewingResponsesKey(q.key)}
-                    className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50"
-                  >
-                    📊 回應
-                  </button>
-                  <button
-                    onClick={() => setEditingKey(q.key)}
-                    className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50"
-                  >
-                    編輯
-                  </button>
-                </div>
-              </li>
-            ))}
+                  {/* Canonical LIFF URL — what ops pastes into rich menu /
+                      scenario / intent rules. productId baked in so the
+                      vibe-coded page doesn't need to know it. */}
+                  <div className="flex items-center gap-2 bg-slate-50 rounded px-2 py-1.5">
+                    <code className="text-xs text-slate-700 font-mono truncate flex-1" title={url}>
+                      {url}
+                    </code>
+                    <button
+                      onClick={() => copyUrl(q.key, url)}
+                      className={`text-xs px-2 py-1 rounded border shrink-0 transition-colors ${
+                        copied
+                          ? 'border-green-400 bg-green-50 text-green-700'
+                          : 'border-slate-300 hover:bg-white'
+                      }`}
+                    >
+                      {copied ? '✓ 已複製' : '📋 複製'}
+                    </button>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-white shrink-0"
+                      title="在 LINE 上開啟（電腦會跳到 LINE 加入頁）"
+                    >
+                      ↗ 開啟
+                    </a>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -201,6 +297,104 @@ export default function ProductQuestionnaireSection({ productId }: Props) {
           onClose={() => setViewingResponsesKey(null)}
         />
       )}
+
+      {helpOpen && <VibeCoderHelpModal onClose={() => setHelpOpen(false)} />}
+    </div>
+  );
+}
+
+// ─── Vibe-coder guide ──────────────────────────────────────────────────────
+// Inline cheatsheet for ops to forward to whoever is building the LIFF
+// page. Single source of truth so the repo README and HQ stay aligned.
+
+function VibeCoderHelpModal({ onClose }: { onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const promptTemplate = `# 任務：為 Vitera 新增一張問卷頁面
+
+我已經在 HQ 建好問卷了。幫我用 vibe coding 做出對應的 LIFF 頁面：
+
+1. 在 \`apps/questionnaires/src/app/q/\` 下複製 \`example/\` 整個資料夾
+2. 把新資料夾改名成這張問卷的 key（例如 onboarding_v1）
+3. 開 \`page.tsx\` —— **不要動最上方 PRODUCT_ID / KEY 的 hooks**，它們會自動從 URL 拿
+4. 重新設計題目的 UI（風格、配色、動畫、文案隨意），但保留：
+   - \`useQuestionnaireSpec\` / \`useSubmitResponse\` 兩個 hook
+   - \`meta.spec.question_sets\` 的迴圈邏輯
+   - 送出按鈕呼叫 \`submit(answers)\`
+   - 完成後 \`result\` 顯示分數
+5. \`git push origin staging\` 後 5-8 分鐘部署完
+6. 我把 HQ 上的 LIFF URL 貼到 LINE 測試
+
+風格參考： <填你想要的設計風格>`;
+
+  const copy = () => {
+    navigator.clipboard.writeText(promptTemplate).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-auto flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 sticky top-0 bg-white">
+          <h3 className="font-semibold text-lg">怎麼建問卷頁面（給 vibe coder 看的）</h3>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-900 text-sm">
+            ✕ 關閉
+          </button>
+        </div>
+
+        <div className="p-5 flex flex-col gap-4 text-sm">
+          <section>
+            <h4 className="font-semibold mb-2">流程（共 3 步）</h4>
+            <ol className="list-decimal list-inside flex flex-col gap-1 text-slate-700">
+              <li>HQ 先建好問卷（spec + scoring + on_submit_actions）</li>
+              <li>Vibe coder 在 <code className="text-xs bg-slate-100 px-1 rounded">apps/questionnaires</code> 加一個 page</li>
+              <li>Push staging → 5-8 分鐘部署完 → 用上面那行 LIFF URL 測試</li>
+            </ol>
+          </section>
+
+          <section>
+            <h4 className="font-semibold mb-2">給 vibe coder 的 prompt（複製貼上）</h4>
+            <div className="relative">
+              <pre className="bg-slate-50 border border-slate-200 rounded p-3 text-xs whitespace-pre-wrap leading-relaxed">{promptTemplate}</pre>
+              <button
+                onClick={copy}
+                className={`absolute top-2 right-2 text-xs px-2 py-1 rounded border transition-colors ${
+                  copied
+                    ? 'border-green-400 bg-green-50 text-green-700'
+                    : 'border-slate-300 bg-white hover:bg-slate-50'
+                }`}
+              >
+                {copied ? '✓ 已複製' : '📋 複製'}
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              貼到 Cursor / Claude Code，把最後一行的 <code className="bg-slate-100 px-1 rounded">&lt;填你想要的設計風格&gt;</code> 換成你想要的描述（例：「柔和粉色、有手繪插圖、按鈕大顆」）。
+            </p>
+          </section>
+
+          <section>
+            <h4 className="font-semibold mb-2">關鍵設計</h4>
+            <ul className="list-disc list-inside flex flex-col gap-1 text-slate-700 text-xs">
+              <li>每張問卷 = <code className="bg-slate-100 px-1 rounded">apps/questionnaires/src/app/q/&lt;key&gt;/page.tsx</code></li>
+              <li>所有問卷共用 <strong>一個 LIFF ID</strong>，靠 URL 的 <code className="bg-slate-100 px-1 rounded">?path=/q/&lt;key&gt;&amp;product=&lt;id&gt;</code> 區分</li>
+              <li>頁面從 URL 自動拿 <code className="bg-slate-100 px-1 rounded">key</code> 和 <code className="bg-slate-100 px-1 rounded">productId</code>，**vibe coder 不需要改任何常數**</li>
+              <li>送出後自動算分、寫 attribute / 派 mission / 切 journey（看 on_submit_actions 設定）</li>
+            </ul>
+          </section>
+
+          <section>
+            <h4 className="font-semibold mb-2">完成檢查表</h4>
+            <ul className="text-xs text-slate-700 flex flex-col gap-1">
+              <li>☐ <code className="bg-slate-100 px-1 rounded">apps/questionnaires/src/app/q/&lt;key&gt;/page.tsx</code> 存在</li>
+              <li>☐ Page 沒有改 PRODUCT_ID / KEY（兩個都是 auto-derive 的）</li>
+              <li>☐ <code className="bg-slate-100 px-1 rounded">git push origin staging</code> 成功</li>
+              <li>☐ GitHub Actions <code className="bg-slate-100 px-1 rounded">Staging Questionnaires CI/CD</code> 跑綠</li>
+              <li>☐ 從手機 LINE 開啟 LIFF URL 看得到自己的設計</li>
+            </ul>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }
@@ -224,7 +418,7 @@ function QuestionnaireEditor({ productId, existing, onClose, onSaved }: EditorPr
       liff_url: existing.liff_url ?? '',
       is_active: existing.is_active,
       spec_json: JSON.stringify(existing.spec ?? { question_sets: [] }, null, 2),
-      actions_json: JSON.stringify(existing.on_submit_actions ?? [], null, 2),
+      actions: parseActions(existing.on_submit_actions),
     };
   });
   const [saving, setSaving] = useState(false);
@@ -232,15 +426,10 @@ function QuestionnaireEditor({ productId, existing, onClose, onSaved }: EditorPr
   const [deleting, setDeleting] = useState(false);
 
   const specParse = tryParseJson(form.spec_json);
-  const actionsParse = tryParseJson(form.actions_json);
 
   const handleSave = async () => {
     if (specParse.error) {
       setStatus({ type: 'error', message: `Spec JSON 解析失敗：${specParse.error}` });
-      return;
-    }
-    if (actionsParse.error) {
-      setStatus({ type: 'error', message: `Actions JSON 解析失敗：${actionsParse.error}` });
       return;
     }
     setSaving(true);
@@ -252,7 +441,7 @@ function QuestionnaireEditor({ productId, existing, onClose, onSaved }: EditorPr
       liff_url: form.liff_url || null,
       is_active: form.is_active,
       spec: specParse.value,
-      on_submit_actions: actionsParse.value ?? [],
+      on_submit_actions: form.actions,
     };
 
     try {
@@ -321,6 +510,23 @@ function QuestionnaireEditor({ productId, existing, onClose, onSaved }: EditorPr
         <div className={`hq-alert ${status.type === 'success' ? 'hq-alert-success' : 'hq-alert-error'} whitespace-pre-wrap`}>
           {status.message}
         </div>
+      )}
+
+      {!existing && (
+        <TemplateLoader
+          onLoad={(t) => {
+            setForm({
+              key: t.template.key,
+              name: t.template.name,
+              description: t.template.description,
+              liff_url: '',
+              is_active: true,
+              spec_json: JSON.stringify(t.template.spec, null, 2),
+              actions: parseActions(t.template.on_submit_actions),
+            });
+            setStatus({ type: 'success', message: `已載入範本：${t.label}（記得改 key 避免衝突）` });
+          }}
+        />
       )}
 
       <div className="grid grid-cols-2 gap-3">
@@ -398,20 +604,16 @@ function QuestionnaireEditor({ productId, existing, onClose, onSaved }: EditorPr
       </div>
 
       <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">on_submit_actions (JSON)</label>
-          {actionsParse.error && (
-            <span className="text-xs text-red-600">⚠ {actionsParse.error}</span>
-          )}
-        </div>
-        <textarea
-          className="hq-input font-mono text-xs min-h-[100px]"
-          value={form.actions_json}
-          onChange={e => setForm({ ...form, actions_json: e.target.value })}
-          spellCheck={false}
+        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">送出後動作</label>
+        <ActionsEditor
+          value={form.actions}
+          onChange={(actions) => setForm({ ...form, actions })}
         />
         <p className="text-xs text-slate-500">
-          答完問卷後觸發：set_attribute / assign_mission / transition_journey。匿名提交時略過。
+          答完問卷後伺服器自動執行。匿名提交時略過。set_attribute 的 value 可以用
+          <code className="bg-slate-100 px-1 rounded font-mono">{'{{scores.<setKey>}}'}</code> 或
+          <code className="bg-slate-100 px-1 rounded font-mono">{'{{interpretation.<setKey>}}'}</code>
+          自動替換成計算結果。
         </p>
       </div>
 
@@ -433,13 +635,261 @@ function QuestionnaireEditor({ productId, existing, onClose, onSaved }: EditorPr
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || !!specParse.error || !!actionsParse.error}
+            disabled={saving || !!specParse.error}
             className="hq-btn-primary"
           >
             {saving ? '儲存中...' : '儲存'}
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Actions editor ────────────────────────────────────────────────────────
+// Visual editor for on_submit_actions. Each row is one action with a
+// type dropdown + the fields that type needs. Saves as a JSON array.
+//
+// Three action types — match SubmitAction discriminated union above.
+// Backend interpolates {{scores.x}} / {{interpretation.x}} in
+// set_attribute.value at run time (see questionnaire.service.ts).
+
+function ActionsEditor({
+  value,
+  onChange,
+}: {
+  value: SubmitAction[];
+  onChange: (actions: SubmitAction[]) => void;
+}) {
+  const update = (index: number, next: SubmitAction) => {
+    onChange(value.map((a, i) => (i === index ? next : a)));
+  };
+  const remove = (index: number) => onChange(value.filter((_, i) => i !== index));
+  const add = (type: SubmitAction['type']) => {
+    const blank: SubmitAction =
+      type === 'set_attribute'
+        ? { type: 'set_attribute', key: '', value: '' }
+        : type === 'assign_mission'
+          ? { type: 'assign_mission', mission_key: '' }
+          : { type: 'transition_journey', journey_key: '', phase_key: '' };
+    onChange([...value, blank]);
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      {value.length === 0 && (
+        <p className="text-xs text-slate-400 italic py-2">尚無動作。點下方按鈕新增。</p>
+      )}
+
+      {value.map((action, i) => (
+        <ActionRow
+          key={i}
+          index={i}
+          action={action}
+          onChange={(next) => update(i, next)}
+          onRemove={() => remove(i)}
+        />
+      ))}
+
+      <div className="flex items-center gap-2 flex-wrap pt-1">
+        <span className="text-xs text-slate-500">+ 新增動作：</span>
+        <button
+          type="button"
+          onClick={() => add('set_attribute')}
+          className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50"
+        >
+          📝 寫使用者屬性
+        </button>
+        <button
+          type="button"
+          onClick={() => add('assign_mission')}
+          className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50"
+        >
+          🎯 派任務
+        </button>
+        <button
+          type="button"
+          onClick={() => add('transition_journey')}
+          className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50"
+        >
+          🌊 切換 Journey 階段
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ActionRow({
+  index,
+  action,
+  onChange,
+  onRemove,
+}: {
+  index: number;
+  action: SubmitAction;
+  onChange: (next: SubmitAction) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="border border-slate-200 rounded-lg p-2.5 flex flex-col gap-2 bg-slate-50/50">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-500 font-mono">#{index + 1}</span>
+          <select
+            className="hq-input text-xs py-1 px-2"
+            value={action.type}
+            onChange={(e) => {
+              const newType = e.target.value as SubmitAction['type'];
+              if (newType === action.type) return;
+              // Switching type — start with a blank of the new shape
+              onChange(
+                newType === 'set_attribute'
+                  ? { type: 'set_attribute', key: '', value: '' }
+                  : newType === 'assign_mission'
+                    ? { type: 'assign_mission', mission_key: '' }
+                    : { type: 'transition_journey', journey_key: '', phase_key: '' },
+              );
+            }}
+          >
+            <option value="set_attribute">寫使用者屬性 (set_attribute)</option>
+            <option value="assign_mission">派任務 (assign_mission)</option>
+            <option value="transition_journey">切換 Journey 階段 (transition_journey)</option>
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="text-xs text-red-600 hover:bg-red-50 px-2 py-1 rounded"
+        >
+          ✕ 移除
+        </button>
+      </div>
+
+      {action.type === 'set_attribute' && (
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col gap-0.5">
+            <label className="text-[10px] text-slate-500 font-semibold uppercase">attribute key</label>
+            <input
+              className="hq-input text-xs py-1"
+              value={action.key}
+              onChange={(e) => onChange({ ...action, key: e.target.value })}
+              placeholder="如：anxiety_level"
+            />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-[10px] text-slate-500 font-semibold uppercase">value</label>
+            <input
+              className="hq-input text-xs py-1 font-mono"
+              value={action.value}
+              onChange={(e) => onChange({ ...action, value: e.target.value })}
+              placeholder="如：high 或 {{scores.phq9}}"
+            />
+          </div>
+        </div>
+      )}
+
+      {action.type === 'assign_mission' && (
+        <div className="flex flex-col gap-0.5">
+          <label className="text-[10px] text-slate-500 font-semibold uppercase">mission_key</label>
+          <input
+            className="hq-input text-xs py-1 font-mono"
+            value={action.mission_key}
+            onChange={(e) => onChange({ ...action, mission_key: e.target.value })}
+            placeholder="如：breathing_practice（必須是本 product 已存在的 mission key）"
+          />
+        </div>
+      )}
+
+      {action.type === 'transition_journey' && (
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col gap-0.5">
+            <label className="text-[10px] text-slate-500 font-semibold uppercase">journey_key</label>
+            <input
+              className="hq-input text-xs py-1 font-mono"
+              value={action.journey_key}
+              onChange={(e) => onChange({ ...action, journey_key: e.target.value })}
+              placeholder="如：wellness_path"
+            />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-[10px] text-slate-500 font-semibold uppercase">phase_key</label>
+            <input
+              className="hq-input text-xs py-1 font-mono"
+              value={action.phase_key}
+              onChange={(e) => onChange({ ...action, phase_key: e.target.value })}
+              placeholder="如：maintenance"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Template loader ───────────────────────────────────────────────────────
+// 10 ready-made examples in questionnaireTemplates.ts — picking one
+// fills the editor form with a complete spec + on_submit_actions, so
+// ops can inspect a working example for every calc_type / feature.
+//
+// Tags in pill form on hover tell ops which feature this template
+// demonstrates.
+
+function TemplateLoader({ onLoad }: { onLoad: (t: QuestionnaireTemplate) => void }) {
+  const [selectedId, setSelectedId] = useState('');
+  const selected = QUESTIONNAIRE_TEMPLATES.find((t) => t.id === selectedId);
+
+  return (
+    <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3 flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-semibold text-cyan-900">📋 從範本載入</span>
+        <span className="text-xs text-cyan-700">
+          {QUESTIONNAIRE_TEMPLATES.length} 種常見問卷，每個示範不同算分結構；挑一個來改最快
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <select
+          className="hq-input flex-1 text-sm"
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value)}
+        >
+          <option value="">— 選一個範本 —</option>
+          {CATEGORY_ORDER.map((category) => {
+            const inCategory = QUESTIONNAIRE_TEMPLATES.filter((t) => t.category === category);
+            if (inCategory.length === 0) return null;
+            return (
+              <optgroup key={category} label={category}>
+                {inCategory.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </optgroup>
+            );
+          })}
+        </select>
+        <button
+          onClick={() => selected && onLoad(selected)}
+          disabled={!selected}
+          className="text-sm px-3 py-1.5 rounded bg-cyan-600 text-white hover:bg-cyan-700 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          載入
+        </button>
+      </div>
+      {selected && (
+        <div className="flex flex-col gap-1 text-xs">
+          <p className="text-slate-700">{selected.description}</p>
+          <div className="flex items-center gap-1 flex-wrap">
+            {selected.feature_tags.map((tag) => (
+              <code
+                key={tag}
+                className="bg-white text-cyan-800 border border-cyan-200 px-1.5 py-0.5 rounded font-mono text-[10px]"
+              >
+                {tag}
+              </code>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

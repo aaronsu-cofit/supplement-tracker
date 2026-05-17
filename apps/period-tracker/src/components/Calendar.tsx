@@ -105,7 +105,7 @@ export const Calendar: React.FC<CalendarProps> = ({
           <div className="leg-dot leg-dot-pred" /> <div className="leg-t">預測</div>
         </div>
         <div className="leg-i">
-          <div className="leg-dot leg-dot-ov-period" /> <div className="leg-t">排卵期</div>
+          <div className="leg-dot leg-dot-ov-period" /> <div className="leg-t">易孕期</div>
         </div>
         <div className="leg-i">
           <div className="leg-dot leg-dot-ov-day" /> <div className="leg-t">排卵日</div>

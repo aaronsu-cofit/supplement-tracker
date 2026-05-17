@@ -19,6 +19,7 @@ interface DailyLogCardProps {
   onSaveDaily: (key: string, data: Partial<DayLog>) => void
   onClose?: () => void
   onShowPbacInfo?: () => void
+  onShowPbacTutorial?: () => void
 }
 
 export const DailyLogCard: FC<DailyLogCardProps> = ({
@@ -33,6 +34,7 @@ export const DailyLogCard: FC<DailyLogCardProps> = ({
   onSaveDaily,
   onClose,
   onShowPbacInfo,
+  onShowPbacTutorial,
 }) => {
   const [localLogs, setLocalLogs] = useState<PbacLog[]>([])
   const [localProduct, setLocalProduct] = useState<'pad' | 'tampon' | 'cup'>('pad')
@@ -47,6 +49,16 @@ export const DailyLogCard: FC<DailyLogCardProps> = ({
     setLocalEmotions(dayLog?.emotions || [])
     setShowAddSheet(false)
   }, [dayLog, selectedDateKey])
+
+  // Auto-trigger PBAC tutorial on first display when in period
+  useEffect(() => {
+    if (dayLog?.period === true && !localStorage.getItem('pbacTutorialShown') && onShowPbacTutorial) {
+      const timer = setTimeout(() => {
+        onShowPbacTutorial()
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [dayLog?.period, onShowPbacTutorial])
 
   const inP = dayLog?.period === true
   const dayScore = localLogs.reduce((sum, l) => sum + getScore(l.level, l.clot), 0)

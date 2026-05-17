@@ -1,30 +1,54 @@
 'use client';
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  EXAMPLE QUESTIONNAIRE PAGE — fork this to add your own.         ║
+// ║  EXAMPLE QUESTIONNAIRE — fork this for a new questionnaire.      ║
 // ║                                                                  ║
-// ║  Workflow:                                                       ║
-// ║   1. In HQ, create a Questionnaire under a Product. Note the     ║
-// ║      productId and key.                                          ║
-// ║   2. Copy this folder to apps/questionnaires/src/app/q/<your_key>║
-// ║   3. Replace PRODUCT_ID and KEY below.                           ║
-// ║   4. Style/animate the rendering however you want — the three    ║
-// ║      hooks handle spec fetch, submit, and anonymous_id.          ║
-// ║   5. Deploy. Update liff_url in HQ to point at this page.        ║
+// ║  Vibe-coder workflow (no constants to edit):                     ║
+// ║   1. Copy this whole folder, rename to your questionnaire key.   ║
+// ║      e.g. apps/questionnaires/src/app/q/period_intake/           ║
+// ║   2. Open page.tsx — design the UI freely. Don't touch the       ║
+// ║      hooks usage at the top; they auto-derive everything.        ║
+// ║   3. Commit + push. The LIFF URL HQ generated for ops already    ║
+// ║      contains the productId — no config needed on this end.      ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useQuestionnaireSpec } from '../../../hooks/useQuestionnaireSpec';
 import { useSubmitResponse } from '../../../hooks/useSubmitResponse';
 import type { Answers, Question } from '../../../types/spec';
 
-// Replace these for each new questionnaire ────────────────────────────
-const PRODUCT_ID = 'REPLACE_ME_PRODUCT_ID';
-const KEY = 'example';
-
 export default function ExampleQuestionnairePage() {
+  // ─── Auto-derived identifiers ────────────────────────────────────
+  // KEY = last segment of pathname (= the folder name).
+  // PRODUCT_ID = ?product= query param from the LIFF URL HQ produces.
+  // Vibe coders never need to touch these.
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const KEY = pathname.split('/').filter(Boolean).pop() ?? '';
+  const PRODUCT_ID = params.get('product') ?? '';
+
+  const missingProduct = !PRODUCT_ID;
+
   const { meta, isLoading, error: specError } = useQuestionnaireSpec(PRODUCT_ID, KEY);
   const { submit, isSubmitting, error: submitError, result } = useSubmitResponse(PRODUCT_ID, KEY);
   const [answers, setAnswers] = useState<Answers>({});
+
+  if (missingProduct) {
+    return (
+      <main className="min-h-dvh flex items-center justify-center p-8">
+        <div className="text-center text-slate-600 max-w-md">
+          <p className="font-semibold mb-2">缺少 product 參數</p>
+          <p className="text-sm text-slate-500">
+            正確的 LIFF URL 應該長這樣：<br />
+            <code className="text-xs">.../?path=/q/{KEY}&amp;product=&lt;productId&gt;</code>
+          </p>
+          <p className="text-xs text-slate-400 mt-2">
+            如果你是從 LINE 開的，請聯絡 ops 確認 LIFF URL 設定。
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -44,7 +68,6 @@ export default function ExampleQuestionnairePage() {
     );
   }
 
-  // Result screen — shown after successful submit.
   if (result) {
     return (
       <main className="min-h-dvh p-6 max-w-xl mx-auto flex flex-col gap-4">
@@ -108,7 +131,6 @@ export default function ExampleQuestionnairePage() {
       </header>
 
       {meta.spec.question_sets.map((set) =>
-        // Aggregating sets have no questions — skip their render block.
         !set.questions || set.questions.length === 0 ? null : (
           <section key={set.key} className="flex flex-col gap-4">
             <h2 className="font-semibold text-lg">{set.name}</h2>
