@@ -155,7 +155,333 @@
 
 ## Backend Rules
 
+### Prisma ORM Best Practices
+
+#### 1. 避免 N+1 查詢問題
+
+**❌ 錯誤：逐個查詢關聯資料**
+```typescript
+// 這會產生 1 + N 次查詢（N = users 數量）
+const users = await db.user.findMany();
+for (const user of users) {
+  const enrollments = await db.enrollment.findMany({
+    where: { user_id: user.id }
+  });
+}
+```
+
+**✅ 正確：使用 include 一次查詢**
+```typescript
+// 只產生 1 次查詢（使用 JOIN）
+const users = await db.user.findMany({
+  include: {
+    enrollments: true
+  }
+});
+```
+
+**✅ 更好：只選取需要的欄位**
+```typescript
+const users = await db.user.findMany({
+  select: {
+    id: true,
+    display_name: true,
+    enrollments: {
+      select: {
+        id: true,
+        scenario_id: true,
+        enrolled_at: true
+      }
+    }
+  }
+});
+```
+
+#### 2. 批量操作
+
+**❌ 錯誤：迴圈中逐個插入**
+```typescript
+for (const data of dataArray) {
+  await db.user.create({ data });
+}
+```
+
+**✅ 正確：使用 createMany**
+```typescript
+await db.user.createMany({
+  data: dataArray,
+  skipDuplicates: true // 遇到唯一約束衝突時跳過
+});
+```
+
+**批量更新範例**
+```typescript
+// 使用交易批量更新
+await db.$transaction(
+  dataArray.map(item =>
+    db.user.update({
+      where: { id: item.id },
+      data: { status: item.status }
+    })
+  )
+);
+```
+
+#### 3. 交易處理
+
+**使用情境**：多個資料表操作需要保證原子性
+
+```typescript
+// ✅ 使用 $transaction 確保一致性
+await db.$transaction(async (tx) => {
+  const enrollment = await tx.enrollment.create({
+    data: {
+      user_id: userId,
+      scenario_id: scenarioId
+    }
+  });
+
+  await tx.messageDelivery.create({
+    data: {
+      user_id: userId,
+      scenario_id: scenarioId,
+      node_id: 'welcome-node'
+    }
+  });
+
+  // 如果任何一步失敗，整個交易都會 rollback
+});
+```
+
+#### 4. 查詢優化
+
+**善用 where + include 組合**
+```typescript
+// ✅ 在資料庫層面過濾，而非拿到應用層再過濾
+const activeEnrollments = await db.enrollment.findMany({
+  where: {
+    status: 'active',
+    scenario: {
+      is_active: true
+    }
+  },
+  include: {
+    user: {
+      select: {
+        id: true,
+        display_name: true,
+        timezone: true
+      }
+    },
+    scenario: {
+      select: {
+        id: true,
+        name: true,
+        flow_nodes: true,
+        flow_edges: true
+      }
+    }
+  }
+});
+```
+
+**使用 cursor-based pagination 處理大量資料**
+```typescript
+// ❌ offset 在大數據時效能差
+const items = await db.item.findMany({
+  skip: 1000,
+  take: 50
+});
+
+// ✅ cursor 效能更好
+const items = await db.item.findMany({
+  take: 50,
+  cursor: lastItemId ? { id: lastItemId } : undefined,
+  orderBy: { created_at: 'desc' }
+});
+```
+
+#### 5. 檢查點清單
+
+實作 Prisma 查詢時，檢查以下事項：
+
+- [ ] **避免 N+1**：關聯資料是否使用 `include` 或 `select`？
+- [ ] **只選必要欄位**：是否使用 `select` 限制回傳欄位？
+- [ ] **批量操作**：迴圈中的 create/update 是否可改用 `createMany` 或 `$transaction`？
+- [ ] **索引支援**：where 條件的欄位是否有建立索引（見 schema.prisma 的 `@@index`）？
+- [ ] **交易保護**：多步驟操作是否需要用 `$transaction` 包裹？
+- [ ] **分頁機制**：大量資料查詢是否使用 cursor-based pagination？
+
+#### 6. 常見陷阱
+
+**陷阱 1：忘記處理 null**
+```typescript
+// ❌ 可能拋出錯誤
+const user = await db.user.findUnique({ where: { id } });
+console.log(user.display_name); // user 可能是 null
+
+// ✅ 先檢查
+const user = await db.user.findUnique({ where: { id } });
+if (!user) throw new Error('User not found');
+console.log(user.display_name);
+```
+
+**陷阱 2：在 include 中過度嵌套**
+```typescript
+// ❌ 太深的嵌套會導致查詢複雜且慢
+const data = await db.user.findMany({
+  include: {
+    enrollments: {
+      include: {
+        scenario: {
+          include: {
+            lineOa: {
+              include: {
+                templates: true
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
+// ✅ 只 include 真正需要的層級，或分次查詢
+```
+
+**陷阱 3：誤用 findFirst 當作唯一查詢**
+```typescript
+// ❌ findFirst 不保證唯一性
+const user = await db.user.findFirst({
+  where: { email: 'test@example.com' }
+});
+
+// ✅ 如果 email 有 unique constraint，用 findUnique
+const user = await db.user.findUnique({
+  where: { email: 'test@example.com' }
+});
+```
+
+---
+
+### Database Design Conventions
+
+新增或修改資料表時，**必須**遵守 [DB Conventions](./backend/docs/db-conventions.md) 中定義的跨資料表慣例。
+
+#### 快速參考
+
+**1. 生命週期管理**
+- **`is_active: Boolean`** → 用於可切換的開關狀態（OA、Template、Scenario 等）
+- **`status: VarChar(20)`** → 用於多狀態生命週期（Enrollment: 'active' | 'completed' | 'abandoned'）
+- **`deleted_at: DateTime?`** → 只用於 `User` 資料表（PII 合規的軟刪除）
+
+**2. UserAttribute 命名規則**
+- 產品專屬屬性必須加前綴：`period_*`, `nutri_*`, `wounds_*`
+- 跨產品共享屬性無前綴：`life_stage`, `primary_concern`, `timezone`
+
+**3. 外鍵級聯刪除（PII 合規）**
+
+所有 per-user 資料表必須宣告 `onDelete: Cascade`：
+
+```prisma
+model UserAttribute {
+  id      String @id @default(cuid())
+  user_id String @db.VarChar(64)
+  key     String @db.VarChar(100)
+  value   String
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_attributes")
+}
+```
+
+同時在 `model User` 中加入 back-relation：
+
+```prisma
+model User {
+  // ... 其他欄位
+  user_attributes UserAttribute[]
+}
+```
+
+**4. 索引策略**
+
+新增索引的時機：
+- ✅ 過濾欄位（`is_active`, `deleted_at`, `status`）
+- ✅ JOIN 欄位（外鍵會自動建立，但可明確宣告）
+- ✅ 排序 + LIMIT 組合（建立複合索引）
+- ❌ 小資料表（< 10k rows）可省略
+
+**5. 實作檢查清單**
+
+新增資料表時檢查：
+- [ ] 生命週期管理：是用 `is_active`、`status` 還是 `deleted_at`？
+- [ ] UserAttribute keys：是否需要產品前綴？
+- [ ] 外鍵級聯：per-user 資料表是否宣告 `onDelete: Cascade`？
+- [ ] Back-relation：`model User` 是否加入對應的 relation？
+- [ ] 索引：過濾/排序的欄位是否建立索引？
+- [ ] 遵守命名慣例：使用 snake_case，資料表名稱用複數（見 [db-conventions.md](./backend/docs/db-conventions.md)）
+
+---
+
 ## Frontend Rules
+
+
+### 1. 數據與邏輯限制 (Data & Logic)
+
+#### 內容解耦
+
+- 所有文案、選單、模擬數據必須統一存放於 `src/data/mockData.ts`
+- UI 組件內僅允許引用數據變數
+
+#### 真實感模擬
+
+- 涉及數據加載時，必須實作 800ms 的延遲模擬
+- 必須展示 Skeleton Screen (骨架屏)，而非簡單的 "Loading..." 文字
+
+#### 動態跳轉
+
+- 使用狀態管理模擬分頁切換或彈窗開啟
+
+---
+
+### 2. 視覺與風格限制 (Visuals & Aesthetics)
+
+#### 現代審美
+
+- 遵守 8px 網格系統，注重 Typography (Inter 字體) 與色彩層次感
+
+#### 動態素材 (保證可用)
+
+- 頭像：[https://i.pravatar.cc/150?u=[id]](https://i.pravatar.cc/150?u=[id])
+- 情境圖：[https://picsum.photos/seed/[seed]/800/600](https://picsum.photos/seed/[seed]/800/600)
+
+#### 互動反饋
+
+- 所有 Button/Link 必須包含 `hover:`, `active:`, `transition-all` 樣式
+
+---
+
+### 3. 工程品質限制 (Engineering Quality)
+
+#### 組件化架構
+
+- 單一檔案不得超過 150 行，超過則強制拆分
+
+#### 目錄結構
+
+```text
+/components
+/pages
+/hooks
+/data
+```
+
+#### 響應式
+
+- 預設採 Mobile-first 開發模式
 
 ### Styling Convention: Tailwind CSS v4
 
