@@ -30,6 +30,7 @@
 #### 前端 & 通用規格
 
 * [資料庫 Schema 參考 (DB Schema)](./reference/database-schema.md)
+* [資料庫 ER Diagrams (ER Diagrams)](./reference/er-diagrams.md)
 * [所有 API 路由清單 (API Endpoints)](./reference/api-endpoints.md)
 * [雙重認證與 LIFF 流程規格 (Auth Flow)](./reference/auth-flow.md)
 * [LLM 整合架構 (LLM Architecture)](./reference/llm-architecture.md)
