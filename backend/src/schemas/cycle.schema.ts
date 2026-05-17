@@ -80,11 +80,13 @@ export const setupCycleSchema = {
       periodDuration: {
         type: 'number',
         minimum: 1,
+        maximum: 14,
         description: 'Period duration in days',
       },
       cycleLen: {
         type: 'number',
-        minimum: 1,
+        minimum: 10,
+        maximum: 60,
         description: 'Menstrual cycle length in days',
       },
     },
@@ -131,11 +133,13 @@ export const updateCycleSettingsSchema = {
       periodDuration: {
         type: 'number',
         minimum: 1,
+        maximum: 14,
         description: 'Period duration in days',
       },
       cycleLen: {
         type: 'number',
-        minimum: 1,
+        minimum: 10,
+        maximum: 60,
         description: 'Menstrual cycle length in days',
       },
       lastPeriodStart: {
