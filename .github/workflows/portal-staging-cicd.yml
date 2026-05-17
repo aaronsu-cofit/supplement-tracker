@@ -168,41 +168,59 @@ jobs:
       # ==================== Slack 通知（成功）====================
       - name: Notify Slack on success
         if: success()
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           SHORT_SHA="${{ steps.vars.outputs.SHORT_SHA }}"
-          curl -s -X POST "https://slack.com/api/chat.postMessage" \
-            -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"channel\": \"#gke-staging-prd-cicd\",
-              \"text\": \"✅ *[Vitera] Staging Portal* 部署成功\",
-              \"attachments\": [{
-                \"color\": \"good\",
-                \"fields\": [
-                  { \"title\": \"Image Tag\", \"value\": \"\`${SHORT_SHA}\`\", \"short\": true },
-                  { \"title\": \"Commit\", \"value\": \"${{ github.event.head_commit.message }}\", \"short\": false },
-                  { \"title\": \"Action\", \"value\": \"<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|查看 Run>\", \"short\": true }
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          SUBJECT=$(printf '%s' "$COMMIT_MSG" | head -1)
+          PAYLOAD=$(jq -n \
+            --arg sha "$SHORT_SHA" \
+            --arg subject "$SUBJECT" \
+            --arg url "$RUN_URL" \
+            '{
+              channel: "#gke-staging-prd-cicd",
+              text: "✅ *[Vitera] Staging Portal* 部署成功",
+              attachments: [{
+                color: "good",
+                fields: [
+                  { title: "Image Tag", value: "`\($sha)`", short: true },
+                  { title: "Commit", value: $subject, short: false },
+                  { title: "Action", value: "<\($url)|查看 Run>", short: true }
                 ]
               }]
-            }"
+            }')
+          curl -s -X POST "https://slack.com/api/chat.postMessage" \
+            -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            --data "$PAYLOAD"
 
       # ==================== Slack 通知（失敗）====================
       - name: Notify Slack on failure
         if: failure()
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           SHORT_SHA="${{ steps.vars.outputs.SHORT_SHA }}"
-          curl -s -X POST "https://slack.com/api/chat.postMessage" \
-            -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"channel\": \"#gke-staging-prd-cicd\",
-              \"text\": \"❌ *[Vitera] Staging Portal* 部署失敗\",
-              \"attachments\": [{
-                \"color\": \"danger\",
-                \"fields\": [
-                  { \"title\": \"Image Tag\", \"value\": \"\`${SHORT_SHA}\`\", \"short\": true },
-                  { \"title\": \"Commit\", \"value\": \"${{ github.event.head_commit.message }}\", \"short\": false },
-                  { \"title\": \"Action\", \"value\": \"<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|查看 Run>\", \"short\": true }
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          SUBJECT=$(printf '%s' "$COMMIT_MSG" | head -1)
+          PAYLOAD=$(jq -n \
+            --arg sha "$SHORT_SHA" \
+            --arg subject "$SUBJECT" \
+            --arg url "$RUN_URL" \
+            '{
+              channel: "#gke-staging-prd-cicd",
+              text: "❌ *[Vitera] Staging Portal* 部署失敗",
+              attachments: [{
+                color: "danger",
+                fields: [
+                  { title: "Image Tag", value: "`\($sha)`", short: true },
+                  { title: "Commit", value: $subject, short: false },
+                  { title: "Action", value: "<\($url)|查看 Run>", short: true }
                 ]
               }]
-            }"
+            }')
+          curl -s -X POST "https://slack.com/api/chat.postMessage" \
+            -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            --data "$PAYLOAD"
