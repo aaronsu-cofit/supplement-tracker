@@ -243,6 +243,37 @@ export const calculatePeriodUpdate = (
       m: date.getMonth() + 1,
       d: date.getDate(),
     }
+  } else if (isPeriod && !updateLastStart) {
+    // 延伸模式：向前掃描找到真正的週期開始日期
+    // 這樣可以修復「先標記不連續經期，後補上缺口」的場景
+    let scanDate = new Date(date)
+    scanDate.setDate(scanDate.getDate() - 1)
+    let foundEarlierStart: Date | null = null
+
+    // 向前掃描最多 30 天，找到連續經期的真正起點
+    for (let i = 0; i < 30; i++) {
+      const scanKey = formatDate(scanDate)
+      const hasPeriod = userData.dayData[scanKey]?.period === true
+
+      if (hasPeriod) {
+        // 找到更早的經期日
+        foundEarlierStart = new Date(scanDate)
+        scanDate.setDate(scanDate.getDate() - 1)
+      } else {
+        // 經期中斷，停止掃描
+        break
+      }
+    }
+
+    // 如果找到更早的經期開始日期，更新 lastPeriodStart
+    if (foundEarlierStart) {
+      const earliestDate = foundEarlierStart
+      newLastPeriodStart = {
+        y: earliestDate.getFullYear(),
+        m: earliestDate.getMonth() + 1,
+        d: earliestDate.getDate(),
+      }
+    }
   } else if (clearEntireCycle) {
     // 清除全週期：尋找前一個經期作為新的基準日
     // 這樣月曆預測不會消失，而是基於之前的經期週期繼續計算
