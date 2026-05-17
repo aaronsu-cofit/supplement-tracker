@@ -1,62 +1,90 @@
 # Vitera Questionnaires
 
-LIFF app that hosts every Vitera questionnaire. One repo, one deploy,
-one LIFF ID — questionnaires live at `/q/<key>` and each page is
+LIFF app that hosts every Vitera questionnaire. **One repo, one deploy,
+one LIFF ID** — questionnaires live at `/q/<key>` and each page is
 vibe-coded as a Next.js page.
 
-## Adding a new questionnaire
+## Adding a new questionnaire (vibe coder workflow)
 
-### 1. Create the questionnaire in HQ
+### Step 1 — Ops creates it in HQ
 
-- Go to HQ → Products → the relevant product → 問卷 tab → `+ 新增問卷`
-- Fill in `key`, `name`, paste the spec JSON, save
-- Note the `productId` (URL) and the `key` you used
+Ops goes to HQ → Products → 問卷 tab → `+ 新增問卷`. Fills in the
+spec JSON. They then copy the canonical LIFF URL displayed in the
+list and forward it to the vibe coder.
 
-### 2. Scaffold the LIFF page
+### Step 2 — Vibe coder adds the page
 
-Copy the example folder:
+Copy `src/app/q/example/` to `src/app/q/<your_key>/` (folder name **is**
+the key). **Don't touch the `PRODUCT_ID` / `KEY` lines** at the top of
+`page.tsx` — they auto-derive from `usePathname()` and `useSearchParams()`.
+
+Design the UI freely from there: colors, animations, copy, illustrations.
+The three hooks at the top handle all the backend integration:
+
+- `useQuestionnaireSpec(productId, key)` — fetches the spec from
+  `GET /api/questionnaires/:productId/:key/spec`
+- `useSubmitResponse(productId, key)` — posts answers + auto-fills
+  `anonymous_id` for non-LIFF browsers
+- `useAnonymousId()` — used internally by `useSubmitResponse`
+
+### Step 3 — Deploy
 
 ```bash
-cp -r apps/questionnaires/src/app/q/example apps/questionnaires/src/app/q/<your_key>
+git push origin staging
 ```
 
-Edit `apps/questionnaires/src/app/q/<your_key>/page.tsx`:
+The `Staging Questionnaires CI/CD` workflow takes ~5-8 min:
+build Docker → push to Artifact Registry → bump kustomize tag in the
+K8s manifests repo → ArgoCD sync.
 
-- Set `PRODUCT_ID` to your product id
-- Set `KEY` to your questionnaire key
-- Vibe-code the UI however you want — colors, animations, copy, illustrations
+### Step 4 — Test on LINE
 
-The three hooks do all the integration work:
+Open the canonical URL on your phone via LINE:
 
-- `useQuestionnaireSpec(productId, key)` → fetches the spec
-- `useSubmitResponse(productId, key)` → submits answers, returns scores + interpretation
-- `useAnonymousId()` → stable per-device anonymous id (auto-used by `useSubmitResponse`)
+```
+https://liff.line.me/<LIFF_ID>?path=/q/<your_key>&product=<productId>
+```
 
-### 3. Deploy
+HQ shows the exact URL to copy.
 
-`pnpm --filter @vitera/questionnaires build && pnpm --filter @vitera/questionnaires start`
+## How the auto-derive works
 
-In production this app deploys via Docker (same shape as the other LIFF apps).
-The shared LIFF ID is configured via `NEXT_PUBLIC_LIFF_ID` at build time —
-one LIFF covers every questionnaire under this app.
+Each questionnaire page lives at `q/<key>/page.tsx`. Inside:
 
-### 4. Wire LIFF URL back into HQ
+```tsx
+const pathname = usePathname();                  // "/q/your_key"
+const params = useSearchParams();                // ?path=/q/your_key&product=abc
+const KEY = pathname.split('/').filter(Boolean).pop() ?? '';
+const PRODUCT_ID = params.get('product') ?? '';
+```
 
-Once deployed, copy the LIFF URL of `/q/<your_key>` and paste it into
-the questionnaire's `liff_url` field in HQ. Rich menus, scenarios,
-and intent rules can then link to it directly.
+`LiffProvider` (from `@vitera/lib`) handles the `?path=` redirect after
+LIFF init, so the user lands on `/q/your_key?product=abc` with both
+query params intact.
+
+If `product` is missing from the URL, the page shows a friendly error
+explaining the correct URL format.
 
 ## Anonymous mode
 
-If a user opens the URL outside LINE in-app browser, `lineOnly` in
-`ClientLayout` will gate them. To opt-out (e.g. for marketing lead-gen
-web), wrap that page without `lineOnly` and `useSubmitResponse` will
-automatically fall back to anonymous_id submissions. The backend
-stores those rows against the anonymous_id and skips hooks (since
-attributes / missions are user-scoped).
+`ClientLayout` uses `lineOnly`: opening the URL outside LINE in-app
+browser shows an "open in LINE" gate. To flip that off (e.g. for a web
+lead-gen flow), drop `lineOnly` and `useSubmitResponse` will
+automatically fall back to anonymous submissions. The backend stores
+those rows against the localStorage-stored `anonymous_id` and skips
+`on_submit_actions` hooks (since attributes / missions are user-scoped).
+
+## LIFF ID
+
+Configured at build time via `NEXT_PUBLIC_LIFF_ID`. Staging:
+`2009369966-ZwZuOht2`. Production will get its own LIFF when prod
+deploy is set up.
+
+One LIFF covers every questionnaire under this app. Switching to per-key
+LIFF IDs would be a deploy-config change, not a code change.
 
 ## Spec format
 
-See `backend/src/lib/questionnaire/spec.types.ts` and
-`backend/docs/db-conventions.md` for the canonical schema. The
-TypeScript shape is mirrored in `src/types/spec.ts`.
+Canonical: `backend/src/lib/questionnaire/spec.types.ts`.
+Local mirror: `src/types/spec.ts`. The two are kept in sync by hand —
+schema changes rarely and divergence is caught at runtime.

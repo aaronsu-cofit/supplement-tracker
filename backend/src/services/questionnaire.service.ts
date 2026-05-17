@@ -15,7 +15,12 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import { ValidationError, NotFoundError, ConflictError } from '../middleware/errorHandler.js';
 import { validateSpec } from '../lib/questionnaire/spec-validator.js';
 import { calculateAll } from '../lib/questionnaire/scoring.js';
-import type { Answers, QuestionnaireSpec } from '../lib/questionnaire/spec.types.js';
+import type {
+  Answers,
+  Interpretation,
+  QuestionnaireSpec,
+  Scores,
+} from '../lib/questionnaire/spec.types.js';
 import { setUserAttributeWithHooks } from '../lib/missions.js';
 import { assignMission, getMissionTemplateByKey, upsertUserJourneyPhase } from '../lib/db.js';
 
@@ -28,6 +33,28 @@ interface OnSubmitAction {
   mission_key?: string;
   journey_key?: string;
   phase_key?: string;
+}
+
+interface ActionContext {
+  scores: Scores;
+  interpretation: Interpretation;
+}
+
+// Replace {{scores.<key>}} and {{interpretation.<key>}} with the live
+// values from this submission. Unknown vars become an empty string —
+// HQ ops can spot it on the response viewer's triggered_actions log
+// if they typo'd. Bracket-only literals are passed through untouched.
+function interpolate(input: string, ctx: ActionContext): string {
+  return input.replace(
+    /\{\{\s*(scores|interpretation)\.([a-zA-Z0-9_]+)\s*\}\}/g,
+    (_, ns, key) => {
+      if (ns === 'scores') {
+        const v = ctx.scores[key];
+        return v == null ? '' : String(v);
+      }
+      return ctx.interpretation[key] ?? '';
+    },
+  );
 }
 
 export class QuestionnaireService {
@@ -190,10 +217,15 @@ export class QuestionnaireService {
       ? (row.on_submit_actions as unknown as OnSubmitAction[])
       : [];
 
+    const actionCtx: ActionContext = {
+      scores: scores.scores,
+      interpretation: scores.interpretation,
+    };
+
     if (userId) {
       for (const action of actions) {
         try {
-          await this.runAction(action, userId, productId);
+          await this.runAction(action, userId, productId, actionCtx);
           triggeredActions.push({ type: action.type, ok: true });
         } catch (err) {
           triggeredActions.push({ type: action.type, ok: false, reason: (err as Error).message });
@@ -222,11 +254,17 @@ export class QuestionnaireService {
     };
   }
 
-  private async runAction(action: OnSubmitAction, userId: string, productId: string) {
+  private async runAction(
+    action: OnSubmitAction,
+    userId: string,
+    productId: string,
+    ctx: ActionContext,
+  ) {
     switch (action.type) {
       case 'set_attribute': {
         if (!action.key) throw new Error('set_attribute requires key');
-        await setUserAttributeWithHooks(userId, action.key, action.value ?? null);
+        const value = action.value != null ? interpolate(action.value, ctx) : null;
+        await setUserAttributeWithHooks(userId, action.key, value);
         return;
       }
       case 'assign_mission': {

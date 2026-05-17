@@ -278,18 +278,14 @@ export class AuthController extends BaseController {
       }
 
       // 驗證必填字段
-      if (!body.lineUserId) {
-        this.logDebug('[POST /api/auth/me] 缺少 lineUserId');
+      if (!body.accessToken) {
+        this.logDebug('[POST /api/auth/me] 缺少 accessToken');
         this.reply.code(401);
         return { error: 'Unauthorized' };
       }
 
-      // 調用 Service 業務邏輯
-      const { user, token } = await this.authService.lineLogin(
-        body.lineUserId,
-        body.displayName,
-        body.pictureUrl,
-      );
+      // 調用 Service 業務邏輯（向 LINE API 驗證 token）
+      const { user, token } = await this.authService.lineLogin(body.accessToken);
 
       // 設置 Cookie
       this.setCookie('auth_token', token, getCookieOptions());
