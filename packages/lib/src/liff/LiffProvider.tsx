@@ -86,23 +86,34 @@ export default function LiffProvider({ children, liffId: propLiffId }: { childre
 
         await liff.init({ liffId });
 
+        // Build the redirect URL once — preserve all query params other
+        // than `path` and `liff.state`, so callers can pass app-level
+        // state (e.g. product=xxx) through the LIFF gateway. Before
+        // this, router.replace(targetPath) dropped everything.
+        const buildRedirectUrl = (): string | null => {
+          if (!targetPath?.startsWith('/') || pathname === targetPath) return null;
+          const passThrough = new URLSearchParams();
+          searchParams.forEach((value, key) => {
+            if (key !== 'path' && key !== 'liff.state') passThrough.set(key, value);
+          });
+          return passThrough.toString() ? `${targetPath}?${passThrough.toString()}` : targetPath;
+        };
+
         if (isMounted) {
           const inLineClient = liff.isInClient();
           if (liff.isLoggedIn()) {
             const profile = await liff.getProfile();
             document.cookie = `line_user_id=${profile.userId}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
             setLiffState({ liff, profile, isInitialized: true, isInLineClient: inLineClient, error: null });
-            if (targetPath?.startsWith('/') && pathname !== targetPath) {
-              setTimeout(() => router.replace(targetPath), 50);
-            }
+            const redirectUrl = buildRedirectUrl();
+            if (redirectUrl) setTimeout(() => router.replace(redirectUrl), 50);
           } else if (inLineClient) {
             liff.login({ redirectUri: window.location.href });
             setLiffState({ liff, profile: null, isInitialized: true, isInLineClient: true, error: null });
           } else {
             setLiffState({ liff, profile: null, isInitialized: true, isInLineClient: false, error: null });
-            if (targetPath?.startsWith('/') && pathname !== targetPath) {
-              setTimeout(() => router.replace(targetPath), 50);
-            }
+            const redirectUrl = buildRedirectUrl();
+            if (redirectUrl) setTimeout(() => router.replace(redirectUrl), 50);
           }
         }
       } catch (error) {
