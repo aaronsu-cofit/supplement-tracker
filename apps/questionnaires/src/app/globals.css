@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap');
 @import "tailwindcss";
 
 /* Tailwind v4 source scan — pick up classes from this app + shared packages. */
@@ -11,6 +11,28 @@
   --color-fg: #0f172a;
   --color-muted: #64748b;
   --color-accent: #0ea5e9;
+}
+
+/* Per-questionnaire brand tokens. Prefix with the questionnaire's
+   short key so multiple LIFF pages can coexist without color collisions. */
+@theme {
+  /* women_health_onboarding palette */
+  --color-wh-primary: #A8384A;
+  --color-wh-secondary: #C4566A;
+  --color-wh-accent: #E8906A;
+  --color-wh-mauve: #8E6FA0;
+  --color-wh-rose-tint: #FCEAED;
+  --color-wh-rose-pale: #FFF4F5;
+  --color-wh-blush: #F2CDD3;
+  --color-wh-mauve-tint: #F2EEF7;
+  --color-wh-surface: #FFF8F5;
+  --color-wh-ink-1: #2A1A1F;
+  --color-wh-ink-2: #5C3D47;
+  --color-wh-ink-3: #9E7E87;
+  --color-wh-ink-5: #E8D5D9;
+  --color-wh-ink-6: #F7F0F1;
+
+  --font-serif-wh: 'DM Serif Display', Georgia, serif;
 }
 
 html, body {
@@ -33,6 +55,11 @@ body { min-height: 100dvh; }
   50%       { opacity: 0.75; }
 }
 
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
 @layer utilities {
   .animate-fade-slide-up {
     animation: fadeSlideUp 0.45s ease forwards;
@@ -40,5 +67,8 @@ body { min-height: 100dvh; }
   }
   .animate-twinkle {
     animation: twinkle 3s ease-in-out infinite;
+  }
+  .animate-float-y {
+    animation: floatY 3.5s ease-in-out infinite;
   }
 }
