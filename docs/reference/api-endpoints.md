@@ -298,19 +298,57 @@ Vitera 平台的所有後端 API 均使用 **Fastify** 框架實作，位於 `ba
 
 ## 📋 問卷系統
 
-### `/api/questionnaires` — 問卷管理
+### `/api/questionnaires` — 問卷管理（admin + LIFF）
+
+所有路徑都以 `productId` + `key` 定位一份問卷，因為 questionnaires 是
+Product-scoped（同個 product 內的 key 唯一）。Route 採用 softAuth：
+public endpoints 不需登入，admin / LIFF user 路徑由 controller 內部
+主動檢查 `getAuthenticatedUserId()`。
+
+#### Admin（後台）
 
 | Method | Path | 說明 |
 |--------|------|------|
-| GET | `/api/questionnaires/:key/spec` | 取得問卷規格（題目、選項、分數規則） |
-| POST | `/api/questionnaires/:key/responses` | 提交問卷回覆 |
-| GET | `/api/questionnaires/:key/responses` | 取得使用者的問卷回覆歷史 |
+| GET | `/api/questionnaires/:productId` | 列出某 product 的所有問卷 |
+| POST | `/api/questionnaires/:productId` | 建立新問卷（伺服器驗證 spec） |
+| GET | `/api/questionnaires/:productId/:key` | 取得完整問卷物件（含 spec + actions） |
+| PATCH | `/api/questionnaires/:productId/:key` | 更新問卷 |
+| DELETE | `/api/questionnaires/:productId/:key` | 刪除問卷（連同所有回應） |
+| GET | `/api/questionnaires/:productId/:key/responses` | admin：列出所有人的回應 |
 
-**需認證**：✅
+#### Public / LIFF
+
+| Method | Path | 認證 | 說明 |
+|--------|------|------|------|
+| GET | `/api/questionnaires/:productId/:key/spec` | ❌ 公開 | LIFF 拿規格用 |
+| POST | `/api/questionnaires/:productId/:key/responses` | softAuth | LIFF 提交回應；無 user_id 時 body 帶 `anonymous_id` |
+| GET | `/api/questionnaires/:productId/:key/responses/me` | ✅ 需登入 | LIFF user 看自己的歷史 |
+
+**`POST /responses` body**：
+```json
+{
+  "answers": { "q1": "c", "q2": ["a", "b"] },
+  "anonymous_id": "..."   // 選填，沒有 LIFF user 時必須帶
+}
+```
+
+**`POST /responses` response**：
+```json
+{
+  "id": "cuid_xxx",
+  "scores": { "phq9": 10 },
+  "interpretation": { "phq9": "中度憂鬱" },
+  "triggered_actions": [
+    { "type": "set_attribute", "ok": true },
+    { "type": "assign_mission", "ok": false, "reason": "mission_key xxx not found" }
+  ]
+}
+```
 
 **用途**：
-- LIFF 問卷頁面 (`apps/questionnaires/q/[key]`) 透過此 API 讀取規格與提交
-- 提交後會執行 `on_submit_actions`（設定屬性、分配任務等）
+- LIFF 問卷頁面 (`apps/questionnaires/src/app/q/<key>/page.tsx`) 透過 `useQuestionnaireSpec` / `useSubmitResponse` 兩個 hook 呼叫上面的 spec / responses 端點
+- 提交後伺服器執行 `on_submit_actions`（set_attribute / assign_mission / transition_journey），匿名提交跳過 hooks
+- HQ 「問卷」tab 用 admin CRUD 端點維護內容
 
 ---
 

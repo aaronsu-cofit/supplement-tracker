@@ -38,14 +38,15 @@ cp backend/.env.example backend/.env
 # ... (重複其他 app)
 
 # 啟動特定模組（擇一）
-pnpm dev:wounds       # 傷口照護 + portal + backend
-pnpm dev:bones        # 骨骼模組 + portal + backend
-pnpm dev:supplements  # 保健品 + portal + backend
-pnpm dev:hq           # 後台管理 + backend
-pnpm dev:intimacy     # 親密健康 + portal + backend
+pnpm dev:wounds         # 傷口照護 + portal + backend
+pnpm dev:bones          # 骨骼模組 + portal + backend
+pnpm dev:supplements    # 保健品 + portal + backend
+pnpm dev:hq             # 後台管理 + backend
+pnpm dev:intimacy       # 親密健康 + portal + backend
 pnpm dev:period-tracker # 經期追蹤 + backend
-pnpm dev:portal       # 入口 + backend
-pnpm dev              # 啟動全部（較吃資源，不建議）
+pnpm dev:questionnaires # 問卷 LIFF + backend
+pnpm dev:portal         # 入口 + backend
+pnpm dev                # 啟動全部（較吃資源，不建議）
 ```
 
 各 app 預設 port：
@@ -59,6 +60,7 @@ pnpm dev              # 啟動全部（較吃資源，不建議）
 | bones          | 3003 | http://localhost:3003    |
 | intimacy       | 3004 | http://localhost:3004    |
 | hq             | 3005 | http://localhost:3005    |
+| questionnaires | 3010 | http://localhost:3010    |
 | period-tracker | 5173 | http://localhost:5173    |
 
 健康檢查：`GET http://localhost:8080/health`
@@ -169,6 +171,7 @@ Vitera/
 │   ├── intimacy/                # 親密健康                          port 3004
 │   ├── period-tracker/          # 經期追蹤（Vite + React）         獨立部署
 │   ├── women-healing-room/      # 女性療癒室                        獨立部署
+│   ├── questionnaires/          # 問卷 LIFF 共用容器（每張問卷一個路由） port 3010
 │   └── hq/                      # 後台管理（模組、管理員）           port 3005
 │
 ├── backend/                     # Fastify API Server（GCP Cloud Run）
