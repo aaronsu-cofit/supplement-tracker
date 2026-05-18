@@ -386,48 +386,8 @@ export default function WomenHealthOnboardingPage() {
             </p>
           </motion.section>
 
-          {/* Nutrients */}
-          <ResultSection title="建議營養素" delay={0.35} accentText={f.accent.text}>
-            <div className="flex flex-col gap-2">
-              {f.nutrients.map((n) => (
-                <div
-                  key={n.name}
-                  className="flex items-center gap-3 bg-white border border-wh-ink-5 rounded-xl px-3 py-2.5"
-                >
-                  <span
-                    className={`shrink-0 inline-flex items-center justify-center min-w-[68px] px-2.5 py-1 rounded-full text-[12px] font-semibold ${f.accent.bg} text-white`}
-                  >
-                    {n.name}
-                  </span>
-                  <span className="text-[13px] text-wh-ink-2 leading-[1.5]">{n.reason}</span>
-                </div>
-              ))}
-            </div>
-          </ResultSection>
-
-          {/* Diet */}
-          <ResultSection title="飲食方向" delay={0.4} accentText={f.accent.text}>
-            <ul className="flex flex-col gap-2">
-              {f.diet.map((item, i) => (
-                <li key={i} className="flex items-center gap-2.5 text-[14px] text-wh-ink-2">
-                  <Check className={`shrink-0 ${f.accent.text}`} size={16} />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </ResultSection>
-
-          {/* Lifestyle */}
-          <ResultSection title="生活作息" delay={0.45} accentText={f.accent.text}>
-            <ul className="flex flex-col gap-2">
-              {f.lifestyle.map((item, i) => (
-                <li key={i} className="flex items-center gap-2.5 text-[14px] text-wh-ink-2">
-                  <Check className={`shrink-0 ${f.accent.text}`} size={16} />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </ResultSection>
+          {/* Tabbed actions — Nutrients / Diet / Lifestyle in one swipeable card */}
+          <ActionsTabs flower={f} delay={0.35} />
         </main>
       </div>
     );
@@ -742,6 +702,133 @@ function OptionCard({
 function formatDate(d: Date): string {
   if (Number.isNaN(d.getTime())) return '請選擇日期';
   return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日`;
+}
+
+// Tabbed swipeable card for the 3 action sections (nutrients / diet /
+// lifestyle). Users tap a tab OR horizontally swipe within the content
+// area to switch. Threshold is intentionally high (80px) so vertical
+// scroll doesn't trigger accidental tab changes.
+function ActionsTabs({
+  flower,
+  delay,
+}: {
+  flower: import('./content').FlowerContent;
+  delay: number;
+}) {
+  const [active, setActive] = useState(0);
+  const tabs = [
+    { label: '建議營養素', key: 'nutrients' as const },
+    { label: '飲食方向', key: 'diet' as const },
+    { label: '生活作息', key: 'lifestyle' as const },
+  ];
+
+  const go = (dir: -1 | 1) => {
+    const next = active + dir;
+    if (next >= 0 && next < tabs.length) setActive(next);
+  };
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay }}
+      className="flex flex-col gap-3"
+    >
+      {/* Tab strip */}
+      <div className="flex border-b border-wh-ink-5">
+        {tabs.map((t, i) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setActive(i)}
+            className={`flex-1 py-3 text-[13px] font-semibold transition-all duration-200 -mb-px border-b-2 ${
+              active === i
+                ? `${flower.accent.text} ${flower.accent.border}`
+                : 'text-wh-ink-3 border-transparent hover:text-wh-ink-2'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Swipeable content */}
+      <div className="overflow-hidden touch-pan-y">
+        <motion.div
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.2}
+          onDragEnd={(_, info) => {
+            if (info.offset.x < -80) go(1);
+            else if (info.offset.x > 80) go(-1);
+          }}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={tabs[active].key}
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -24 }}
+              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+              className="pt-3 pb-2"
+            >
+              {tabs[active].key === 'nutrients' && (
+                <div className="flex flex-col gap-2">
+                  {flower.nutrients.map((n) => (
+                    <div
+                      key={n.name}
+                      className="flex items-center gap-3 bg-white border border-wh-ink-5 rounded-xl px-3 py-2.5"
+                    >
+                      <span
+                        className={`shrink-0 inline-flex items-center justify-center min-w-[68px] px-2.5 py-1 rounded-full text-[12px] font-semibold ${flower.accent.bg} text-white`}
+                      >
+                        {n.name}
+                      </span>
+                      <span className="text-[13px] text-wh-ink-2 leading-[1.5]">{n.reason}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {tabs[active].key === 'diet' && (
+                <ul className="flex flex-col gap-2.5">
+                  {flower.diet.map((item, i) => (
+                    <li key={i} className="flex items-center gap-2.5 text-[14px] text-wh-ink-2">
+                      <Check className={`shrink-0 ${flower.accent.text}`} size={16} />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {tabs[active].key === 'lifestyle' && (
+                <ul className="flex flex-col gap-2.5">
+                  {flower.lifestyle.map((item, i) => (
+                    <li key={i} className="flex items-center gap-2.5 text-[14px] text-wh-ink-2">
+                      <Check className={`shrink-0 ${flower.accent.text}`} size={16} />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+      </div>
+
+      {/* Dot pagination */}
+      <div className="flex justify-center gap-1.5">
+        {tabs.map((_, i) => (
+          <span
+            key={i}
+            className={`h-1.5 rounded-full transition-all duration-200 ${
+              active === i ? `${flower.accent.bg} w-4` : 'bg-wh-ink-5 w-1.5'
+            }`}
+          />
+        ))}
+      </div>
+    </motion.section>
+  );
 }
 
 function ResultSection({
