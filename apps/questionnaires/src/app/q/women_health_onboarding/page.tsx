@@ -446,19 +446,11 @@ export default function WomenHealthOnboardingPage() {
         />
       </div>
 
-      <button
-        onClick={() => (safeStep > 0 ? setStep((s) => s - 1) : setStarted(false))}
-        className="fixed top-3.5 left-[18px] w-9 h-9 bg-white/90 backdrop-blur-sm border-[1.5px] border-wh-ink-5 rounded-full flex items-center justify-center cursor-pointer z-50 shadow-[0_1px_8px_rgba(42,26,31,0.06)] hover:bg-white active:scale-95 transition-all"
-        aria-label={safeStep === 0 ? '回到開始' : '上一頁'}
-      >
-        <ChevronLeft size={16} className="text-wh-ink-2" />
-      </button>
-
       <div className="fixed top-5 right-[18px] text-xs font-medium text-wh-ink-3 z-50">
-        {safeStep + 1} / {total}
+        第 {safeStep + 1} 頁 · 共 {total} 頁
       </div>
 
-      <main className="relative z-[1] min-h-dvh max-w-xl mx-auto flex flex-col px-[22px] pt-[72px] pb-10">
+      <main className="relative z-[1] min-h-dvh max-w-xl mx-auto flex flex-col px-[22px] pt-[42px] pb-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentSet.key}
@@ -494,18 +486,28 @@ export default function WomenHealthOnboardingPage() {
               </div>
             )}
 
-            <div className="mt-auto pt-5">
-              <motion.button
-                onClick={handleNext}
-                disabled={!allAnswered || isSubmitting}
-                whileTap={{ scale: 0.97 }}
-                className="w-full h-[52px] bg-gradient-to-br from-wh-primary to-wh-secondary text-white border-none rounded-full font-semibold text-[15px] cursor-pointer flex items-center justify-center gap-2 shadow-[0_4px_18px_rgba(168,56,74,0.28)] hover:shadow-[0_6px_24px_rgba(168,56,74,0.35)] active:scale-[0.97] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-              >
-                {isSubmitting ? '送出中...' : isLast ? '完成，看我的結果' : '下一頁'}
-                {isLast && !isSubmitting && <ArrowRight size={16} />}
-              </motion.button>
+            <div className="mt-auto pt-5 flex flex-col gap-2">
+              <div className="flex gap-3">
+                <motion.button
+                  onClick={() => (safeStep > 0 ? setStep((s) => s - 1) : setStarted(false))}
+                  whileTap={{ scale: 0.97 }}
+                  className="flex-1 h-[52px] bg-white border-[1.5px] border-wh-ink-5 text-wh-ink-2 rounded-full font-semibold text-[15px] cursor-pointer flex items-center justify-center gap-1 hover:border-wh-ink-3 active:scale-[0.97] transition-all duration-200"
+                >
+                  <ChevronLeft size={16} />
+                  上一頁
+                </motion.button>
+                <motion.button
+                  onClick={handleNext}
+                  disabled={!allAnswered || isSubmitting}
+                  whileTap={{ scale: 0.97 }}
+                  className="flex-1 h-[52px] bg-gradient-to-br from-wh-primary to-wh-secondary text-white border-none rounded-full font-semibold text-[15px] cursor-pointer flex items-center justify-center gap-1 shadow-[0_4px_18px_rgba(168,56,74,0.28)] hover:shadow-[0_6px_24px_rgba(168,56,74,0.35)] active:scale-[0.97] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                >
+                  {isSubmitting ? '送出中...' : isLast ? '完成' : '下一頁'}
+                  {!isSubmitting && <ArrowRight size={16} />}
+                </motion.button>
+              </div>
               {!allAnswered && (
-                <p className="text-center text-xs text-wh-ink-3 mt-2">請完成這一頁的題目</p>
+                <p className="text-center text-xs text-wh-ink-3 mt-1">請完成這一頁的題目</p>
               )}
             </div>
           </motion.div>
