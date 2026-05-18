@@ -344,11 +344,19 @@ function VibeCoderHelpModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="p-5 flex flex-col gap-4 text-sm">
+          <section className="bg-amber-50 border border-amber-200 rounded p-3">
+            <p className="text-amber-900 text-xs">
+              📖 想看完整端到端教學（規劃 / spec / vibe code / 部署 / 測試）：
+              {' '}
+              <code className="bg-white px-1.5 py-0.5 rounded font-mono">apps/questionnaires/docs/getting-started.md</code>
+            </p>
+          </section>
+
           <section>
             <h4 className="font-semibold mb-2">流程（共 3 步）</h4>
             <ol className="list-decimal list-inside flex flex-col gap-1 text-slate-700">
-              <li>HQ 先建好問卷（spec + scoring + on_submit_actions）</li>
-              <li>Vibe coder 在 <code className="text-xs bg-slate-100 px-1 rounded">apps/questionnaires</code> 加一個 page</li>
+              <li>HQ 先建好問卷（建議「從範本載入」省事；30 個常見問卷都已內建）</li>
+              <li>Vibe coder 在 <code className="text-xs bg-slate-100 px-1 rounded">apps/questionnaires</code> 加一個 page（只做 UI 視覺，hooks 自動拿好 spec）</li>
               <li>Push staging → 5-8 分鐘部署完 → 用上面那行 LIFF URL 測試</li>
             </ol>
           </section>
