@@ -355,21 +355,21 @@
   "classification_rules": [
     {
       "output_key": "flower_type",
-      "output_label": "目前狀態暫不適用此分型｜建議諮詢專業醫師評估你的健康狀況",
+      "output_label": "ineligible",
       "conditions": [
         { "score_key": "score_q3_applicable", "op": "lte", "value": 0 }
       ]
     },
     {
       "output_key": "flower_type",
-      "output_label": "🌼 雛菊型 · 穩定保養型｜目前身體狀態穩定，建議維持規律作息與基本保健",
+      "output_label": "daisy",
       "conditions": [
         { "score_key": "score_q3_applicable", "op": "gte", "value": 1 }
       ]
     },
     {
       "output_key": "flower_type",
-      "output_label": "🌹 玫瑰型 · 週期波動型｜經前症候群明顯，建議從營養補充與經前飲食調整切入",
+      "output_label": "rose",
       "conditions": [
         { "score_key": "score_q3_applicable", "op": "gte", "value": 1 },
         { "score_key": "score_pms_battery",   "op": "gte", "value": 14 },
@@ -378,7 +378,7 @@
     },
     {
       "output_key": "flower_type",
-      "output_label": "🌺 蘭花型 · 週期不規律型｜月經週期較不規律，建議從睡眠、壓力與生活節奏切入",
+      "output_label": "orchid",
       "conditions": [
         { "score_key": "score_q3_applicable",        "op": "gte", "value": 1 },
         { "score_key": "score_q5_irregular_signal",  "op": "gte", "value": 2 }
@@ -386,7 +386,7 @@
     },
     {
       "output_key": "flower_type",
-      "output_label": "🌺 蘭花型 · 週期不規律型｜月經週期較不規律，建議從睡眠、壓力與生活節奏切入",
+      "output_label": "orchid",
       "conditions": [
         { "score_key": "score_q3_applicable",   "op": "gte", "value": 1 },
         { "score_key": "score_q6_issues_count", "op": "gte", "value": 2 }
@@ -394,7 +394,7 @@
     },
     {
       "output_key": "flower_type",
-      "output_label": "🌺 蘭花型 · 週期不規律型｜月經週期較不規律，建議從睡眠、壓力與生活節奏切入",
+      "output_label": "orchid",
       "conditions": [
         { "score_key": "score_q3_applicable", "op": "gte", "value": 1 },
         { "score_key": "score_q20_high",      "op": "gte", "value": 1 }
@@ -402,7 +402,7 @@
     },
     {
       "output_key": "flower_type",
-      "output_label": "🌻 向日葵型 · 代謝能量型｜身體訊號偏向代謝與能量起伏，建議從飲食結構、血糖穩定與運動節律切入",
+      "output_label": "sunflower",
       "conditions": [
         { "score_key": "score_q3_applicable",        "op": "gte", "value": 1 },
         { "score_key": "score_metabolic_battery",    "op": "gte", "value": 13 },

@@ -42,6 +42,7 @@ import type {
   Question,
   VisibleIfClause,
 } from '../../../types/spec';
+import { FLOWERS, type FlowerKey } from './content';
 
 // Visual metadata: icons for choice cards. Scale (0–4) questions render
 // as Likert dots and don't need icons. Add entries as new card-style
@@ -279,34 +280,154 @@ export default function WomenHealthOnboardingPage() {
   }
 
   if (result) {
-    // Pull the classification label (set by classification_rules).
-    // Convention: output_label uses ｜ as section divider.
-    //   "🌻 向日葵型 · 代謝能量型｜身體訊號偏向代謝與能量起伏，建議..."
-    //   Part 0 = title (with emoji + type name)
-    //   Part 1 = description
-    const flowerLabel = result.interpretation.flower_type ?? '';
-    const [flowerTitle, flowerDesc] = flowerLabel.split('｜').map((s) => s.trim());
+    const flowerKey = (result.interpretation.flower_type ?? '') as FlowerKey;
 
+    // Ineligible: Q3 not in 'having_period' (menopause / pregnant / etc).
+    // Show a calm "consult a specialist" screen rather than the rich flower
+    // layout, because none of the cycle-based content applies.
+    if (flowerKey === 'ineligible' || !(flowerKey in FLOWERS)) {
+      return (
+        <div className={BG}>
+          <BackgroundBlobs />
+          <main className="relative z-[1] min-h-dvh flex flex-col items-center justify-center gap-5 px-6 py-12 max-w-xl mx-auto text-center">
+            <Stethoscope size={48} className="text-wh-ink-3" strokeWidth={1.5} />
+            <div>
+              <p className="text-[10px] font-bold tracking-[2.5px] text-wh-secondary uppercase mb-2">
+                目前狀態
+              </p>
+              <h1 className="font-serif-wh text-[28px] leading-[1.28] text-wh-ink-1 mb-3">
+                暫不適用此分型
+              </h1>
+              <p className="text-sm text-wh-ink-2 leading-[1.85] max-w-[320px] mx-auto">
+                你目前的生理狀態（停經 / 懷孕 / 哺乳 / 手術後等）需要不同的健康評估方式，
+                建議與專業醫師討論最適合你的保健方向。
+              </p>
+            </div>
+          </main>
+        </div>
+      );
+    }
+
+    const f = FLOWERS[flowerKey];
     return (
       <div className={BG}>
         <BackgroundBlobs />
-        <main className="relative z-[1] min-h-dvh flex flex-col items-center justify-center gap-6 px-6 py-12 max-w-xl mx-auto">
-          <div className="text-center">
-            <p className="text-[10px] font-bold tracking-[2.5px] text-wh-secondary uppercase mb-2">
-              你的分型
-            </p>
-            <h1 className="font-serif-wh text-[32px] leading-[1.28] text-wh-ink-1 mb-2 whitespace-pre-line">
-              {flowerTitle || '完成！'}
-            </h1>
-            {flowerDesc && (
-              <p className="text-sm text-wh-ink-2 leading-[1.78] max-w-[300px] mx-auto">
-                {flowerDesc}
+        <main className="relative z-[1] max-w-xl mx-auto px-5 pt-12 pb-16 flex flex-col gap-6">
+          {/* Hero */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="flex flex-col items-center text-center gap-3"
+          >
+            <span className="text-[72px] leading-none animate-float-y">{f.emoji}</span>
+            <div>
+              <p className={`text-[10px] font-bold tracking-[2.5px] uppercase mb-1 ${f.accent.text}`}>
+                你的分型
               </p>
-            )}
-            {!flowerLabel && (
-              <p className="mt-1 text-sm text-wh-ink-3">謝謝你的填答，我們會根據結果為你調整計畫 ✨</p>
-            )}
-          </div>
+              <h1 className="font-serif-wh text-[36px] leading-[1.15] text-wh-ink-1">
+                {f.shortName}
+              </h1>
+              <p className={`text-sm font-medium mt-1 ${f.accent.text}`}>· {f.subtitle}</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-1.5 mt-1">
+              {f.hashtags.map((tag) => (
+                <span
+                  key={tag}
+                  className={`text-[11px] font-medium px-3 py-1 rounded-full ${f.accent.bgTint} ${f.accent.text}`}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </motion.section>
+
+          {/* Description */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="bg-white border border-wh-ink-5 rounded-2xl p-5 shadow-[0_1px_8px_rgba(42,26,31,0.06)]"
+          >
+            <p className="text-[14px] text-wh-ink-2 leading-[1.85]">{f.description}</p>
+          </motion.section>
+
+          {/* Manifestations */}
+          <ResultSection title="常見表現" delay={0.2} accentText={f.accent.text}>
+            <ol className="flex flex-col gap-2.5">
+              {f.manifestations.map((item, i) => (
+                <li key={i} className="flex gap-3 text-[14px] text-wh-ink-2 leading-[1.6]">
+                  <span
+                    className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white ${f.accent.bg}`}
+                  >
+                    {i + 1}
+                  </span>
+                  <span className="flex-1 pt-0.5">{item}</span>
+                </li>
+              ))}
+            </ol>
+          </ResultSection>
+
+          {/* Mechanism */}
+          <ResultSection title="可能機轉" delay={0.25} accentText={f.accent.text}>
+            <p className="text-[14px] text-wh-ink-2 leading-[1.85]">{f.mechanism}</p>
+          </ResultSection>
+
+          {/* Key message — highlight banner */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className={`rounded-2xl p-5 border-l-4 ${f.accent.border} ${f.accent.bgTint}`}
+          >
+            <p className="flex items-start gap-2 text-[14px] text-wh-ink-1 leading-[1.78] font-medium">
+              <Sparkles className={`shrink-0 mt-0.5 ${f.accent.text}`} size={16} />
+              <span>{f.keyMessage}</span>
+            </p>
+          </motion.section>
+
+          {/* Nutrients */}
+          <ResultSection title="建議營養素" delay={0.35} accentText={f.accent.text}>
+            <div className="flex flex-col gap-2">
+              {f.nutrients.map((n) => (
+                <div
+                  key={n.name}
+                  className="flex items-center gap-3 bg-white border border-wh-ink-5 rounded-xl px-3 py-2.5"
+                >
+                  <span
+                    className={`shrink-0 inline-flex items-center justify-center min-w-[68px] px-2.5 py-1 rounded-full text-[12px] font-semibold ${f.accent.bg} text-white`}
+                  >
+                    {n.name}
+                  </span>
+                  <span className="text-[13px] text-wh-ink-2 leading-[1.5]">{n.reason}</span>
+                </div>
+              ))}
+            </div>
+          </ResultSection>
+
+          {/* Diet */}
+          <ResultSection title="飲食方向" delay={0.4} accentText={f.accent.text}>
+            <ul className="flex flex-col gap-2">
+              {f.diet.map((item, i) => (
+                <li key={i} className="flex items-center gap-2.5 text-[14px] text-wh-ink-2">
+                  <Check className={`shrink-0 ${f.accent.text}`} size={16} />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </ResultSection>
+
+          {/* Lifestyle */}
+          <ResultSection title="生活作息" delay={0.45} accentText={f.accent.text}>
+            <ul className="flex flex-col gap-2">
+              {f.lifestyle.map((item, i) => (
+                <li key={i} className="flex items-center gap-2.5 text-[14px] text-wh-ink-2">
+                  <Check className={`shrink-0 ${f.accent.text}`} size={16} />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </ResultSection>
         </main>
       </div>
     );
@@ -619,6 +740,33 @@ function OptionCard({
 function formatDate(d: Date): string {
   if (Number.isNaN(d.getTime())) return '請選擇日期';
   return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日`;
+}
+
+function ResultSection({
+  title,
+  delay,
+  accentText,
+  children,
+}: {
+  title: string;
+  delay: number;
+  accentText: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay }}
+      className="flex flex-col gap-3"
+    >
+      <h2 className="text-[15px] font-bold text-wh-ink-1 flex items-center gap-2">
+        <span className={accentText}>✦</span>
+        {title}
+      </h2>
+      {children}
+    </motion.section>
+  );
 }
 
 function BackgroundBlobs() {
