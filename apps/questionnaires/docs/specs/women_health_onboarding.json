@@ -1,0 +1,414 @@
+{
+  "question_sets": [
+    {
+      "key": "basic_info",
+      "name": "基本資料",
+      "calculation_type": "sum_up",
+      "questions": [
+        { "id": "name", "kind": "text", "text": "您的姓名", "required": true },
+        {
+          "id": "age_range",
+          "kind": "single_selection",
+          "text": "您的年齡區間",
+          "required": true,
+          "choices": [
+            { "id": "18_24",   "label": "18–24 歲",  "score": 0 },
+            { "id": "25_34",   "label": "25–34 歲",  "score": 0 },
+            { "id": "35_44",   "label": "35–44 歲",  "score": 0 },
+            { "id": "45_54",   "label": "45–54 歲",  "score": 0 },
+            { "id": "55_plus", "label": "55 歲以上", "score": 0 }
+          ]
+        },
+        {
+          "id": "physiological_state",
+          "kind": "single_selection",
+          "text": "您目前的生理狀態較符合以下哪一項？",
+          "required": true,
+          "choices": [
+            { "id": "having_period", "label": "有月經週期",                "score": 0 },
+            { "id": "menopause",     "label": "已停經",                    "score": 0 },
+            { "id": "pregnant",      "label": "懷孕中",                    "score": 0 },
+            { "id": "breastfeeding", "label": "哺乳中",                    "score": 0 },
+            { "id": "post_surgery",  "label": "曾接受可能影響月經的手術",  "score": 0 },
+            { "id": "unsure",        "label": "不確定",                    "score": 0 }
+          ]
+        },
+        {
+          "id": "medications",
+          "kind": "single_selection",
+          "text": "您目前是否使用可能影響月經或荷爾蒙的藥物／治療？",
+          "required": true,
+          "choices": [
+            { "id": "none",                "label": "沒有",           "score": 0 },
+            { "id": "oral_contraceptive",  "label": "口服避孕藥",     "score": 0 },
+            { "id": "hormone_therapy",     "label": "荷爾蒙治療",     "score": 0 },
+            { "id": "glp1_or_weight_loss", "label": "GLP-1／減重藥物","score": 0 },
+            { "id": "other",               "label": "其他",           "score": 0 },
+            { "id": "unsure",              "label": "不確定",         "score": 0 }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "cycle_status",
+      "name": "月經週期狀況",
+      "calculation_type": "sum_up",
+      "questions": [
+        {
+          "id": "cycle_regularity",
+          "kind": "single_selection",
+          "text": "您的月經週期通常規律嗎？",
+          "required": true,
+          "choices": [
+            { "id": "mostly_regular",         "label": "大致規律",   "score": 0 },
+            { "id": "occasionally_irregular", "label": "偶爾不規律", "score": 0 },
+            { "id": "often_irregular",        "label": "經常不規律", "score": 0 },
+            { "id": "unsure",                 "label": "不確定",     "score": 0 }
+          ]
+        },
+        {
+          "id": "cycle_issues",
+          "kind": "multiple_selection",
+          "text": "您是否曾有以下情況？",
+          "required": true,
+          "choices": [
+            { "id": "delayed",       "label": "月經延遲很久才來", "score": 0 },
+            { "id": "skipped",       "label": "月經跳過沒來",     "score": 0 },
+            { "id": "length_varies", "label": "週期忽長忽短",     "score": 0 },
+            { "id": "heavy_flow",    "label": "經血量明顯過多",   "score": 0 },
+            { "id": "light_flow",    "label": "經血量明顯過少",   "score": 0 },
+            { "id": "none",          "label": "都沒有",           "score": 0 }
+          ]
+        },
+        {
+          "id": "body_change_with_cycle",
+          "kind": "single_selection",
+          "text": "您的身體不適是否會隨月經週期明顯變化？",
+          "required": true,
+          "choices": [
+            { "id": "0", "label": "完全沒有", "score": 0 },
+            { "id": "1", "label": "很少",     "score": 1 },
+            { "id": "2", "label": "有時",     "score": 2 },
+            { "id": "3", "label": "經常",     "score": 3 },
+            { "id": "4", "label": "幾乎每次", "score": 4 }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "symptoms_pms",
+      "name": "症狀評估 · 月經週期",
+      "description": "請依照最近 3 個月的感受勾選",
+      "calculation_type": "sum_up",
+      "questions": [
+        { "id": "pms_mood",            "kind": "single_selection", "text": "經前情緒起伏明顯",                "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "pms_breast",          "kind": "single_selection", "text": "經前乳房脹痛",                    "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "pms_acne",            "kind": "single_selection", "text": "容易長痘痘，尤其與月經週期有關",  "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "pms_stress_sleep",    "kind": "single_selection", "text": "壓力或睡眠會影響月經狀況",        "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "pms_cravings",        "kind": "single_selection", "text": "月經前特別容易想吃甜食或食量增加","required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "pms_bloating",        "kind": "single_selection", "text": "月經前容易水腫或覺得身體變重",    "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "pms_fatigue",         "kind": "single_selection", "text": "月經前容易疲倦、頭痛或注意力下降","required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "cycle_activity_drop", "kind": "single_selection", "text": "月經期間活動力明顯下降",          "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] }
+      ]
+    },
+    {
+      "key": "symptoms_metabolic",
+      "name": "症狀評估 · 食欲與代謝",
+      "calculation_type": "sum_up",
+      "questions": [
+        { "id": "cravings_sweet",     "kind": "single_selection", "text": "容易想吃甜食或精緻澱粉",       "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "postprandial_sleepy","kind": "single_selection", "text": "吃完飯後容易疲倦想睡",         "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "hunger_after_sweet", "kind": "single_selection", "text": "容易肚子餓，尤其吃甜食後更快餓","required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "weight_gain_belly",  "kind": "single_selection", "text": "體重容易增加，尤其腹部脂肪增加","required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] }
+      ]
+    },
+    {
+      "key": "general_status",
+      "name": "整體狀態與目標",
+      "calculation_type": "sum_up",
+      "questions": [
+        {
+          "id": "pcos_risk_known",
+          "kind": "single_selection",
+          "text": "曾被告知有血糖偏高、胰島素阻抗或 PCOS 傾向",
+          "required": true,
+          "choices": [
+            { "id": "0", "label": "沒有",     "score": 0 },
+            { "id": "1", "label": "懷疑",     "score": 1 },
+            { "id": "2", "label": "曾被提及", "score": 2 },
+            { "id": "3", "label": "高度懷疑", "score": 3 },
+            { "id": "4", "label": "明確有",   "score": 4 }
+          ]
+        },
+        {
+          "id": "motivation_habit",
+          "kind": "single_selection",
+          "text": "目前沒有特別明顯困擾，但希望建立女性健康保養習慣",
+          "required": true,
+          "choices": [
+            { "id": "0", "label": "完全不符合", "score": 0 },
+            { "id": "1", "label": "有點符合",   "score": 1 },
+            { "id": "2", "label": "部分符合",   "score": 2 },
+            { "id": "3", "label": "大致符合",   "score": 3 },
+            { "id": "4", "label": "非常符合",   "score": 4 }
+          ]
+        },
+        { "id": "intimate_discomfort",   "kind": "single_selection", "text": "我偶爾會有私密處悶熱、輕微不適或分泌物變化困擾", "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "lifestyle_sensitivity", "kind": "single_selection", "text": "我的身體狀態容易受到壓力、睡眠或生活節奏影響",   "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        {
+          "id": "energy_fatigue",
+          "kind": "single_selection",
+          "text": "最近常覺得精神不足、容易疲倦或能量起伏大",
+          "required": true,
+          "choices": [
+            { "id": "0", "label": "完全沒有", "score": 0 },
+            { "id": "1", "label": "很少",     "score": 1 },
+            { "id": "2", "label": "有時",     "score": 2 },
+            { "id": "3", "label": "經常",     "score": 3 },
+            { "id": "4", "label": "幾乎每天", "score": 4 }
+          ]
+        },
+        {
+          "id": "motivation_improve",
+          "kind": "single_selection",
+          "text": "我希望改善女性健康、體態或整體生活節律",
+          "required": true,
+          "choices": [
+            { "id": "0", "label": "完全不符合", "score": 0 },
+            { "id": "1", "label": "有點符合",   "score": 1 },
+            { "id": "2", "label": "部分符合",   "score": 2 },
+            { "id": "3", "label": "大致符合",   "score": 3 },
+            { "id": "4", "label": "非常符合",   "score": 4 }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "cycle_dates",
+      "name": "月經週期補充資訊",
+      "description": "請填寫最近 3 次月經第一天",
+      "calculation_type": "sum_up",
+      "questions": [
+        {
+          "id": "last_period_1",
+          "kind": "date",
+          "text": "最近一次月經開始日期（第一天）",
+          "required": true,
+          "visible_if": { "physiological_state": "having_period" }
+        },
+        {
+          "id": "last_period_2",
+          "kind": "date",
+          "text": "上一次月經開始日期（第一天）",
+          "required": true,
+          "visible_if": { "physiological_state": "having_period" }
+        },
+        {
+          "id": "last_period_3",
+          "kind": "date",
+          "text": "再前一次月經開始日期（第一天）",
+          "required": true,
+          "visible_if": { "physiological_state": "having_period" }
+        }
+      ]
+    },
+    {
+      "key": "score_q3_applicable",
+      "name": "(分數) Q3 是否進入分型",
+      "calculation_type": "sum_up",
+      "questions": [
+        {
+          "id": "physiological_state",
+          "kind": "single_selection",
+          "text": "您目前的生理狀態較符合以下哪一項？",
+          "required": true,
+          "choices": [
+            { "id": "having_period", "label": "有月經週期",                "score": 1 },
+            { "id": "menopause",     "label": "已停經",                    "score": 0 },
+            { "id": "pregnant",      "label": "懷孕中",                    "score": 0 },
+            { "id": "breastfeeding", "label": "哺乳中",                    "score": 0 },
+            { "id": "post_surgery",  "label": "曾接受可能影響月經的手術",  "score": 0 },
+            { "id": "unsure",        "label": "不確定",                    "score": 0 }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "score_q5_irregular_signal",
+      "name": "(分數) Q5 不規律訊號",
+      "calculation_type": "sum_up",
+      "questions": [
+        {
+          "id": "cycle_regularity",
+          "kind": "single_selection",
+          "text": "您的月經週期通常規律嗎？",
+          "required": true,
+          "choices": [
+            { "id": "mostly_regular",         "label": "大致規律",   "score": 0 },
+            { "id": "occasionally_irregular", "label": "偶爾不規律", "score": 1 },
+            { "id": "often_irregular",        "label": "經常不規律", "score": 2 },
+            { "id": "unsure",                 "label": "不確定",     "score": 0 }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "score_q6_issues_count",
+      "name": "(分數) Q6 週期型異常題數（延遲/跳過/忽長忽短）",
+      "calculation_type": "sum_up",
+      "questions": [
+        {
+          "id": "cycle_issues",
+          "kind": "multiple_selection",
+          "text": "您是否曾有以下情況？",
+          "required": true,
+          "choices": [
+            { "id": "delayed",       "label": "月經延遲很久才來", "score": 1 },
+            { "id": "skipped",       "label": "月經跳過沒來",     "score": 1 },
+            { "id": "length_varies", "label": "週期忽長忽短",     "score": 1 },
+            { "id": "heavy_flow",    "label": "經血量明顯過多",   "score": 0 },
+            { "id": "light_flow",    "label": "經血量明顯過少",   "score": 0 },
+            { "id": "none",          "label": "都沒有",           "score": 0 }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "score_q7_severity",
+      "name": "(分數) Q7 隨經期變化程度",
+      "calculation_type": "sum_up",
+      "questions": [
+        {
+          "id": "body_change_with_cycle",
+          "kind": "single_selection",
+          "text": "您的身體不適是否會隨月經週期明顯變化？",
+          "required": true,
+          "choices": [
+            { "id": "0", "label": "完全沒有", "score": 0 },
+            { "id": "1", "label": "很少",     "score": 1 },
+            { "id": "2", "label": "有時",     "score": 2 },
+            { "id": "3", "label": "經常",     "score": 3 },
+            { "id": "4", "label": "幾乎每次", "score": 4 }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "score_pms_battery",
+      "name": "(分數) PMS 主判斷分 Q7+Q8+Q9+Q12+Q13+Q14+Q15",
+      "calculation_type": "sum_up",
+      "questions": [
+        { "id": "body_change_with_cycle", "kind": "single_selection", "text": "您的身體不適是否會隨月經週期明顯變化？", "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "pms_mood",               "kind": "single_selection", "text": "經前情緒起伏明顯",                       "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "pms_breast",             "kind": "single_selection", "text": "經前乳房脹痛",                           "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "pms_cravings",           "kind": "single_selection", "text": "月經前特別容易想吃甜食或食量增加",       "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "pms_bloating",           "kind": "single_selection", "text": "月經前容易水腫或覺得身體變重",           "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "pms_fatigue",            "kind": "single_selection", "text": "月經前容易疲倦、頭痛或注意力下降",       "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "cycle_activity_drop",    "kind": "single_selection", "text": "月經期間活動力明顯下降",                 "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] }
+      ]
+    },
+    {
+      "key": "score_metabolic_battery",
+      "name": "(分數) 代謝主判斷分 Q16+Q17+Q18+Q19+Q20+Q24",
+      "calculation_type": "sum_up",
+      "questions": [
+        { "id": "cravings_sweet",      "kind": "single_selection", "text": "容易想吃甜食或精緻澱粉",                  "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "postprandial_sleepy", "kind": "single_selection", "text": "吃完飯後容易疲倦想睡",                    "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "hunger_after_sweet",  "kind": "single_selection", "text": "容易肚子餓，尤其吃甜食後更快餓",          "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "weight_gain_belly",   "kind": "single_selection", "text": "體重容易增加，尤其腹部脂肪增加",          "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "pcos_risk_known",     "kind": "single_selection", "text": "曾被告知有血糖偏高、胰島素阻抗或 PCOS 傾向","required": true, "choices": [{"id":"0","label":"沒有","score":0},{"id":"1","label":"懷疑","score":1},{"id":"2","label":"曾被提及","score":2},{"id":"3","label":"高度懷疑","score":3},{"id":"4","label":"明確有","score":4}] },
+        { "id": "energy_fatigue",      "kind": "single_selection", "text": "最近常覺得精神不足、容易疲倦或能量起伏大",  "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每天","score":4}] }
+      ]
+    },
+    {
+      "key": "score_q20_high",
+      "name": "(分數) Q20 PCOS 高度懷疑（≥3 = 1）",
+      "calculation_type": "count_above_threshold",
+      "threshold": 3,
+      "questions": [
+        {
+          "id": "pcos_risk_known",
+          "kind": "single_selection",
+          "text": "曾被告知有血糖偏高、胰島素阻抗或 PCOS 傾向",
+          "required": true,
+          "choices": [
+            { "id": "0", "label": "沒有",     "score": 0 },
+            { "id": "1", "label": "懷疑",     "score": 1 },
+            { "id": "2", "label": "曾被提及", "score": 2 },
+            { "id": "3", "label": "高度懷疑", "score": 3 },
+            { "id": "4", "label": "明確有",   "score": 4 }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "score_extreme_signal",
+      "name": "(分數) Q19 或 Q20 = 4 的題數",
+      "calculation_type": "count_above_threshold",
+      "threshold": 4,
+      "questions": [
+        { "id": "weight_gain_belly", "kind": "single_selection", "text": "體重容易增加，尤其腹部脂肪增加",          "required": true, "choices": [{"id":"0","label":"完全沒有","score":0},{"id":"1","label":"很少","score":1},{"id":"2","label":"有時","score":2},{"id":"3","label":"經常","score":3},{"id":"4","label":"幾乎每次","score":4}] },
+        { "id": "pcos_risk_known",   "kind": "single_selection", "text": "曾被告知有血糖偏高、胰島素阻抗或 PCOS 傾向","required": true, "choices": [{"id":"0","label":"沒有","score":0},{"id":"1","label":"懷疑","score":1},{"id":"2","label":"曾被提及","score":2},{"id":"3","label":"高度懷疑","score":3},{"id":"4","label":"明確有","score":4}] }
+      ]
+    }
+  ],
+  "classification_rules": [
+    {
+      "output_key": "flower_type",
+      "output_label": "目前狀態暫不適用此分型｜建議諮詢專業醫師評估你的健康狀況",
+      "conditions": [
+        { "score_key": "score_q3_applicable", "op": "lte", "value": 0 }
+      ]
+    },
+    {
+      "output_key": "flower_type",
+      "output_label": "🌼 雛菊型 · 穩定保養型｜目前身體狀態穩定，建議維持規律作息與基本保健",
+      "conditions": [
+        { "score_key": "score_q3_applicable", "op": "gte", "value": 1 }
+      ]
+    },
+    {
+      "output_key": "flower_type",
+      "output_label": "🌹 玫瑰型 · 週期波動型｜經前症候群明顯，建議從營養補充與經前飲食調整切入",
+      "conditions": [
+        { "score_key": "score_q3_applicable", "op": "gte", "value": 1 },
+        { "score_key": "score_pms_battery",   "op": "gte", "value": 14 },
+        { "score_key": "score_q7_severity",   "op": "gte", "value": 2 }
+      ]
+    },
+    {
+      "output_key": "flower_type",
+      "output_label": "🌺 蘭花型 · 週期不規律型｜月經週期較不規律，建議從睡眠、壓力與生活節奏切入",
+      "conditions": [
+        { "score_key": "score_q3_applicable",        "op": "gte", "value": 1 },
+        { "score_key": "score_q5_irregular_signal",  "op": "gte", "value": 2 }
+      ]
+    },
+    {
+      "output_key": "flower_type",
+      "output_label": "🌺 蘭花型 · 週期不規律型｜月經週期較不規律，建議從睡眠、壓力與生活節奏切入",
+      "conditions": [
+        { "score_key": "score_q3_applicable",   "op": "gte", "value": 1 },
+        { "score_key": "score_q6_issues_count", "op": "gte", "value": 2 }
+      ]
+    },
+    {
+      "output_key": "flower_type",
+      "output_label": "🌺 蘭花型 · 週期不規律型｜月經週期較不規律，建議從睡眠、壓力與生活節奏切入",
+      "conditions": [
+        { "score_key": "score_q3_applicable", "op": "gte", "value": 1 },
+        { "score_key": "score_q20_high",      "op": "gte", "value": 1 }
+      ]
+    },
+    {
+      "output_key": "flower_type",
+      "output_label": "🌻 向日葵型 · 代謝能量型｜身體訊號偏向代謝與能量起伏，建議從飲食結構、血糖穩定與運動節律切入",
+      "conditions": [
+        { "score_key": "score_q3_applicable",        "op": "gte", "value": 1 },
+        { "score_key": "score_metabolic_battery",    "op": "gte", "value": 13 },
+        { "score_key": "score_q5_irregular_signal",  "op": "gte", "value": 1 },
+        { "score_key": "score_extreme_signal",       "op": "gte", "value": 1 }
+      ]
+    }
+  ]
+}

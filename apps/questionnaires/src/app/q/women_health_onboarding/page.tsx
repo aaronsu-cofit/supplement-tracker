@@ -140,8 +140,16 @@ export default function WomenHealthOnboardingPage() {
   const [answers, setAnswers] = useState<Answers>({});
 
   const sets = meta?.spec.question_sets ?? [];
+  // Sets whose key starts with `score_` are scoring-only — they exist in
+  // the spec for classification_rules to reference but should never be
+  // rendered as a page.
   const visibleSets = useMemo(
-    () => sets.filter((s) => (s.questions ?? []).some((q) => isVisible(q, answers))),
+    () =>
+      sets.filter(
+        (s) =>
+          !s.key.startsWith('score_') &&
+          (s.questions ?? []).some((q) => isVisible(q, answers)),
+      ),
     [sets, answers],
   );
   const safeStep = Math.min(step, Math.max(0, visibleSets.length - 1));
@@ -271,40 +279,32 @@ export default function WomenHealthOnboardingPage() {
   }
 
   if (result) {
+    // Pull the classification label (set by classification_rules).
+    // Convention: output_label uses ｜ as section divider.
+    //   "🌻 向日葵型 · 代謝能量型｜身體訊號偏向代謝與能量起伏，建議..."
+    //   Part 0 = title (with emoji + type name)
+    //   Part 1 = description
+    const flowerLabel = result.interpretation.flower_type ?? '';
+    const [flowerTitle, flowerDesc] = flowerLabel.split('｜').map((s) => s.trim());
+
     return (
       <div className={BG}>
         <BackgroundBlobs />
         <main className="relative z-[1] min-h-dvh flex flex-col items-center justify-center gap-6 px-6 py-12 max-w-xl mx-auto">
-          <span className="text-5xl">🌷</span>
           <div className="text-center">
-            <h1 className="font-serif-wh text-3xl text-wh-ink-1">完成！</h1>
-            <p className="mt-1 text-sm text-wh-ink-3">謝謝你的填答，我們會根據結果為你調整計畫 ✨</p>
-          </div>
-          <div className="w-full bg-white border border-wh-ink-5 rounded-2xl p-6 shadow-[0_1px_8px_rgba(42,26,31,0.06)]">
-            {Object.keys(result.interpretation).length > 0 && (
-              <ul className="flex flex-col gap-2 text-sm">
-                {Object.entries(result.interpretation).map(([k, v]) => (
-                  <li key={k} className="flex justify-between gap-3">
-                    <span className="text-wh-ink-3">{k}</span>
-                    <span className="text-wh-ink-1 font-medium">{v}</span>
-                  </li>
-                ))}
-              </ul>
+            <p className="text-[10px] font-bold tracking-[2.5px] text-wh-secondary uppercase mb-2">
+              你的分型
+            </p>
+            <h1 className="font-serif-wh text-[32px] leading-[1.28] text-wh-ink-1 mb-2 whitespace-pre-line">
+              {flowerTitle || '完成！'}
+            </h1>
+            {flowerDesc && (
+              <p className="text-sm text-wh-ink-2 leading-[1.78] max-w-[300px] mx-auto">
+                {flowerDesc}
+              </p>
             )}
-            {Object.keys(result.scores).length > 0 && (
-              <>
-                {Object.keys(result.interpretation).length > 0 && (
-                  <div className="my-4 border-t border-wh-ink-5" />
-                )}
-                <ul className="flex flex-col gap-2 text-sm">
-                  {Object.entries(result.scores).map(([k, v]) => (
-                    <li key={k} className="flex justify-between gap-3">
-                      <span className="text-wh-ink-3">{k}</span>
-                      <span className="text-wh-primary font-semibold">{String(v)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </>
+            {!flowerLabel && (
+              <p className="mt-1 text-sm text-wh-ink-3">謝謝你的填答，我們會根據結果為你調整計畫 ✨</p>
             )}
           </div>
         </main>
